@@ -321,6 +321,36 @@ class CarDetailScreen extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 24),
+                  // Description Section
+                  if (post.description?.isNotEmpty ?? false) ...[
+                    Text(
+                      'description'.tr().toUpperCase(),
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey[700],
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey[200] ?? Colors.grey),
+                      ),
+                      child: Text(
+                        post.description ?? '',
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          height: 1.5,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+                  
+                  // Seller Information
                   Text(
                     'seller_information'.tr(),
                     style: theme.textTheme.titleLarge?.copyWith(
