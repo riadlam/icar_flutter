@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "531675145063",
+    "project_id": "arboreal-melody-461000-v9",
+    "storage_bucket": "arboreal-melody-461000-v9.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:531675145063:android:1392ed2d09a8f15b5185c2",
+        "android_client_info": {
+          "package_name": "com.example.icar_instagram_ui"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "531675145063-qsmntm6a61uqdn7opoqddsv6vfnpvj2s.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.icar_instagram_ui",
+            "certificate_hash": "be10cf2a47e7914497d0fb606d0ad517c9e27f15"
+          }
+        },
+        {
+          "client_id": "531675145063-veb14fmmd0d5lhkli0dmavq59mm9o2lv.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyATCdW6hIikP9MSal1O--0LsQZzexidQOI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "531675145063-7f6dl6uenubrkivmegqkql1sps0ellu2.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
