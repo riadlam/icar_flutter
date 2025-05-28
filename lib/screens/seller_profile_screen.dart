@@ -6,18 +6,43 @@ import 'car_detail_screen.dart';
 class SellerProfileScreen extends StatelessWidget {
   final String sellerName;
   final String sellerPhone;
+  final String? city;
   final List<CarPost> sellerCars;
 
   const SellerProfileScreen({
     Key? key,
     required this.sellerName,
     required this.sellerPhone,
+    this.city,
     required this.sellerCars,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    
+    // Get seller info from the first car if not provided directly
+    final effectiveName = sellerName.isNotEmpty ? sellerName : sellerCars.isNotEmpty ? sellerCars.first.fullName ?? 'Seller' : 'Seller';
+    final effectivePhone = sellerPhone.isNotEmpty ? sellerPhone : sellerCars.isNotEmpty ? sellerCars.first.sellerPhone ?? '' : '';
+    final effectiveCity = city?.isNotEmpty ?? false ? city : sellerCars.isNotEmpty ? sellerCars.first.city : null;
+    
+    // Log seller information
+    debugPrint('=== SELLER PROFILE INFO ===');
+    debugPrint('Direct - Name: $sellerName, Phone: $sellerPhone, City: $city');
+    debugPrint('From Cars - Name: ${sellerCars.isNotEmpty ? sellerCars.first.fullName : 'N/A'}, ' 
+        'Phone: ${sellerCars.isNotEmpty ? sellerCars.first.sellerPhone : 'N/A'}, '
+        'City: ${sellerCars.isNotEmpty ? sellerCars.first.city : 'N/A'}');
+    debugPrint('Effective - Name: $effectiveName, Phone: $effectivePhone, City: $effectiveCity');
+    debugPrint('Number of seller cars: ${sellerCars.length}');
+    
+    // Log first few cars for verification
+    for (var i = 0; i < sellerCars.length && i < 3; i++) {
+      final car = sellerCars[i];
+      debugPrint('Car ${i + 1}: ${car.brand} ${car.model} (ID: ${car.id})');
+      debugPrint('  - City: ${car.city}');
+      debugPrint('  - Phone: ${car.sellerPhone}');
+      debugPrint('  - Full Name: ${car.fullName}');
+    }
     
     // Log the seller's cars data
     debugPrint('SellerProfileScreen - Building with ${sellerCars.length} cars');
@@ -76,30 +101,34 @@ class SellerProfileScreen extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              sellerName,
+                              effectiveName,
                               style: const TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                             const SizedBox(height: 4),
-                            Row(
-                              children: [
-                                Icon(Icons.phone, size: 16, color: Colors.grey[600]),
-                                const SizedBox(width: 4),
-                                Text(
-                                  sellerPhone,
-                                  style: TextStyle(color: Colors.grey[600]),
+                            if (effectivePhone.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 8.0),
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.phone, size: 16, color: Colors.grey[600]),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      effectivePhone,
+                                      style: TextStyle(color: Colors.grey[600]),
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
+                              ),
+                           
                             Row(
                               children: [
                                 _buildInfoChip('${sellerCars.length} Cars', Icons.directions_car),
                                 const SizedBox(width: 8),
                                 _buildInfoChip(
-                                  'Batna',
+                                 effectiveCity!,
                                   Icons.circle,
                                   iconSize: 8,
                                   iconColor: Colors.green,

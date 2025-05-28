@@ -81,6 +81,7 @@ class CarDetailScreen extends StatelessWidget {
             builder: (context) => SellerProfileScreen(
               sellerName: post.fullName ?? 'Seller ${post.sellerId ?? 'Unknown'}' ,
               sellerPhone: post.sellerPhone ?? '',
+              city: post.city,
               sellerCars: sellerCars,
             ),
           ),

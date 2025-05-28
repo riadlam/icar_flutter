@@ -24,6 +24,7 @@ class CarPost {
   final String? sellerName;
   final String? sellerPhone;
   final String? fullName;
+  final String? city;
   final DateTime? createdAt;
   final bool isFavorite;
   final bool isWishlisted;
@@ -55,6 +56,7 @@ class CarPost {
     this.sellerName,
     this.sellerPhone,
     this.fullName,
+    this.city,
     this.createdAt,
     this.isFavorite = false,
     this.isWishlisted = false,
@@ -77,8 +79,9 @@ class CarPost {
       imageUrls: List<String>.from((json['images'] as List<dynamic>?)?.map((e) => e.toString()) ?? []),
       sellerId: json['user_id']?.toString(),
       sellerName: json['full_name']?.toString() ?? 'Seller ${json['user_id']?.toString() ?? ''}',
-      sellerPhone: null, // Not provided in the API response
+      sellerPhone: json['mobile']?.toString(),
       fullName: json['full_name']?.toString(),
+      city: json['city']?.toString(),
       createdAt: json['created_at'] != null 
           ? DateTime.tryParse(json['created_at'].toString()) ?? DateTime.now()
           : null,
@@ -106,6 +109,8 @@ class CarPost {
       'images': imageUrls,
       'seller_id': sellerId,
       'full_name': fullName,
+      'mobile': sellerPhone,
+      'city': city,
       'created_at': createdAt?.toIso8601String(),
       'is_favorite': isFavorite,
     };
