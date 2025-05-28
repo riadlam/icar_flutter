@@ -129,30 +129,6 @@ class CarPostCard extends StatelessWidget {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                               decoration: BoxDecoration(
-                                color: post.isForSale ? Colors.green[600] : Colors.blue[600],
-                                borderRadius: BorderRadius.circular(20),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.2),
-                                    blurRadius: 4,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              child: Text(
-                                _formatPrice(post.price),
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                              decoration: BoxDecoration(
                                 color: post.isForSale ? Colors.blue[600] : Colors.green[600],
                                 borderRadius: BorderRadius.circular(20),
                                 boxShadow: [
@@ -273,32 +249,43 @@ class CarPostCard extends StatelessWidget {
                 // Car details section - more compact
                 Padding(
                   padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // Car title
-                      Text(
-                        '${post.brand} ${post.model} (${post.year})',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          height: 1.2,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 8),
-                      
-                      // Car specs
-                      Row(
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildSpecItem(Icons.speed, post.formattedMileage),
-                          const SizedBox(width: 16),
-                          _buildSpecItem(Icons.local_gas_station, post.fuel.toTitleCase()),
-                          const SizedBox(width: 16),
-                          _buildSpecItem(Icons.settings, post.transmissionType.toTitleCase()),
+                          // Car title
+                          Text(
+                            '${post.brand} ${post.model} ${post.year}',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              height: 1.2,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(20),
+                                
+                              ),
+                              child: Text(
+                                _formatPrice(post.price),
+                                style: const TextStyle(
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ),
+                          
                         ],
                       ),
+Icon(Icons.share)                      
                     ],
                   ),
                 ),
