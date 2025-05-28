@@ -6,7 +6,6 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:go_router/go_router.dart';
 import 'package:icar_instagram_ui/models/car_post.dart';
 import 'package:icar_instagram_ui/screens/seller_profile_screen.dart';
-import 'package:icar_instagram_ui/widgets/bottom_navigation_bar.dart';
 import 'package:icar_instagram_ui/services/api/service_locator.dart';
 
 // Using the existing StringCasingExtension instead of defining a new one
@@ -74,52 +73,16 @@ class CarDetailScreen extends StatelessWidget {
         // Dismiss loading dialog
         Navigator.of(context).pop();
         
-        // Navigate to seller profile using a wrapper that maintains navigation state
+        // Navigate directly to the seller profile screen
         if (!context.mounted) return;
-        
-        final navigatorKey = GlobalKey<NavigatorState>();
-        int currentIndex = 0; // Home is active by default
         
         await Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => StatefulBuilder(
-              builder: (context, setState) {
-                return Scaffold(
-                  body: Navigator(
-                    key: navigatorKey,
-                    onGenerateRoute: (settings) => MaterialPageRoute(
-                      builder: (context) => SellerProfileScreen(
-                        sellerName: sellerName,
-                        sellerPhone: sellerPhone,
-                        sellerCars: sellerCars,
-                      ),
-                    ),
-                  ),
-                  bottomNavigationBar: BottomNavigationBarWidget(
-                    currentIndex: currentIndex,
-                    onTap: (index) {
-                      setState(() => currentIndex = index);
-                      switch (index) {
-                        case 0:
-                          Navigator.of(context).popUntil((route) => route.isFirst);
-                          break;
-                        case 1:
-                          // Navigate to home as a fallback for wishlist
-                          Navigator.of(context).popUntil((route) => route.isFirst);
-                          break;
-                        case 2:
-                          context.go('/add');
-                          break;
-                        case 3:
-                          context.go('/profile');
-                          break;
-                      }
-                    },
-                    showProfile: true,
-                  ),
-                );
-              },
+            builder: (context) => SellerProfileScreen(
+              sellerName: sellerName,
+              sellerPhone: sellerPhone,
+              sellerCars: sellerCars,
             ),
           ),
         );
@@ -165,7 +128,7 @@ class CarDetailScreen extends StatelessWidget {
                 ),
                 child: const Icon(Icons.arrow_back, color: Colors.white),
               ),
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () => context.go('/home'),
             ),
             actions: [
               IconButton(
