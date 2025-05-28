@@ -22,87 +22,147 @@ class ShareService {
   }) async {
     // Ensure we have a valid context
     if (!context.mounted) return;
+    
     // Create a share text with car details
     final shareText = 'Check out this ${post.brand} ${post.model} ${post.year} for ${post.formattedPrice}\n\n';
     
     // Show a bottom sheet with sharing options
-    // Use the navigator key if the context is no longer mounted
-    final currentContext = context;
     final result = await showModalBottomSheet<Map<String, dynamic>>(
-      context: currentContext,
+      context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (BuildContext context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 16),
-            const Text(
-              'Share via',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+      builder: (BuildContext context) => Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(24),
+            topRight: Radius.circular(24),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 10,
+              spreadRadius: 5,
             ),
-            const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  ShareService._buildShareButton(
-                    context: context,
-                    icon: Icons.message,
-                    label: 'Message',
-                    onTap: () => Navigator.pop(context, {'type': 'message'}),
-                  ),
-                  ShareService._buildShareButton(
-                    context: context,
-                    icon: Icons.mail_outline,
-                    label: 'Email',
-                    onTap: () => Navigator.pop(context, {'type': 'email'}),
-                  ),
-                  ShareService._buildShareButton(
-                    context: context,
-                    icon: Icons.copy,
-                    label: 'Copy Link',
-                    onTap: () => Navigator.pop(context, {'type': 'copy'}),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Divider(),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  ShareService._buildSocialButton(
-                    context: context,
-                    icon: 'assets/images/facebook.png',
-                    label: 'Facebook',
-                    onTap: () => Navigator.pop(context, {'type': 'facebook'}),
-                  ),
-                  ShareService._buildSocialButton(
-                    context: context,
-                    icon: 'assets/images/whatsapp.png',
-                    label: 'WhatsApp',
-                    onTap: () => Navigator.pop(context, {'type': 'whatsapp'}),
-                  ),
-                  ShareService._buildSocialButton(
-                    context: context,
-                    icon: 'assets/images/instagram.png',
-                    label: 'Instagram',
-                    onTap: () => Navigator.pop(context, {'type': 'instagram'}),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
           ],
         ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Drag handle
+              Container(
+                margin: const EdgeInsets.only(top: 8, bottom: 4),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[400],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              
+              // Title
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Text(
+                  'Share this car',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).textTheme.titleLarge?.color,
+                  ),
+                ),
+              ),
+              
+              // Share options
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                child: Column(
+                  children: [
+                    // First row of share options
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _buildShareButton(
+                          context: context,
+                          icon: Icons.message_rounded,
+                          label: 'Message',
+                          onTap: () => Navigator.pop(context, {'type': 'message'}),
+                        ),
+                        _buildShareButton(
+                          context: context,
+                          icon: Icons.email_rounded,
+                          label: 'Email',
+                          onTap: () => Navigator.pop(context, {'type': 'email'}),
+                        ),
+                        _buildShareButton(
+                          context: context,
+                          icon: Icons.link_rounded,
+                          label: 'Copy Link',
+                          onTap: () => Navigator.pop(context, {'type': 'copy'}),
+                        ),
+                      ],
+                    ),
+                    
+                    const SizedBox(height: 16),
+                    
+                    // Second row of social options
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _buildShareButton(
+                          context: context,
+                          icon: Icons.facebook,
+                          label: 'Facebook',
+                          iconColor: const Color(0xFF1877F2),
+                          onTap: () => Navigator.pop(context, {'type': 'facebook'}),
+                        ),
+                        _buildShareButton(
+                          context: context,
+                          icon: Icons.chat_rounded, // Using chat icon as a replacement for WhatsApp
+                          label: 'WhatsApp',
+                          iconColor: const Color(0xFF25D366), // Fixed color format
+                          onTap: () => Navigator.pop(context, {'type': 'whatsapp'}),
+                        ),
+                        _buildShareButton(
+                          context: context,
+                          icon: Icons.photo_camera_back_rounded,
+                          label: 'Instagram',
+                          iconColor: const Color(0xFFE1306C),
+                          onTap: () => Navigator.pop(context, {'type': 'instagram'}),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              
+              // Cancel button
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Theme.of(context).colorScheme.surface,
+                      foregroundColor: Theme.of(context).colorScheme.onSurface,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(color: Theme.of(context).dividerColor),
+                      ),
+                    ),
+                    child: const Text('Cancel'),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
+
     );
 
     if (result == null) return;
@@ -137,63 +197,48 @@ class ShareService {
     required IconData icon,
     required String label,
     required VoidCallback onTap,
+    Color? iconColor,
   }) {
-    return InkWell(
-      onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Theme.of(context).primaryColor.withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: Theme.of(context).primaryColor, size: 28),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: (iconColor ?? Theme.of(context).primaryColor).withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  icon,
+                  color: iconColor ?? Theme.of(context).primaryColor,
+                  size: 28,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(context).textTheme.bodyMedium?.color,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            style: const TextStyle(fontSize: 12),
-          ),
-        ],
+        ),
       ),
     );
   }
 
-  static Widget _buildSocialButton({
-    required BuildContext context,
-    required String icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.grey[100],
-              shape: BoxShape.circle,
-            ),
-            child: Image.asset(
-              icon,
-              width: 28,
-              height: 28,
-              errorBuilder: (_, __, ___) => const Icon(Icons.share),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            style: const TextStyle(fontSize: 12),
-          ),
-        ],
-      ),
-    );
-  }
+  // Removed _buildSocialButton as we're now using _buildShareButton for all buttons
 
   static Future<void> _shareViaSMS(String text) async {
     try {

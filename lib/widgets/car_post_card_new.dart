@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../models/car_post.dart';
 import 'post_menu_dialog.dart';
+import '../services/share_service.dart';
 
 class CarPostCard extends StatelessWidget {
   final CarPost post;
@@ -285,7 +286,22 @@ class CarPostCard extends StatelessWidget {
                           
                         ],
                       ),
-Icon(Icons.share)                      
+// Share button
+                          GestureDetector(
+                            onTap: () => ShareService.shareCarPost(context, post),
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.grey[200],
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.share,
+                                size: 20,
+                                color: Colors.black87,
+                              ),
+                            ),
+                          ),
                     ],
                   ),
                 ),
