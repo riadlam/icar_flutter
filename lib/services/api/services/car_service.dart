@@ -154,27 +154,24 @@ class CarService extends BaseApiService {
       
       // Make the request using the class's http client
       final response = await _httpClient.get(
-        Uri.parse('${ApiEndpoints.baseUrl}${ApiEndpoints.userCars}'),
+        Uri.parse('${ApiEndpoints.baseUrl}${ApiEndpoints.cars}'),
         headers: {
-          'Content-Type': 'application/json',
           'Accept': 'application/json',
           if (token != null) 'Authorization': 'Bearer $token',
         },
       );
 
       if (response.statusCode == 200) {
-        final responseData = json.decode(response.body);
-        if (responseData is Map && responseData.containsKey('data')) {
-          final List<dynamic> carsData = responseData['data'];
-          return carsData.map((carJson) => CarPost.fromJson(carJson)).toList();
-        } else if (responseData is List) {
-          // Handle case where the API returns a direct array
+        final responseData = json.decode(utf8.decode(response.bodyBytes));
+        
+        if (responseData is List) {
+          // Handle direct array response
           return responseData.map((carJson) => CarPost.fromJson(carJson)).toList();
         } else {
-          throw Exception('Invalid response format: ${response.body}');
+          throw Exception('Invalid response format: Expected array but got ${responseData.runtimeType}');
         }
       } else {
-        throw Exception('Failed to load user cars: ${response.statusCode} - ${response.body}');
+        throw Exception('Failed to load cars: ${response.statusCode} - ${response.body}');
       }
     } on http.ClientException catch (e) {
       if (kDebugMode) {

@@ -23,6 +23,7 @@ class CarPost {
   final String? sellerId;
   final String? sellerName;
   final String? sellerPhone;
+  final String? fullName;
   final DateTime? createdAt;
   final bool isFavorite;
   final bool isWishlisted;
@@ -53,6 +54,7 @@ class CarPost {
     this.sellerId,
     this.sellerName,
     this.sellerPhone,
+    this.fullName,
     this.createdAt,
     this.isFavorite = false,
     this.isWishlisted = false,
@@ -63,26 +65,29 @@ class CarPost {
   factory CarPost.fromJson(Map<String, dynamic> json) {
     return CarPost(
       id: json['id']?.toString() ?? '',
-      type: json['type'] ?? 'sale',
-      brand: json['brand'] ?? '',
-      model: json['model'] ?? '',
-      price: (json['price'] ?? 0.0).toDouble(),
-      mileage: json['mileage'] ?? 0,
-      year: json['year'] ?? DateTime.now().year,
-      transmission: json['transmission'] ?? 'Automatic',
-      fuel: json['fuel'] ?? 'Gasoline',
-      description: json['description'] ?? '',
-      imageUrls: List<String>.from(json['images'] ?? []),
-      sellerId: json['seller_id']?.toString(),
-      sellerName: json['seller_name']?.toString() ?? 'Unknown Seller',
-      sellerPhone: json['seller_phone']?.toString(),
+      type: json['type']?.toString().toLowerCase() ?? 'sale',
+      brand: json['brand']?.toString() ?? '',
+      model: json['model']?.toString() ?? '',
+      price: (json['price'] is int ? json['price'].toDouble() : json['price'] as double?) ?? 0.0,
+      mileage: (json['mileage'] as int?) ?? 0,
+      year: (json['year'] as int?) ?? DateTime.now().year,
+      transmission: (json['transmission'] as String?)?.toLowerCase() ?? 'automatic',
+      fuel: (json['fuel'] as String?)?.toLowerCase() ?? 'gasoline',
+      description: json['description']?.toString() ?? '',
+      imageUrls: List<String>.from((json['images'] as List<dynamic>?)?.map((e) => e.toString()) ?? []),
+      sellerId: json['user_id']?.toString(),
+      sellerName: json['full_name']?.toString() ?? 'Seller ${json['user_id']?.toString() ?? ''}',
+      sellerPhone: null, // Not provided in the API response
+      fullName: json['full_name']?.toString(),
       createdAt: json['created_at'] != null 
-          ? json['created_at'] is DateTime 
-              ? json['created_at'] as DateTime
-              : DateTime.tryParse(json['created_at'].toString()) ?? DateTime.now()
+          ? DateTime.tryParse(json['created_at'].toString()) ?? DateTime.now()
           : null,
-      isFavorite: json['is_favorite'] ?? false,
-      isWishlisted: json['is_wishlisted'] ?? false,
+      updatedAt: json['updated_at'] != null
+          ? DateTime.tryParse(json['updated_at'].toString())
+          : null,
+      isFavorite: false, // Not provided in the API response
+      isWishlisted: false, // Not provided in the API response
+      enabled: json['enabled'] as bool? ?? true,
     );
   }
 
@@ -100,6 +105,7 @@ class CarPost {
       'description': description,
       'images': imageUrls,
       'seller_id': sellerId,
+      'full_name': fullName,
       'created_at': createdAt?.toIso8601String(),
       'is_favorite': isFavorite,
     };
