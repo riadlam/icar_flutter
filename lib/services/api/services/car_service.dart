@@ -185,4 +185,45 @@ class CarService extends BaseApiService {
       rethrow;
     }
   }
+  
+  /// Fetches all cars listed by a specific user
+  Future<List<CarPost>> getCarsByUserId(String userId) async {
+    try {
+      // Get the auth token from secure storage
+      final token = await _storage.read(key: 'auth_token');
+      
+      // Make the request using the class's http client
+      final response = await _httpClient.get(
+        Uri.parse('${ApiEndpoints.baseUrl}${ApiEndpoints.userCarsList}'),
+        headers: {
+          'Accept': 'application/json',
+          'user_id': userId,
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = json.decode(utf8.decode(response.bodyBytes));
+        
+        if (responseData is Map && responseData['success'] == true) {
+          final List<dynamic> carsData = responseData['data'] ?? [];
+          return carsData.map((carJson) => CarPost.fromJson(carJson)).toList();
+        } else {
+          throw Exception('Invalid response format: ${response.body}');
+        }
+      } else {
+        throw Exception('Failed to load user cars: ${response.statusCode} - ${response.body}');
+      }
+    } on http.ClientException catch (e) {
+      if (kDebugMode) {
+        print('Network error in getCarsByUserId: $e');
+      }
+      throw Exception('Network error: ${e.message}');
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error in getCarsByUserId: $e');
+      }
+      rethrow;
+    }
+  }
 }

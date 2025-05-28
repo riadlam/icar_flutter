@@ -3,19 +3,28 @@ import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:flutter_image_slideshow/flutter_image_slideshow.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:go_router/go_router.dart';
 import 'package:icar_instagram_ui/models/car_post.dart';
 import 'package:icar_instagram_ui/screens/seller_profile_screen.dart';
 import 'package:icar_instagram_ui/services/api/service_locator.dart';
+import 'package:icar_instagram_ui/services/api/services/car_service.dart';
+import 'package:icar_instagram_ui/services/api/services/user_service.dart';
 
 // Using the existing StringCasingExtension instead of defining a new one
 // This avoids the duplicate extension member conflict
 
-
 class CarDetailScreen extends StatelessWidget {
   final CarPost post;
+  final CarService carService;
+  final UserService userService;
 
-  const CarDetailScreen({Key? key, required this.post}) : super(key: key);
+  CarDetailScreen({
+    Key? key, 
+    required this.post,
+    CarService? carService,
+    UserService? userService,
+  }) : carService = carService ?? serviceLocator.carService,
+       userService = userService ?? serviceLocator.userService,
+       super(key: key);
 
   // Helper method to show error message
   void _showErrorSnackBar(BuildContext context, String message) {
@@ -32,56 +41,46 @@ class CarDetailScreen extends StatelessWidget {
   // Handle view profile action
   Future<void> _handleViewProfile(BuildContext context) async {
     try {
-      if (!context.mounted) return;
-      
-      // Show loading indicator
+      // Show loading dialog
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (BuildContext context) => const Center(
-          child: CircularProgressIndicator(),
-        ),
+        builder: (context) => const Center(child: CircularProgressIndicator()),
       );
 
       try {
-        final carService = serviceLocator.carService;
-        final userService = serviceLocator.userService;
+        log('Fetching seller profile...');
         
-        // Get current user profile
-        log('Fetching current user profile...');
-        final currentUserProfile = await userService.getCurrentUserProfile();
-        log('Received profile data: $currentUserProfile');
-        
-        // Get seller's cars
-        log('Fetching user cars...');
+        // Get seller's cars using the post's seller ID
+        log('Fetching seller cars...');
         List<CarPost> sellerCars = [];
-        try {
-          sellerCars = await carService.getUserCars();
-          log('Fetched ${sellerCars.length} cars');
-        } catch (e) {
-          log('Error fetching cars: $e');
-          // Continue with empty list if cars can't be loaded
+        
+        if (post.sellerId != null) {
+          try {
+            sellerCars = await carService.getCarsByUserId(post.sellerId!);
+            log('Fetched ${sellerCars.length} cars for seller ${post.sellerId}');
+          } catch (e) {
+            log('Error fetching seller cars: $e');
+            // Continue with empty list if cars can't be loaded
+          }
+        } else {
+          log('No seller ID available for this post');
         }
-        
-        // Extract seller data
-        final sellerData = (currentUserProfile['data'] as Map<String, dynamic>?) ?? {};
-        final sellerName = (sellerData['full_name']?.toString() ?? post.sellerName) ?? 'Unknown Seller';
-        final sellerPhone = (sellerData['mobile']?.toString() ?? post.sellerPhone) ?? '';
-        
+
         if (!context.mounted) return;
         
         // Dismiss loading dialog
         Navigator.of(context).pop();
         
-        // Navigate directly to the seller profile screen
+        // Navigate to seller profile with the filtered cars
         if (!context.mounted) return;
         
         await Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => SellerProfileScreen(
-              sellerName: sellerName,
-              sellerPhone: sellerPhone,
+              sellerName: post.fullName ?? 'Seller ${post.sellerId ?? 'Unknown'}' ,
+              sellerPhone: post.sellerPhone ?? '',
               sellerCars: sellerCars,
             ),
           ),
@@ -99,7 +98,7 @@ class CarDetailScreen extends StatelessWidget {
       log('Unexpected error: $e');
       if (context.mounted) {
         Navigator.of(context).pop(); // Dismiss loading dialog if still showing
-        _showErrorSnackBar(context, 'An error occurred');
+        _showErrorSnackBar(context, 'An unexpected error occurred');
       }
     }
   }
@@ -128,7 +127,7 @@ class CarDetailScreen extends StatelessWidget {
                 ),
                 child: const Icon(Icons.arrow_back, color: Colors.white),
               ),
-              onPressed: () => context.go('/home'),
+              onPressed: () => Navigator.of(context).pop(),
             ),
             actions: [
               IconButton(
@@ -347,6 +346,7 @@ class CarDetailScreen extends StatelessWidget {
                       style: const TextStyle(fontWeight: FontWeight.bold),
                       overflow: TextOverflow.ellipsis,
                     ),
+                    
                     subtitle: Text(post.sellerPhone ?? ''),
                     trailing: TextButton(
                       onPressed: () => _handleViewProfile(context),
