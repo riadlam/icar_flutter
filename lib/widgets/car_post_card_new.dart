@@ -9,7 +9,7 @@ import '../services/share_service.dart';
 class CarPostCard extends StatelessWidget {
   final CarPost post;
   final Function(bool)? onWishlistPressed;
-  final VoidCallback? onMenuPressed;
+  // Removed onMenuPressed as we're handling it directly in the PopupMenuButton
   final bool isFavoriteSeller;
   final bool isPostNotificationsActive;
   final Function(bool)? onFavoriteSellerChanged;
@@ -19,7 +19,6 @@ class CarPostCard extends StatelessWidget {
     Key? key,
     required this.post,
     this.onWishlistPressed,
-    this.onMenuPressed,
     this.isFavoriteSeller = false,
     this.isPostNotificationsActive = false,
     this.onFavoriteSellerChanged,
@@ -235,9 +234,97 @@ class CarPostCard extends StatelessWidget {
                                 ],
                               ),
                               child: IconButton(
-                                onPressed: onMenuPressed,
                                 icon: const Icon(Icons.more_vert, color: Colors.white, size: 22),
                                 padding: const EdgeInsets.all(8),
+                                onPressed: () {
+                                  showModalBottomSheet(
+                                    context: context,
+                                    backgroundColor: Colors.transparent,
+                                    builder: (context) => Container(
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(context).scaffoldBackgroundColor,
+                                        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                                      ),
+                                      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          // Drag handle
+                                          Container(
+                                            width: 40,
+                                            height: 4,
+                                            margin: const EdgeInsets.only(bottom: 16),
+                                            decoration: BoxDecoration(
+                                              color: Colors.grey[400],
+                                              borderRadius: BorderRadius.circular(2),
+                                            ),
+                                          ),
+                                          // Title
+                                          
+                                          // Favorite seller option
+                                          ListTile(
+                                            leading: Icon(
+                                              isFavoriteSeller ? Icons.favorite : Icons.favorite_border,
+                                              color: isFavoriteSeller ? Colors.red : null,
+                                            ),
+                                            title: Text(
+                                              isFavoriteSeller 
+                                                  ? 'Remove from Favorite Sellers' 
+                                                  : 'Add to Favorite Sellers',
+                                            ),
+                                            onTap: () {
+                                              Navigator.pop(context);
+                                              if (onFavoriteSellerChanged != null) {
+                                                onFavoriteSellerChanged!(!isFavoriteSeller);
+                                                ScaffoldMessenger.of(context).showSnackBar(
+                                                  SnackBar(
+                                                    content: Text(
+                                                      isFavoriteSeller 
+                                                          ? 'Removed from favorite sellers' 
+                                                          : 'Added to favorite sellers',
+                                                    ),
+                                                    duration: const Duration(seconds: 2),
+                                                  ),
+                                                );
+                                              }
+                                            },
+                                          ),
+                                          // Post notifications option
+                                          ListTile(
+                                            leading: Icon(
+                                              isPostNotificationsActive 
+                                                  ? Icons.notifications_active 
+                                                  : Icons.notifications_off_outlined,
+                                              color: isPostNotificationsActive ? Theme.of(context).primaryColor : null,
+                                            ),
+                                            title: Text(
+                                              isPostNotificationsActive 
+                                                  ? 'Turn Off Post Notifications' 
+                                                  : 'Turn On Post Notifications',
+                                            ),
+                                            onTap: () {
+                                              Navigator.pop(context);
+                                              if (onPostNotificationsChanged != null) {
+                                                onPostNotificationsChanged!(!isPostNotificationsActive);
+                                                ScaffoldMessenger.of(context).showSnackBar(
+                                                  SnackBar(
+                                                    content: Text(
+                                                      isPostNotificationsActive 
+                                                          ? 'Post notifications turned off' 
+                                                          : 'Post notifications activated',
+                                                    ),
+                                                    duration: const Duration(seconds: 2),
+                                                  ),
+                                                );
+                                              }
+                                            },
+                                          ),
+                                         
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                },
                               ),
                             ),
                           ],

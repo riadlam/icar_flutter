@@ -181,43 +181,20 @@ class _CarPostsContentState extends State<CarPostsContent> {
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 16.0),
                     child: CarPostCard(
+                      key: ValueKey(post.id),
                       post: post,
                       onWishlistPressed: (isWishlisted) {
                         // Update wishlist status
                         _toggleWishlist(index, isWishlisted);
                       },
-                      onMenuPressed: () {
-                        // Show post options
-                        showModalBottomSheet(
-                          context: context,
-                          builder: (context) => Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              ListTile(
-                                leading: const Icon(Icons.share),
-                                title: const Text('Share'),
-                                onTap: () {
-                                  Navigator.pop(context);
-                                  // Implement share functionality
-                                },
-                              ),
-                              ListTile(
-                                leading: const Icon(Icons.report_problem),
-                                title: const Text('Report'),
-                                onTap: () {
-                                  Navigator.pop(context);
-                                  // Implement report functionality
-                                },
-                              ),
-                              const Divider(),
-                              ListTile(
-                                leading: const Icon(Icons.close),
-                                title: const Text('Close'),
-                                onTap: () => Navigator.pop(context),
-                              ),
-                            ],
-                          ),
-                        );
+                      // Add other required parameters here
+                      isFavoriteSeller: false, // Set this based on your app's state
+                      isPostNotificationsActive: false, // Set this based on your app's state
+                      onFavoriteSellerChanged: (isFavorite) {
+                        // Handle favorite seller change
+                      },
+                      onPostNotificationsChanged: (isActive) {
+                        // Handle post notifications change
                       },
                     ),
                   );
