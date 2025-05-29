@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../endpoints/api_endpoints.dart';
 import 'base_api_service.dart';
@@ -149,14 +150,27 @@ class CarService extends BaseApiService {
   /// Fetches all cars listed by the authenticated user
   Future<List<CarPost>> getUserCars() async {
     try {
-      // Get the auth token from secure storage
+      // Get auth token from secure storage
       final token = await _storage.read(key: 'auth_token');
       
+      // Get user ID from SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getString('user_id');
+      
+      if (userId == null) {
+        throw Exception('User ID not found. Please log in again.');
+      }
+      
+      if (kDebugMode) {
+        print('Getting cars for user ID: $userId');
+      }
+
       // Make the request using the class's http client
       final response = await _httpClient.get(
-        Uri.parse('${ApiEndpoints.baseUrl}${ApiEndpoints.cars}'),
+        Uri.parse('${ApiEndpoints.baseUrl}${ApiEndpoints.userCarsList}'),
         headers: {
           'Accept': 'application/json',
+          'user_id': userId,  // Add user_id to headers as per API requirement
           if (token != null) 'Authorization': 'Bearer $token',
         },
       );
@@ -164,11 +178,15 @@ class CarService extends BaseApiService {
       if (response.statusCode == 200) {
         final responseData = json.decode(utf8.decode(response.bodyBytes));
         
-        if (responseData is List) {
-          // Handle direct array response
+        if (responseData is Map && responseData['success'] == true) {
+          // Handle successful response with data array
+          final List<dynamic> carsData = responseData['data'] ?? [];
+          return carsData.map((carJson) => CarPost.fromJson(carJson)).toList();
+        } else if (responseData is List) {
+          // Fallback: Handle direct array response if the API changes
           return responseData.map((carJson) => CarPost.fromJson(carJson)).toList();
         } else {
-          throw Exception('Invalid response format: Expected array but got ${responseData.runtimeType}');
+          throw Exception('Invalid response format: ${response.body}');
         }
       } else {
         throw Exception('Failed to load cars: ${response.statusCode} - ${response.body}');
@@ -192,6 +210,10 @@ class CarService extends BaseApiService {
       // Get the auth token from secure storage
       final token = await _storage.read(key: 'auth_token');
       
+      if (kDebugMode) {
+        print('Getting cars for user ID: $userId');
+      }
+      
       // Make the request using the class's http client
       final response = await _httpClient.get(
         Uri.parse('${ApiEndpoints.baseUrl}${ApiEndpoints.userCarsList}'),
@@ -201,6 +223,11 @@ class CarService extends BaseApiService {
           if (token != null) 'Authorization': 'Bearer $token',
         },
       );
+      
+      if (kDebugMode) {
+        print('Response status: ${response.statusCode}');
+        print('Response body: ${response.body}');
+      }
 
       if (response.statusCode == 200) {
         final responseData = json.decode(utf8.decode(response.bodyBytes));
@@ -222,6 +249,54 @@ class CarService extends BaseApiService {
     } catch (e) {
       if (kDebugMode) {
         print('Error in getCarsByUserId: $e');
+      }
+      rethrow;
+    }
+  }
+  
+  /// Fetches all cars listed by all users (public endpoint)
+  Future<List<CarPost>> getAllCars() async {
+    try {
+      if (kDebugMode) {
+        print('Fetching all cars from public endpoint');
+      }
+      
+      // Make the request to the public endpoint without authentication
+      final response = await _httpClient.get(
+        Uri.parse('${ApiEndpoints.baseUrl}${ApiEndpoints.cars}'),
+        headers: {
+          'Accept': 'application/json',
+        },
+      );
+      
+      if (kDebugMode) {
+        print('All cars response status: ${response.statusCode}');
+      }
+
+      if (response.statusCode == 200) {
+        final responseData = json.decode(utf8.decode(response.bodyBytes));
+        
+        if (responseData is Map && responseData['success'] == true) {
+          // Handle successful response with data array
+          final List<dynamic> carsData = responseData['data'] ?? [];
+          return carsData.map((carJson) => CarPost.fromJson(carJson)).toList();
+        } else if (responseData is List) {
+          // Fallback: Handle direct array response if the API changes
+          return responseData.map((carJson) => CarPost.fromJson(carJson)).toList();
+        } else {
+          throw Exception('Invalid response format: ${response.body}');
+        }
+      } else {
+        throw Exception('Failed to load all cars: ${response.statusCode} - ${response.body}');
+      }
+    } on http.ClientException catch (e) {
+      if (kDebugMode) {
+        print('Network error in getAllCars: $e');
+      }
+      throw Exception('Network error: ${e.message}');
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error in getAllCars: $e');
       }
       rethrow;
     }

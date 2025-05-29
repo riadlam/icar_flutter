@@ -1,3 +1,4 @@
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:icar_instagram_ui/models/user_role.dart';
 import '../endpoints/api_endpoints.dart';
 import 'base_api_service.dart';
@@ -36,6 +37,16 @@ class UserService extends BaseApiService {
       print('Fetching profile from: ${ApiEndpoints.profile}');
       final response = await get(ApiEndpoints.profile);
       print('Profile API Response: $response');
+      
+      // Save user_id to SharedPreferences if it exists in the response
+      if (response is Map<String, dynamic> && 
+          response['data'] != null && 
+          response['data']['user_id'] != null) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('user_id', response['data']['user_id'].toString());
+        print('Saved user_id: ${response['data']['user_id']} to SharedPreferences');
+      }
+      
       return response;
     } catch (e) {
       print('Error fetching profile: $e');
@@ -84,6 +95,15 @@ class UserService extends BaseApiService {
         ApiEndpoints.profile,
         body: requestData,
       );
+      
+      // Save user_id to SharedPreferences if it exists in the response
+      if (response is Map<String, dynamic> && 
+          response['data'] != null && 
+          response['data']['user_id'] != null) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('user_id', response['data']['user_id'].toString());
+        print('Saved user_id: ${response['data']['user_id']} to SharedPreferences');
+      }
       
       return response;
     } catch (e) {

@@ -1,60 +1,57 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/car_post.dart';
-import '../../services/api/service_locator.dart';
-import '../../services/api/services/car_service.dart';
+import '../../providers/all_cars_provider.dart';
 import '../../widgets/car_post_card_new.dart';
 import 'car_filter_modal.dart';
 import '../../widgets/common/loading_widget.dart';
 import '../../widgets/common/error_widget.dart' as custom_error;
 
-class CarPostsContent extends StatefulWidget {
+class CarPostsContent extends ConsumerWidget {
   const CarPostsContent({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final carsAsync = ref.watch(allCarsProvider);
+
+    return carsAsync.when(
+      loading: () => const Center(child: LoadingWidget()),
+      error: (error, stack) {
+        print('Error loading cars: $error');
+        print('Stack trace: $stack');
+        return Center(
+          child: custom_error.CustomErrorWidget(
+            message: 'Failed to load cars. Please try again.',
+            onRetry: () => ref.refresh(allCarsProvider.future),
+          ),
+        );
+      },
+      data: (cars) {
+        if (cars.isEmpty) {
+          return const Center(child: Text('No cars available'));
+        }
+        return _CarPostsContent(cars: cars);
+      },
+    );
+  }
+}
+
+class _CarPostsContent extends StatefulWidget {
+  final List<CarPost> cars;
+
+  const _CarPostsContent({required this.cars});
 
   @override
   _CarPostsContentState createState() => _CarPostsContentState();
 }
 
-class _CarPostsContentState extends State<CarPostsContent> {
-  late final CarService _carService;
-  bool _isLoading = true;
-  String? _errorMessage;
+class _CarPostsContentState extends State<_CarPostsContent> {
   List<CarPost> _posts = [];
 
   @override
   void initState() {
     super.initState();
-    _carService = serviceLocator.carService;
-    _loadCars();
-  }
-
-  Future<void> _loadCars() async {
-    if (!mounted) return;
-    
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    try {
-      final cars = await _carService.getUserCars();
-      if (!mounted) return;
-      
-      setState(() {
-        _posts = cars;
-        _isLoading = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      
-      setState(() {
-        _errorMessage = e.toString().contains('401')
-            ? 'Authentication required. Please log in again.'
-            : 'Failed to load cars. Please check your connection and try again.';
-        _isLoading = false;
-      });
-      
-      debugPrint('Error loading cars: $e');
-    }
+    _posts = widget.cars;
   }
 
   Future<void> _toggleWishlist(int index, bool isWishlisted) async {
@@ -106,22 +103,9 @@ class _CarPostsContentState extends State<CarPostsContent> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Center(
-        child: LoadingWidget(),
-      );
-    }
-
-    if (_errorMessage != null) {
-      return custom_error.CustomErrorWidget(
-        message: _errorMessage!,
-        onRetry: _loadCars,
-      );
-    }
-
     if (_posts.isEmpty) {
       return const Center(
-        child: Text('No cars found'),
+        child: Text('No cars available'),
       );
     }
 
@@ -144,8 +128,16 @@ class _CarPostsContentState extends State<CarPostsContent> {
       );
     }
 
+    Future<void> _onRefresh() async {
+      if (mounted) {
+        setState(() {
+          _posts = widget.cars;
+        });
+      }
+    }
+
     return RefreshIndicator(
-      onRefresh: _loadCars,
+      onRefresh: _onRefresh,
       child: Column(
         children: [
           // Filter Button
