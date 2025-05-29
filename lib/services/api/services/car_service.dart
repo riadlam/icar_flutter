@@ -255,6 +255,93 @@ class CarService extends BaseApiService {
   }
   
   /// Fetches all cars listed by all users (public endpoint)
+  /// Updates an existing car listing
+  /// 
+  /// [carId] - ID of the car to update
+  /// [updates] - Map of fields to update
+  /// Returns the updated CarPost
+  Future<CarPost> updateCar({
+    required String carId,
+    required Map<String, dynamic> updates,
+    List<File>? newImages,
+    List<String>? removedImageUrls,
+  }) async {
+    try {
+      if (kDebugMode) {
+        print('Updating car $carId with data: $updates');
+      }
+      
+      // Get the auth token from secure storage
+      final token = await _storage.read(key: 'auth_token');
+      if (token == null) {
+        throw Exception('Not authenticated');
+      }
+
+      // Use POST with _method=PUT for Laravel's form method spoofing
+      final url = Uri.parse('${ApiEndpoints.baseUrl}${ApiEndpoints.cars}/$carId');
+      final request = http.MultipartRequest('POST', url);
+      
+      // Add headers
+      request.headers['Authorization'] = 'Bearer $token';
+      request.headers['Accept'] = 'application/json';
+      
+      // Add _method=PUT for Laravel's form method spoofing
+      request.fields['_method'] = 'PUT';
+      
+      // Add all fields from updates
+      updates.forEach((key, value) {
+        if (value != null) {
+          request.fields[key] = value.toString();
+        }
+      });
+      
+      // Add new images if any
+      if (newImages != null && newImages.isNotEmpty) {
+        for (var image in newImages) {
+          try {
+            final file = await http.MultipartFile.fromPath('new_images[]', image.path);
+            request.files.add(file);
+          } catch (e) {
+            if (kDebugMode) {
+              print('Error adding image ${image.path}: $e');
+            }
+          }
+        }
+      }
+      
+      // Send the request
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      if (kDebugMode) {
+        print('Update response status: ${response.statusCode}');
+        print('Update response body: ${response.body}');
+      }
+
+      if (response.statusCode == 200) {
+        final responseData = json.decode(utf8.decode(response.bodyBytes));
+        
+        if (responseData is Map && responseData['success'] == true) {
+          return CarPost.fromJson(responseData['data']);
+        } else {
+          throw Exception('Invalid response format: ${response.body}');
+        }
+      } else {
+        throw Exception('Failed to update car: ${response.statusCode} - ${response.body}');
+      }
+    } on http.ClientException catch (e) {
+      if (kDebugMode) {
+        print('Network error in updateCar: $e');
+      }
+      throw Exception('Network error: ${e.message}');
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error in updateCar: $e');
+      }
+      rethrow;
+    }
+  }
+
   Future<List<CarPost>> getAllCars() async {
     try {
       if (kDebugMode) {

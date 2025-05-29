@@ -61,6 +61,8 @@ class _CarFormSheetState extends State<CarFormSheet> {
   
   final ImagePicker _picker = ImagePicker();
   final List<XFile> _images = [];
+  final List<String> _existingImageUrls = [];
+  final List<String> _removedImageUrls = [];
   final CarService _carService = serviceLocator.carService;
   bool _isLoading = false;
   bool _isEnabled = true;
@@ -78,6 +80,16 @@ class _CarFormSheetState extends State<CarFormSheet> {
       _priceController.text = widget.car!.price.toString();
       _yearController.text = widget.car!.year.toString();
       _mileageController.text = widget.car!.mileage.toString();
+      _descriptionController.text = widget.car!.description;
+      _isEnabled = widget.car!.enabled;
+      _transmission = widget.car!.transmission.toLowerCase();
+      _fuelType = widget.car!.fuel.toLowerCase();
+      _listingType = widget.car!.type.toLowerCase();
+      
+      // Store existing image URLs
+      if (widget.car!.imageUrls != null) {
+        _existingImageUrls.addAll(widget.car!.imageUrls!);
+      }
     }
   }
 
@@ -103,7 +115,13 @@ class _CarFormSheetState extends State<CarFormSheet> {
 
   void _removeImage(int index) {
     setState(() {
-      _images.removeAt(index);
+      if (index < _existingImageUrls.length) {
+        // If removing an existing image, move it to removed list
+        _removedImageUrls.add(_existingImageUrls.removeAt(index));
+      } else {
+        // If removing a new image, just remove it
+        _images.removeAt(index - _existingImageUrls.length);
+      }
     });
   }
 
@@ -117,7 +135,8 @@ class _CarFormSheetState extends State<CarFormSheet> {
     final mileage = int.tryParse(_mileageController.text) ?? 0;
     final description = _descriptionController.text.trim();
 
-    if (_images.isEmpty && widget.car == null) {
+    // Check if we have at least one image
+    if (_images.isEmpty && (widget.car == null || _existingImageUrls.isEmpty)) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Please add at least one image')),
@@ -125,28 +144,57 @@ class _CarFormSheetState extends State<CarFormSheet> {
       }
       return;
     }
+    
+    // Convert XFile to File for upload
+    final List<File> imageFiles = [];
+    for (var image in _images) {
+      imageFiles.add(File(image.path));
+    }
 
     setState(() => _isLoading = true);
 
     try {
-      // Convert XFile to File
-      final List<File> imageFiles = [];
-      for (var image in _images) {
-        imageFiles.add(File(image.path));
-      }
+      if (widget.car != null) {
+        // Update existing car
+        final updates = {
+          'brand': brand,
+          'model': model,
+          'price': price.toString(),
+          'mileage': mileage.toString(),
+          'year': year.toString(),
+          'transmission': _transmission,
+          'fuel': _fuelType,
+          'description': description,
+          'enabled': _isEnabled ? '1' : '0',
+        };
 
-      await _carService.createCar(
-        type: _listingType,
-        brand: brand,
-        model: model,
-        price: price,
-        mileage: mileage,
-        year: year,
-        transmission: _transmission,
-        fuel: _fuelType,
-        description: description,
-        images: imageFiles,
-      );
+        await _carService.updateCar(
+          carId: widget.car!.id,
+          updates: updates,
+          newImages: imageFiles,
+          removedImageUrls: _removedImageUrls,
+        );
+      } else {
+        // Create new car
+        // Convert XFile to File
+        final List<File> imageFiles = [];
+        for (var image in _images) {
+          imageFiles.add(File(image.path));
+        }
+
+        await _carService.createCar(
+          type: _listingType,
+          brand: brand,
+          model: model,
+          price: price,
+          mileage: mileage,
+          year: year,
+          transmission: _transmission,
+          fuel: _fuelType,
+          description: description,
+          images: imageFiles,
+        );
+      }
 
       if (mounted) {
         Navigator.pop(context);
@@ -154,8 +202,12 @@ class _CarFormSheetState extends State<CarFormSheet> {
       }
     } catch (e) {
       if (mounted) {
+        final errorMessage = widget.car == null 
+            ? 'Failed to create car: ${e.toString()}' 
+            : 'Failed to update car: ${e.toString()}';
+            
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to create car: ${e.toString()}')),
+          SnackBar(content: Text(errorMessage)),
         );
         widget.onError?.call(e.toString());
       }
@@ -249,7 +301,7 @@ class _CarFormSheetState extends State<CarFormSheet> {
               
               // Image Picker
               GestureDetector(
-                onTap: _pickImage,
+                onTap: _images.length + _existingImageUrls.length < 10 ? _pickImage : null,
                 child: Container(
                   height: 120,
                   decoration: BoxDecoration(
@@ -260,14 +312,14 @@ class _CarFormSheetState extends State<CarFormSheet> {
                       width: 1,
                     ),
                   ),
-                  child: _images.isEmpty
+                  child: _images.isEmpty && _existingImageUrls.isEmpty
                       ? Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             const Icon(Icons.add_photo_alternate_outlined, size: 40, color: Colors.grey),
                             const SizedBox(height: 8),
                             Text(
-                              'Add Photos (${_images.length}/10)',
+                              'Add Photos (${_images.length + _existingImageUrls.length}/10)',
                               style: const TextStyle(color: Colors.grey),
                             ),
                           ],
@@ -275,15 +327,25 @@ class _CarFormSheetState extends State<CarFormSheet> {
                       : Stack(
                           children: [
                             PageView.builder(
-                              itemCount: _images.length,
+                              itemCount: _existingImageUrls.length + _images.length,
                               itemBuilder: (context, index) {
+                                final isExisting = index < _existingImageUrls.length;
+                                final imageIndex = isExisting ? index : index - _existingImageUrls.length;
+                                
                                 return Stack(
                                   fit: StackFit.expand,
                                   children: [
-                                    Image.file(
-                                      File(_images[index].path),
-                                      fit: BoxFit.cover,
-                                    ),
+                                    isExisting
+                                        ? Image.network(
+                                            _existingImageUrls[imageIndex],
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (context, error, stackTrace) => 
+                                              const Icon(Icons.broken_image, size: 50, color: Colors.grey),
+                                          )
+                                        : Image.file(
+                                            File(_images[imageIndex].path),
+                                            fit: BoxFit.cover,
+                                          ),
                                     Positioned(
                                       top: 5,
                                       right: 5,
@@ -317,7 +379,7 @@ class _CarFormSheetState extends State<CarFormSheet> {
                                   borderRadius: BorderRadius.circular(20),
                                 ),
                                 child: Text(
-                                  '${_images.length}/10',
+                                  '${_images.length + _existingImageUrls.length}/10',
                                   style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 12,
