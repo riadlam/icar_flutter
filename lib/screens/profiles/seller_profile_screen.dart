@@ -121,12 +121,8 @@ class _SellerProfileScreenState extends ConsumerState<SellerProfileScreen> {
           const SnackBar(content: Text('Car updated successfully!')),
         );
         
-        // Refresh the car list
-        if (mounted) {
-          setState(() {
-            // Refresh the car list here if needed
-          });
-        }
+        // Refresh the car list by invalidating the provider
+        ref.invalidate(sellerCarsProvider);
       },
       onError: (error) {
         if (!mounted) return;
