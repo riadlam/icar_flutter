@@ -342,6 +342,119 @@ class CarService extends BaseApiService {
     }
   }
 
+  /// Filters cars based on the provided criteria
+  /// 
+  /// [brand] - Filter by car brand
+  /// [type] - Filter by listing type ('sale' or 'rent')
+  /// [year] - Filter by manufacturing year
+  /// [transmission] - Filter by transmission type
+  /// [fuelType] - Filter by fuel type
+  /// [mileage] - Filter by maximum mileage
+  /// Returns a list of cars matching the criteria
+  Future<List<CarPost>> filterCars({
+    String? brand,
+    String? type,
+    int? year,
+    String? transmission,
+    String? fuelType,
+    int? mileage,
+  }) async {
+    try {
+      // Build request body
+      final Map<String, dynamic> requestBody = {};
+      if (brand != null && brand != 'all') requestBody['brand'] = brand;
+      if (type != null && type != 'all') requestBody['type'] = type;
+      if (year != null) requestBody['year'] = year;
+      if (transmission != null && transmission != 'all') requestBody['transmission'] = transmission;
+      if (fuelType != null && fuelType != 'all') requestBody['fuel_type'] = fuelType;
+      if (mileage != null) requestBody['mileage'] = mileage;
+
+      final uri = Uri.parse('${ApiEndpoints.baseUrl}${ApiEndpoints.cars}/filter');
+      final headers = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      };
+
+      // Debug log the complete request
+      if (kDebugMode) {
+        print('╔══════════════════════════════════════════════════════════════');
+        print('║ 🚗 FILTER CARS REQUEST');
+        print('╟──────────────────────────────────────────────────────────────');
+        print('║ Endpoint: ${uri.toString()}');
+        print('║ Method: POST');
+        print('║ Headers:');
+        headers.forEach((key, value) => print('║   • $key: $value'));
+        print('║ Body:');
+        print('║   ${jsonEncode(requestBody)}');
+        print('╚══════════════════════════════════════════════════════════════');
+      }
+
+      final response = await _httpClient.post(
+        uri,
+        headers: headers,
+        body: jsonEncode(requestBody),
+      );
+
+      // Debug log the response
+      if (kDebugMode) {
+        print('╔══════════════════════════════════════════════════════════════');
+        print('║ 🚗 FILTER CARS RESPONSE');
+        print('╟──────────────────────────────────────────────────────────────');
+        print('║ Status Code: ${response.statusCode}');
+        print('║ Headers:');
+        response.headers.forEach((key, value) => print('║   • $key: $value'));
+        print('║ Body:');
+        print('║   ${response.body.replaceAll('\n', '\n║   ')}');
+        print('╚══════════════════════════════════════════════════════════════');
+      }
+
+      if (response.statusCode == 200) {
+        final responseData = json.decode(utf8.decode(response.bodyBytes));
+        
+        if (responseData is Map && responseData['success'] == true) {
+          final List<dynamic> carsData = responseData['data'] ?? [];
+          final cars = carsData.map((carJson) => CarPost.fromJson(carJson)).toList();
+          
+          if (kDebugMode) {
+            print('╔══════════════════════════════════════════════════════════════');
+            print('║ 🚗 PARSED CARS DATA');
+            print('╟──────────────────────────────────────────────────────────────');
+            print('║ Found ${cars.length} cars');
+            if (cars.isNotEmpty) {
+              print('║ First car details:');
+              print('║   • ID: ${cars.first.id}');
+              print('║   • Brand: ${cars.first.brand}');
+              print('║   • Model: ${cars.first.model}');
+              print('║   • Year: ${cars.first.year}');
+              print('║   • Price: ${cars.first.price}');
+            }
+            print('╚══════════════════════════════════════════════════════════════');
+          }
+          
+          return cars;
+        } else {
+          final errorMsg = 'Invalid response format: ${response.body}';
+          if (kDebugMode) print('❌ $errorMsg');
+          throw Exception(errorMsg);
+        }
+      } else {
+        final errorMsg = 'Failed to filter cars: ${response.statusCode} - ${response.body}';
+        if (kDebugMode) print('❌ $errorMsg');
+        throw Exception(errorMsg);
+      }
+    } on http.ClientException catch (e) {
+      if (kDebugMode) {
+        print('Network error in filterCars: $e');
+      }
+      throw Exception('Network error: ${e.message}');
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error in filterCars: $e');
+      }
+      rethrow;
+    }
+  }
+
   Future<List<CarPost>> getAllCars() async {
     try {
       if (kDebugMode) {

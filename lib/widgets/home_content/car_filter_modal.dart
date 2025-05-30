@@ -3,8 +3,13 @@ import 'package:easy_localization/easy_localization.dart';
 
 class CarFilterModal extends StatefulWidget {
   final Function(Map<String, dynamic>) onApplyFilters;
+  final Map<String, dynamic>? initialFilters;
   
-  const CarFilterModal({Key? key, required this.onApplyFilters}) : super(key: key);
+  const CarFilterModal({
+    Key? key, 
+    required this.onApplyFilters,
+    this.initialFilters,
+  }) : super(key: key);
 
   @override
   _CarFilterModalState createState() => _CarFilterModalState();
@@ -12,15 +17,56 @@ class CarFilterModal extends StatefulWidget {
 
 class _CarFilterModalState extends State<CarFilterModal> {
   // Filter states
-  RangeValues _yearRange = const RangeValues(2010, 2023);
-  RangeValues _priceRange = const RangeValues(0, 100000);
-  double _mileage = 50000;
-  String _selectedBrand = 'all';
-  String _selectedModel = 'all';
-  String _purchaseType = 'all'; // 'buy', 'rent', or 'all'
-  String _transmission = 'all'; // 'automatic', 'manual', or 'all'
-  String _fuelType = 'all'; // 'gasoline', 'diesel', 'electric', 'hybrid', 'plug_in_hybrid', or 'all'
-  String _vehicleType = 'all'; // 'sedan', 'suv', 'truck', 'hatchback', 'coupe', 'convertible', or 'all'
+  late double _selectedYear;
+  late RangeValues _priceRange;
+  late double _mileage;
+  late String _selectedBrand;
+  late String _purchaseType; // 'buy', 'rent', or 'all'
+  late String _transmission; // 'automatic', 'manual', or 'all'
+  late String _fuelType; // 'gasoline', 'diesel', 'electric', 'hybrid', 'plug_in_hybrid', or 'all'
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize with default values or from initialFilters
+    _selectedYear = (widget.initialFilters?['year'] as num?)?.toDouble() ?? 2020.0;
+    _priceRange = RangeValues(
+      (widget.initialFilters?['minPrice'] as num?)?.toDouble() ?? 0.0,
+      (widget.initialFilters?['maxPrice'] as num?)?.toDouble() ?? 100000.0,
+    );
+    _mileage = (widget.initialFilters?['mileage'] as num?)?.toDouble() ?? 50000.0;
+    _selectedBrand = widget.initialFilters?['brand'] as String? ?? 'all';
+    _purchaseType = widget.initialFilters?['purchaseType'] as String? ?? 'all';
+    _transmission = widget.initialFilters?['transmission'] as String? ?? 'all';
+    _fuelType = widget.initialFilters?['fuelType'] as String? ?? 'all';
+  }
+ 
+  void _applyFilters() {
+    print('Applying filters...');
+    final filters = <String, dynamic>{
+      if (_selectedBrand != 'all' && _selectedBrand != 'all'.tr()) 'brand': _selectedBrand,
+      if (_purchaseType != 'all' && _purchaseType != 'all'.tr()) 'type': _purchaseType,
+      if (_selectedYear != 2020) 'year': _selectedYear.toInt(),
+      if (_transmission != 'all' && _transmission != 'all'.tr()) 'transmission': _transmission,
+      if (_fuelType != 'all' && _fuelType != 'all'.tr()) 'fuel_type': _fuelType,
+      if (_mileage != 50000) 'mileage': _mileage.toInt(),
+    };
+    
+    print('Filters to apply: $filters');
+    
+    // Call the callback first
+    widget.onApplyFilters(filters);
+    
+    // Then safely pop the modal if we're still mounted
+    if (mounted && Navigator.canPop(context)) {
+      print('Closing filter modal...');
+      Navigator.of(context).pop(filters);
+    } else if (mounted) {
+      // If we can't pop, just close the modal without popping
+      print('Cannot pop navigator, using maybePop instead...');
+      Navigator.maybePop(context);
+    }
+  }
 
   // Format price for display
   String formatPrice(double value) {
@@ -68,30 +114,26 @@ class _CarFilterModalState extends State<CarFilterModal> {
             (value) => setState(() => _selectedBrand = value),
           ),
           
-          _buildSectionTitle('model'.tr()),
-          _buildChips(
-            ['all'.tr(), 'Camry', 'Corolla', 'Civic', 'Accord', 'Altima'],
-            _selectedModel,
-            (value) => setState(() => _selectedModel = value),
-          ),
+          
           
           _buildSectionTitle('purchase_type'.tr()),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8.0),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildPurchaseTypeRadio('all'.tr(), _purchaseType, (value) {
-                  setState(() => _purchaseType = value!);
-                }),
-                _buildPurchaseTypeRadio('buy'.tr(), _purchaseType, (value) {
-                  setState(() => _purchaseType = value!);
-                }),
-                _buildPurchaseTypeRadio('rent'.tr(), _purchaseType, (value) {
-                  setState(() => _purchaseType = value!);
-                }),
-              ],
-            ),
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildPurchaseTypeRadio('all', _purchaseType, (value) {
+                    setState(() => _purchaseType = value!);
+                  }),
+                  _buildPurchaseTypeRadio('buy', _purchaseType, (value) {
+                    setState(() => _purchaseType = value!);
+                  }),
+                  _buildPurchaseTypeRadio('rent', _purchaseType, (value) {
+                    setState(() => _purchaseType = value!);
+                  }),
+                ],
+              ),
+
           ),
           
           _buildSectionTitle('year'.tr()),
@@ -124,20 +166,7 @@ class _CarFilterModalState extends State<CarFilterModal> {
             (value) => setState(() => _fuelType = value),
           ),
           
-          _buildSectionTitle('vehicle_type'.tr()),
-          _buildChips(
-            [
-              'all'.tr(),
-              'sedan'.tr(),
-              'suv'.tr(),
-              'truck'.tr(),
-              'hatchback'.tr(),
-              'coupe'.tr(),
-              'convertible'.tr(),
-            ],
-            _vehicleType,
-            (value) => setState(() => _vehicleType = value),
-          ),
+        
           
           const SizedBox(height: 20),
           _buildActionButtons(),
@@ -212,18 +241,15 @@ class _CarFilterModalState extends State<CarFilterModal> {
   Widget _buildYearRangeSlider() {
     return Column(
       children: [
-        RangeSlider(
-          values: _yearRange,
+        Slider(
+          value: _selectedYear,
           min: 2000,
           max: 2023,
           divisions: 23,
-          labels: RangeLabels(
-            _yearRange.start.round().toString(),
-            _yearRange.end.round().toString(),
-          ),
-          onChanged: (values) {
+          label: _selectedYear.round().toString(),
+          onChanged: (value) {
             setState(() {
-              _yearRange = values;
+              _selectedYear = value;
             });
           },
         ),
@@ -331,14 +357,12 @@ class _CarFilterModalState extends State<CarFilterModal> {
               onPressed: () {
                 setState(() {
                   _selectedBrand = 'all';
-                  _selectedModel = 'all';
                   _purchaseType = 'all';
-                  _yearRange = const RangeValues(2010, 2023);
+                  _selectedYear = 2020;
                   _priceRange = const RangeValues(0, 100000);
                   _mileage = 50000;
                   _transmission = 'all';
                   _fuelType = 'all';
-                  _vehicleType = 'all';
                 });
               },
               style: OutlinedButton.styleFrom(
@@ -360,23 +384,7 @@ class _CarFilterModalState extends State<CarFilterModal> {
           // Apply button
           Expanded(
             child: ElevatedButton(
-              onPressed: () {
-                final filters = {
-                  'brand': _selectedBrand,
-                  'model': _selectedModel,
-                  'purchaseType': _purchaseType,
-                  'minYear': _yearRange.start.round(),
-                  'maxYear': _yearRange.end.round(),
-                  'minPrice': _priceRange.start.round(),
-                  'maxPrice': _priceRange.end.round(),
-                  'mileage': _mileage.round(),
-                  'transmission': _transmission,
-                  'fuelType': _fuelType,
-                  'vehicleType': _vehicleType,
-                };
-                widget.onApplyFilters(filters);
-                Navigator.pop(context);
-              },
+              onPressed: _applyFilters,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.pinkAccent,
                 padding: const EdgeInsets.symmetric(vertical: 16),
