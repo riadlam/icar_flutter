@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:logging/logging.dart';
 import 'package:icar_instagram_ui/providers/seller_cars_provider.dart';
+import 'package:icar_instagram_ui/screens/profiles/phone_number_card.dart';
 
 final _log = Logger('SellerProfileScreen');
 
@@ -58,8 +59,6 @@ class SellerProfileScreen extends ConsumerStatefulWidget {
 
 class _SellerProfileScreenState extends ConsumerState<SellerProfileScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  final List<String> _phoneNumbers = ['+1 234 567 8900'];
-  final TextEditingController _phoneController = TextEditingController();
   
   // This will be populated from the API
   List<CarPost> _sellerCars = [];
@@ -71,42 +70,6 @@ class _SellerProfileScreenState extends ConsumerState<SellerProfileScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(sellerCarsProvider.future);
     });
-  }
-
-  void _addPhoneNumber() {
-    final BuildContext context = _scaffoldKey.currentContext!;
-    showDialog(
-      context: context,
-      builder: (BuildContext dialogContext) => AlertDialog(
-        title: const Text('Add Phone Number'),
-        content: TextField(
-          controller: _phoneController,
-          keyboardType: TextInputType.phone,
-          decoration: const InputDecoration(
-            hintText: 'Enter phone number',
-            border: OutlineInputBorder(),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              if (_phoneController.text.isNotEmpty) {
-                setState(() {
-                  _phoneNumbers.add(_phoneController.text);
-                  _phoneController.clear();
-                });
-                Navigator.pop(dialogContext);
-              }
-            },
-            child: const Text('Add'),
-          ),
-        ],
-      ),
-    );
   }
 
   void _editCar(CarPost car) {
@@ -137,7 +100,6 @@ class _SellerProfileScreenState extends ConsumerState<SellerProfileScreen> {
 
   @override
   void dispose() {
-    _phoneController.dispose();
     super.dispose();
   }
   
@@ -189,7 +151,7 @@ class _SellerProfileScreenState extends ConsumerState<SellerProfileScreen> {
           children: [
             // Seller Info Section with Styled Text
             Padding(
-              padding: const EdgeInsets.all(20.0),
+              padding: const EdgeInsets.symmetric(vertical: 40,horizontal: 30),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -243,47 +205,29 @@ class _SellerProfileScreenState extends ConsumerState<SellerProfileScreen> {
                           color: Colors.grey[700],
                         ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      _buildInfoChip('${_sellerCars.length} Cars', Icons.directions_car, size: 14),
-                      const SizedBox(width: 12),
                      
                     ],
                   ),
                   const SizedBox(height: 20),
                   Row(
                     children: [
-                      const Icon(Icons.phone, size: 20, color: Colors.blue),
-                      const SizedBox(width: 8),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Contact Number',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                          ..._phoneNumbers.map((phone) => Text(
-                            phone,
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          )).toList(),
-                        ],
-                      ),
-                      const Spacer(),
-                      IconButton(
-                        icon: const Icon(Icons.edit, size: 20, color: Colors.blue),
-                        onPressed: _addPhoneNumber,
+                       //phone number
+                       Icon(Icons.phone, size: 18, color: Colors.grey[600]),
+                      const SizedBox(width: 4),
+                      Text(
+                        profileAsync.when(
+                          data: (data) => data['mobile']?.toString() ?? 'Unknown number',
+                          loading: () => 'Loading...',
+                          error: (error, stack) => 'Error',
+                        ),
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: Colors.grey[700],
+                        ),
                       ),
                     ],
                   ),
+                  const PhoneNumberCard(),
                 ],
               ),
             ),

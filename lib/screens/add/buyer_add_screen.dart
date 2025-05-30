@@ -193,21 +193,7 @@ class _BuyerAddScreenState extends State<BuyerAddScreen> {
                   ),
                   const SizedBox(height: 24),
                   // Show message if no cars are listed
-                  if (_sellerCars.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.only(top: 32.0),
-                      child: Text(
-                        'No cars listed yet. Tap the button above to add your first car!',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.grey,
-                        ),
-                      ),
-                    )
-                  else
-                    // List of listed cars
-                    ..._sellerCars.map((car) => _buildCarCard(car)).toList(),
+                 
                 ],
               ),
             ),

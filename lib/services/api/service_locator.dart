@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -5,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'services/auth_service.dart';
 import 'services/user_service.dart';
 import 'services/car_service.dart';
+import 'services/car_profile_service.dart';
 
 class ServiceLocator {
   static final ServiceLocator _instance = ServiceLocator._internal();
@@ -13,6 +15,11 @@ class ServiceLocator {
   late final AuthService authService;
   late final UserService userService;
   late final CarService carService;
+  late final CarProfileService carProfileService;
+  
+  // Async initialization flag
+  bool _isInitialized = false;
+  final Completer<void> _initCompleter = Completer<void>();
   
   // Dependencies
   late final http.Client _httpClient;
@@ -31,6 +38,24 @@ class ServiceLocator {
     _httpClient = http.Client();
     _storage = const FlutterSecureStorage();
     
+    // Start async initialization
+    _initializeServices().then((_) {
+      _isInitialized = true;
+      _initCompleter.complete();
+    }).catchError((error) {
+      _initCompleter.completeError(error);
+    });
+  }
+  
+  // Ensure services are initialized
+  Future<void> ensureInitialized() async {
+    if (!_isInitialized) {
+      await _initCompleter.future;
+    }
+  }
+  
+  // Async initialization of services
+  Future<void> _initializeServices() async {
     // Initialize Google Sign-In if not on web
     if (!kIsWeb) {
       try {
@@ -63,6 +88,17 @@ class ServiceLocator {
       client: _httpClient,
       storage: _storage,
     );
+    
+    // Initialize CarProfileService with FlutterSecureStorage
+    carProfileService = CarProfileService(
+      client: _httpClient,
+      storage: _storage,
+    );
+    
+    // Initialize the service
+    await carProfileService.initialize();
+    
+    // CarProfileService is now ready to use
   }
   
   // Cleanup resources
