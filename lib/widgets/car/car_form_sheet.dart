@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:icar_instagram_ui/models/car_post.dart';
@@ -157,6 +158,7 @@ class _CarFormSheetState extends State<CarFormSheet> {
       if (widget.car != null) {
         // Update existing car
         final updates = {
+          'type': _listingType, // Add the type field
           'brand': brand,
           'model': model,
           'price': price.toString(),
@@ -167,6 +169,10 @@ class _CarFormSheetState extends State<CarFormSheet> {
           'description': description,
           'enabled': _isEnabled ? '1' : '0',
         };
+        
+        if (kDebugMode) {
+          print('Updating car with type: ${_listingType}');
+        }
 
         await _carService.updateCar(
           carId: widget.car!.id,

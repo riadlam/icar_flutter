@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:icar_instagram_ui/models/car_post.dart';
@@ -66,7 +67,12 @@ class _EditCarScreenState extends State<EditCarScreen> {
     _descriptionController = TextEditingController(text: widget.car.description);
     _transmissionType = widget.car.transmission;
     _fuelType = widget.car.fuel;
-    _isForSale = widget.car.type == 'sale';
+    // Set initial sale/rent state based on the car's type
+    _isForSale = widget.car.type.toLowerCase() == 'sale';
+    
+    if (kDebugMode) {
+      print('Initial car type: ${widget.car.type}, isForSale: $_isForSale');
+    }
   }
 
   Future<void> _pickImage() async {
@@ -124,9 +130,16 @@ class _EditCarScreenState extends State<EditCarScreen> {
           ? [_pickedImage!.path] 
           : widget.car.images;
 
+      // Ensure type is sent as 'sale' or 'rent' exactly as expected by the API
+      final String carType = _isForSale ? 'sale' : 'rent';
+      
+      if (kDebugMode) {
+        print('Saving car with type: $carType');
+      }
+      
       final updatedCar = CarPost(
         id: widget.car.id,
-        type: _isForSale ? 'sale' : 'rent',
+        type: carType,
         brand: _brandController.text,
         model: _modelController.text,
         price: double.tryParse(_priceController.text) ?? 0.0,
@@ -319,6 +332,9 @@ class _EditCarScreenState extends State<EditCarScreen> {
                     onChanged: (value) {
                       setState(() {
                         _isForSale = value;
+                        if (kDebugMode) {
+                          print('Car type changed to: ${_isForSale ? 'sale' : 'rent'}');
+                        }
                       });
                     },
                   ),

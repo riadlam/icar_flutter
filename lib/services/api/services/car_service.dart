@@ -297,13 +297,31 @@ class CarService extends BaseApiService {
       
       // Add new images if any
       if (newImages != null && newImages.isNotEmpty) {
-        for (var image in newImages) {
+        for (var i = 0; i < newImages.length; i++) {
           try {
-            final file = await http.MultipartFile.fromPath('new_images[]', image.path);
+            final image = newImages[i];
+            final fileExtension = image.path.split('.').last.toLowerCase();
+            final mimeType = fileExtension == 'png' 
+                ? 'image/png' 
+                : fileExtension == 'jpg' || fileExtension == 'jpeg'
+                    ? 'image/jpeg'
+                    : 'image/*';
+                    
+            final file = await http.MultipartFile.fromPath(
+              'images[]',  // Using images[] to match the API
+              image.path,
+              contentType: MediaType.parse(mimeType),
+            );
+            
             request.files.add(file);
+            
+            if (kDebugMode) {
+              print('Added image ${i + 1}: ${image.path}');
+              print('  - MIME type: $mimeType');
+            }
           } catch (e) {
             if (kDebugMode) {
-              print('Error adding image ${image.path}: $e');
+              print('Error adding image ${newImages[i].path}: $e');
             }
           }
         }
