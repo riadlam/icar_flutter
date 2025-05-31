@@ -3,13 +3,12 @@ import 'package:flutter_image_slideshow/flutter_image_slideshow.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../models/car_post.dart';
-import 'post_menu_dialog.dart';
 import '../services/share_service.dart' as share_service;
+import '../services/api/services/favorite_seller_service.dart';
 
-class CarPostCard extends StatelessWidget {
+class CarPostCard extends StatefulWidget {
   final CarPost post;
   final Function(bool)? onWishlistPressed;
-  // Removed onMenuPressed as we're handling it directly in the PopupMenuButton
   final bool isFavoriteSeller;
   final bool isPostNotificationsActive;
   final Function(bool)? onFavoriteSellerChanged;
@@ -25,8 +24,84 @@ class CarPostCard extends StatelessWidget {
     this.onPostNotificationsChanged,
   }) : super(key: key);
 
+  @override
+  State<CarPostCard> createState() => _CarPostCardState();
+}
+
+class _CarPostCardState extends State<CarPostCard> {
+  late bool _isFavorite;
+  bool _isLoading = false;
+  final FavoriteSellerService _favoriteService = FavoriteSellerService();
+
+  @override
+  void initState() {
+    super.initState();
+    _isFavorite = widget.isFavoriteSeller;
+    _checkFavoriteStatus();
+  }
+
+  Future<void> _checkFavoriteStatus() async {
+    if (widget.post.sellerId == null) return;
+    
+    setState(() => _isLoading = true);
+    try {
+      final isFavorite = await _favoriteService.isFavoriteSeller(int.parse(widget.post.sellerId!));
+      if (mounted) {
+        setState(() => _isFavorite = isFavorite);
+      }
+    } catch (e) {
+      print('Error checking favorite status: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _toggleFavorite() async {
+    if (widget.post.sellerId == null) return;
+
+    setState(() => _isLoading = true);
+    try {
+      final response = await _favoriteService.toggleFavorite(
+        int.parse(widget.post.sellerId!),
+      );
+
+      if (mounted) {
+        final isNowFavorite = response['action'] == 'added';
+        setState(() => _isFavorite = isNowFavorite);
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              isNowFavorite 
+                  ? 'Added to favorite sellers' 
+                  : 'Removed from favorite sellers',
+            ),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+
+        widget.onFavoriteSellerChanged?.call(isNowFavorite);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to update favorite status'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
   void _navigateToDetail(BuildContext context) {
-    context.push('/car-detail', extra: post);
+    context.push('/car-detail', extra: widget.post);
   }
   
   String _formatPrice(double price) {
@@ -34,30 +109,35 @@ class CarPostCard extends StatelessWidget {
     return '${formatter.format(price)} DA';
   }
 
-  Widget _buildSpecItem(IconData icon, String text) {
-    return Row(
-      children: [
-        Icon(
-          icon,
-          size: 16,
-          color: Colors.grey[600],
-        ),
-        const SizedBox(width: 4),
-        Text(
-          text,
-          style: TextStyle(
-            fontSize: 14,
-            color: Colors.grey[700],
+  Widget _buildDetailChip(String text, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.grey[200],
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: Colors.grey[700]),
+          const SizedBox(width: 4),
+          Text(
+            text,
+            style: const TextStyle(
+              fontSize: 12,
+              color: Colors.black87,
+              fontWeight: FontWeight.w500,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    final cardWidth = screenWidth * 0.96; // Slightly narrower for better margins
+    final cardWidth = screenWidth * 0.96;
     
     return Center(
       child: SizedBox(
@@ -75,14 +155,14 @@ class CarPostCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Image section - taller and full width
+                // Image section
                 SizedBox(
-                  height: 280, // Increased height for better image display
+                  height: 280,
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
                       // Image slideshow
-                      post.images.isEmpty
+                      widget.post.images.isEmpty
                           ? Container(
                               color: Colors.grey[200],
                               child: const Center(
@@ -95,9 +175,9 @@ class CarPostCard extends StatelessWidget {
                               initialPage: 0,
                               indicatorColor: Colors.blue,
                               indicatorBackgroundColor: Colors.grey[300],
-                              autoPlayInterval: 3000, // 3 seconds
+                              autoPlayInterval: 3,
                               isLoop: true,
-                              children: post.images
+                              children: widget.post.images
                                   .map<Widget>((image) => Image.network(
                                         image,
                                         fit: BoxFit.cover,
@@ -138,7 +218,7 @@ class CarPostCard extends StatelessWidget {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                               decoration: BoxDecoration(
-                                color: post.isForSale ? Colors.blue[600] : Colors.green[600],
+                                color: widget.post.isForSale ? Colors.blue[600] : Colors.green[600],
                                 borderRadius: BorderRadius.circular(20),
                                 boxShadow: [
                                   BoxShadow(
@@ -149,7 +229,7 @@ class CarPostCard extends StatelessWidget {
                                 ],
                               ),
                               child: Text(
-                                post.type.toUpperCase(),
+                                widget.post.type.toUpperCase(),
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
@@ -168,8 +248,8 @@ class CarPostCard extends StatelessWidget {
                         right: 16,
                         child: GestureDetector(
                           onTap: () {
-                            if (onWishlistPressed != null) {
-                              onWishlistPressed!(!post.isWishlisted);
+                            if (widget.onWishlistPressed != null) {
+                              widget.onWishlistPressed!(!widget.post.isWishlisted);
                             }
                           },
                           child: Container(
@@ -187,8 +267,8 @@ class CarPostCard extends StatelessWidget {
                             child: Padding(
                               padding: const EdgeInsets.all(8.0),
                               child: Icon(
-                                post.isWishlisted ? Icons.favorite : Icons.favorite_border,
-                                color: post.isWishlisted ? Colors.red : Colors.white,
+                                widget.post.isWishlisted ? Icons.favorite : Icons.favorite_border,
+                                color: widget.post.isWishlisted ? Colors.red : Colors.white,
                                 size: 24,
                               ),
                             ),
@@ -219,10 +299,10 @@ class CarPostCard extends StatelessWidget {
                                 ],
                               ),
                               child: Text(
-                                (post.sellerName ?? 'Seller').toUpperCase(),
+                                (widget.post.sellerName ?? 'Seller').toUpperCase(),
                                 style: const TextStyle(
                                   color: Colors.white,
-                                  fontWeight: FontWeight.w600,
+                                  fontWeight: FontWeight.bold,
                                   fontSize: 12,
                                   letterSpacing: 0.5,
                                 ),
@@ -230,112 +310,54 @@ class CarPostCard extends StatelessWidget {
                             ),
                             
                             // Menu button
-                            Container(
-                              decoration: const BoxDecoration(
-                                color: Colors.black54,
-                                shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black26,
-                                    blurRadius: 4,
-                                    offset: Offset(0, 2),
+                            _isLoading
+                                ? const CircularProgressIndicator(
+                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                    strokeWidth: 2.0,
+                                  )
+                                : PopupMenuButton<String>(
+                                    icon: const Icon(Icons.more_vert, color: Colors.white, size: 24),
+                                    onSelected: (value) {
+                                      if (value == 'favorite') {
+                                        _toggleFavorite();
+                                      } else if (value == 'notifications') {
+                                        widget.onPostNotificationsChanged?.call(!widget.isPostNotificationsActive);
+                                      }
+                                    },
+                                    itemBuilder: (BuildContext context) => [
+                                      PopupMenuItem(
+                                        value: 'favorite',
+                                        child: Row(
+                                          children: [
+                                            Icon(
+                                              _isFavorite ? Icons.favorite : Icons.favorite_border,
+                                              color: _isFavorite ? Colors.red : null,
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Text(_isFavorite ? 'Remove from my favorite sellers' : 'Add to my favorite sellers'),
+                                          ],
+                                        ),
+                                      ),
+                                      PopupMenuItem(
+                                        value: 'notifications',
+                                        child: Row(
+                                          children: [
+                                            Icon(
+                                              widget.isPostNotificationsActive 
+                                                  ? Icons.notifications_off 
+                                                  : Icons.notifications_none,
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              widget.isPostNotificationsActive 
+                                                  ? 'Turn off new posts notifications' 
+                                                  : 'Turn on new posts notifications',
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                ],
-                              ),
-                              child: IconButton(
-                                icon: const Icon(Icons.more_vert, color: Colors.white, size: 22),
-                                padding: const EdgeInsets.all(8),
-                                onPressed: () {
-                                  showModalBottomSheet(
-                                    context: context,
-                                    backgroundColor: Colors.transparent,
-                                    builder: (context) => Container(
-                                      decoration: BoxDecoration(
-                                        color: Theme.of(context).scaffoldBackgroundColor,
-                                        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-                                      ),
-                                      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-                                      child: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          // Drag handle
-                                          Container(
-                                            width: 40,
-                                            height: 4,
-                                            margin: const EdgeInsets.only(bottom: 16),
-                                            decoration: BoxDecoration(
-                                              color: Colors.grey[400],
-                                              borderRadius: BorderRadius.circular(2),
-                                            ),
-                                          ),
-                                          // Title
-                                          
-                                          // Favorite seller option
-                                          ListTile(
-                                            leading: Icon(
-                                              isFavoriteSeller ? Icons.favorite : Icons.favorite_border,
-                                              color: isFavoriteSeller ? Colors.red : null,
-                                            ),
-                                            title: Text(
-                                              isFavoriteSeller 
-                                                  ? 'Remove from Favorite Sellers' 
-                                                  : 'Add to Favorite Sellers',
-                                            ),
-                                            onTap: () {
-                                              Navigator.pop(context);
-                                              if (onFavoriteSellerChanged != null) {
-                                                onFavoriteSellerChanged!(!isFavoriteSeller);
-                                                ScaffoldMessenger.of(context).showSnackBar(
-                                                  SnackBar(
-                                                    content: Text(
-                                                      isFavoriteSeller 
-                                                          ? 'Removed from favorite sellers' 
-                                                          : 'Added to favorite sellers',
-                                                    ),
-                                                    duration: const Duration(seconds: 2),
-                                                  ),
-                                                );
-                                              }
-                                            },
-                                          ),
-                                          // Post notifications option
-                                          ListTile(
-                                            leading: Icon(
-                                              isPostNotificationsActive 
-                                                  ? Icons.notifications_active 
-                                                  : Icons.notifications_off_outlined,
-                                              color: isPostNotificationsActive ? Theme.of(context).primaryColor : null,
-                                            ),
-                                            title: Text(
-                                              isPostNotificationsActive 
-                                                  ? 'Turn Off Post Notifications' 
-                                                  : 'Turn On Post Notifications',
-                                            ),
-                                            onTap: () {
-                                              Navigator.pop(context);
-                                              if (onPostNotificationsChanged != null) {
-                                                onPostNotificationsChanged!(!isPostNotificationsActive);
-                                                ScaffoldMessenger.of(context).showSnackBar(
-                                                  SnackBar(
-                                                    content: Text(
-                                                      isPostNotificationsActive 
-                                                          ? 'Post notifications turned off' 
-                                                          : 'Post notifications activated',
-                                                    ),
-                                                    duration: const Duration(seconds: 2),
-                                                  ),
-                                                );
-                                              }
-                                            },
-                                          ),
-                                         
-                                        ],
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
                           ],
                         ),
                       ),
@@ -354,7 +376,7 @@ class CarPostCard extends StatelessWidget {
                         children: [
                           // Car title
                           Text(
-                            '${post.brand} ${post.model} ${post.year}',
+                            '${widget.post.brand} ${widget.post.model} ${widget.post.year}',
                             style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -363,71 +385,42 @@ class CarPostCard extends StatelessWidget {
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              _formatPrice(post.price),
-                              style: const TextStyle(
-                                color: Colors.black,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                                letterSpacing: 0.5,
-                              ),
+                          const SizedBox(height: 4),
+                          Text(
+                            _formatPrice(widget.post.price),
+                            style: const TextStyle(
+                              color: Colors.black,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              letterSpacing: 0.5,
                             ),
                           ),
                         ],
                       ),
                       // Share button
                       GestureDetector(
-                        onTap: () => share_service.ShareService.shareCarPost(context, post),
-                            child: Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: Colors.grey[200],
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.share,
-                                size: 20,
-                                color: Colors.black87,
-                              ),
-                            ),
+                        onTap: () => share_service.ShareService.shareCarPost(context, widget.post),
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[200],
+                            shape: BoxShape.circle,
                           ),
+                          child: const Icon(
+                            Icons.share,
+                            size: 20,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
+                
               ],
             ),
           ),
         ),
-      ),
-    );
-  }
-  
-  Widget _buildDetailChip(String text, IconData icon) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.grey[100],
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: Colors.grey[700]),
-          const SizedBox(width: 4),
-          Text(
-            text,
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey[800],
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
       ),
     );
   }

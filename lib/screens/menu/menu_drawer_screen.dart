@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
+import '../../models/favorite_seller.dart';
+import '../../services/api/services/favorite_seller_list_service.dart';
 
 class MenuDrawerScreen extends StatefulWidget {
   const MenuDrawerScreen({super.key});
@@ -16,15 +18,73 @@ class _MenuDrawerScreenState extends State<MenuDrawerScreen> {
   bool _isAboutUsExpanded = false;
   bool _isContactUsExpanded = false;
 
-  final List<String> favoriteSellers = [
-    'AutoCare Plus',
-    'QuickFix Garage',
-    'ProMechanic',
-    'Elite Auto Services',
-    'Speedy Repairs'
-  ];
-
   final Color customIconColor = Colors.lightGreen;
+
+  List<Widget> _buildFavoriteSellersList() {
+    if (_isLoading) {
+      return [
+        const Padding(
+          padding: EdgeInsets.symmetric(vertical: 16.0),
+          child: Center(child: CircularProgressIndicator()),
+        ),
+      ];
+    }
+
+    if (_favoriteSellers.isEmpty) {
+      return [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 24.0),
+          child: Text(
+            'No favorite sellers yet',
+            style: TextStyle(
+              color: Colors.grey[600],
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        ),
+      ];
+    }
+
+    return _favoriteSellers
+        .map((seller) => _buildSubMenuItem(seller.fullName))
+        .toList();
+  }
+  bool _isLoading = false;
+  List<FavoriteSeller> _favoriteSellers = [];
+  final FavoriteSellerListService _favoriteSellerService = FavoriteSellerListService();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFavoriteSellers();
+  }
+
+  Future<void> _loadFavoriteSellers() async {
+    if (!_isFavoriteSellersExpanded) return;
+    
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final sellers = await _favoriteSellerService.getFavoriteSellers();
+      if (mounted) {
+        setState(() {
+          _favoriteSellers = sellers;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load favorite sellers: $e')),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -61,10 +121,13 @@ class _MenuDrawerScreenState extends State<MenuDrawerScreen> {
                     onTap: () {
                       setState(() {
                         _isFavoriteSellersExpanded = !_isFavoriteSellersExpanded;
+                        if (_isFavoriteSellersExpanded) {
+                          _loadFavoriteSellers();
+                        }
                       });
                     },
                     children: _isFavoriteSellersExpanded
-                        ? favoriteSellers.map(_buildSubMenuItem).toList()
+                        ? _buildFavoriteSellersList()
                         : [],
                   ),
                   _buildExpandableSection(
