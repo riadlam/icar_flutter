@@ -68,7 +68,7 @@ class UserService extends BaseApiService {
         case UserRole.buyer:
           requestData = {
             'full_name': formData['fullName'],
-            'showroom_name': formData['showroomName'],
+            'showroom_name': 'showrooom',
             'mobile': formData['mobile'],
             'city': formData['city'],
           };

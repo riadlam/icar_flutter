@@ -138,7 +138,7 @@
   "close": "Close",
   "finish": "Finish",
   "required_field": "Required",
-  "full_name": "Full Name",
+  "full_name": "Full Name or Showroom Name",
   "showroom_name": "Showroom Name",
   "mobile_number": "Mobile Number",
   "store_name": "Store Name",
@@ -150,5 +150,5 @@
   "signing_out": "Signing out...",
   "business_driver_name": "Business/Driver Name",
   "business_name": "Business Name",
-  "mechanic_name": "Mechanic Name"
+  "mechanic_name": "Business Name/Mechanic Name"
 }

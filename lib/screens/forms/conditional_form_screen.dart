@@ -232,7 +232,6 @@ class _ConditionalFormScreenState extends State<ConditionalFormScreen> {
       case models.UserRole.buyer:
         return [
           _textField('full_name'.tr(), (v) => formData['fullName'] = v),
-          _textField('showroom_name'.tr(), (v) => formData['showroomName'] = v),
           _textField('mobile_number'.tr(), (v) => formData['mobile'] = v, keyboardType: TextInputType.phone),
           _textField('city'.tr(), (v) => formData['city'] = v),
         ];
@@ -250,7 +249,6 @@ class _ConditionalFormScreenState extends State<ConditionalFormScreen> {
         ];
       case models.UserRole.other:
         return [
-          _textField('business_name'.tr(), (v) => formData['businessName'] = v),
           _textField('mechanic_name'.tr(), (v) => formData['driverName'] = v),
           _textField('mobile_number'.tr(), (v) => formData['mobile'] = v, keyboardType: TextInputType.phone),
           _textField('city'.tr(), (v) => formData['city'] = v),
@@ -282,7 +280,6 @@ class _ConditionalFormScreenState extends State<ConditionalFormScreen> {
     switch (widget.role) {
       case models.UserRole.buyer:
         canFinish = (formData['fullName']?.toString().isNotEmpty ?? false) &&
-            (formData['showroomName']?.toString().isNotEmpty ?? false) &&
             (formData['mobile']?.toString().isNotEmpty ?? false) &&
             (formData['city']?.toString().isNotEmpty ?? false);
         break;
