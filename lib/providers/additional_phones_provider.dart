@@ -1,19 +1,27 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:icar_instagram_ui/models/additional_phone.dart';
 import 'package:icar_instagram_ui/providers/car_profile_provider.dart';
 
 class AdditionalPhonesNotifier extends StateNotifier<AsyncValue<List<AdditionalPhone>>> {
   final Ref ref;
   
-  AdditionalPhonesNotifier(this.ref) : super(const AsyncValue.loading()) {
-    loadPhones('1'); // Default to user ID 1, you might want to make this dynamic
+  AdditionalPhonesNotifier(this.ref) : super(const AsyncValue.loading());
+  
+  Future<String?> _getCurrentUserId() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('user_id');
   }
 
   Future<void> loadPhones(String userId) async {
     state = const AsyncValue.loading();
     try {
+      final currentUserId = await _getCurrentUserId();
+      if (currentUserId == null) {
+        throw Exception('User not logged in');
+      }
       final carProfileService = ref.read(carProfileProvider);
-      final response = await carProfileService.getUserAdditionalPhones(userId);
+      final response = await carProfileService.getUserAdditionalPhones(currentUserId);
       if (response['success'] == true) {
         final phonesData = (response['data']['phones'] as List)
             .map((phone) => AdditionalPhone.fromJson(phone))

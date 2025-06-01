@@ -151,7 +151,7 @@ class _SellerProfileScreenState extends ConsumerState<SellerProfileScreen> {
           children: [
             // Seller Info Section with Styled Text
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 40,horizontal: 30),
+              padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -189,44 +189,25 @@ class _SellerProfileScreenState extends ConsumerState<SellerProfileScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Icon(Icons.location_on, size: 18, color: Colors.grey[600]),
-                      const SizedBox(width: 4),
-                      Text(
-                        profileAsync.when(
-                          data: (data) => data['city']?.toString() ?? 'Unknown location',
-                          loading: () => 'Loading...',
-                          error: (error, stack) => 'Error',
-                        ),
-                        style: TextStyle(
-                          fontSize: 15,
-                          color: Colors.grey[700],
-                        ),
-                      ),
-                     
-                    ],
+                  const SizedBox(height: 16),
+                  _buildInfoRow(
+                    Icons.location_on,
+                    profileAsync.when(
+                      data: (data) => data['city']?.toString() ?? 'Unknown location',
+                      loading: () => 'Loading...',
+                      error: (error, stack) => 'Error',
+                    ),
+                  ),
+                  const SizedBox(height: 30),
+                  _buildInfoRow(
+                    Icons.phone,
+                    profileAsync.when(
+                      data: (data) => data['mobile']?.toString() ?? 'No phone number',
+                      loading: () => 'Loading...',
+                      error: (error, stack) => 'Error loading phone',
+                    ),
                   ),
                   const SizedBox(height: 20),
-                  Row(
-                    children: [
-                       //phone number
-                       Icon(Icons.phone, size: 18, color: Colors.grey[600]),
-                      const SizedBox(width: 4),
-                      Text(
-                        profileAsync.when(
-                          data: (data) => data['mobile']?.toString() ?? 'Unknown number',
-                          loading: () => 'Loading...',
-                          error: (error, stack) => 'Error',
-                        ),
-                        style: TextStyle(
-                          fontSize: 15,
-                          color: Colors.grey[700],
-                        ),
-                      ),
-                    ],
-                  ),
                   const PhoneNumberCard(),
                 ],
               ),
@@ -316,6 +297,24 @@ class _SellerProfileScreenState extends ConsumerState<SellerProfileScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildInfoRow(IconData icon, String text) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Icon(icon, size: 20,),
+        const SizedBox(width: 8),
+        Text(
+          text,
+          style: const TextStyle(
+            fontSize: 16,
+            color: Colors.black87,
+            height: 1.0,
+          ),
+        ),
+      ],
     );
   }
 

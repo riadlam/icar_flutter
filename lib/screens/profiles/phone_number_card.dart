@@ -15,8 +15,20 @@ class _PhoneNumberCardState extends ConsumerState<PhoneNumberCard> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(additionalPhonesProvider.notifier).loadPhones('1');
+      _loadPhones();
     });
+  }
+
+  Future<void> _loadPhones() async {
+    try {
+      await ref.read(additionalPhonesProvider.notifier).loadPhones('');
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load phone numbers: $e')),
+        );
+      }
+    }
   }
 
   Future<void> _showAddPhoneDialog(BuildContext context, WidgetRef ref) {
@@ -70,9 +82,7 @@ class _PhoneNumberCardState extends ConsumerState<PhoneNumberCard> {
                                 .read(phoneNumberProvider.notifier)
                                 .addPhoneNumber(phoneNumber);
 
-                            await ref
-                                .read(additionalPhonesProvider.notifier)
-                                .loadPhones('1');
+                            await _loadPhones();
 
                             if (context.mounted) {
                               Navigator.pop(context);
@@ -136,7 +146,7 @@ class _PhoneNumberCardState extends ConsumerState<PhoneNumberCard> {
                 try {
                   await ref
                       .read(additionalPhonesProvider.notifier)
-                      .deletePhone('1', phoneId);
+                      .deletePhone('', phoneId);
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
@@ -168,72 +178,75 @@ class _PhoneNumberCardState extends ConsumerState<PhoneNumberCard> {
   @override
   Widget build(BuildContext context) {
     final phonesAsync = ref.watch(additionalPhonesProvider);
+    final theme = Theme.of(context);
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            '',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          phonesAsync.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (error, stack) => Text('Error: $error'),
-            data: (phones) {
-              if (phones.isEmpty) {
-                return const Text('');
-              }
-              return Column(
-                children: phones
-                    .map(
-                      (phone) => Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 4.0),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Row(
-                              children: [
-                                const Icon(Icons.phone, size: 20),
-                                const SizedBox(width: 8),
-                                Text(
-                                  phone.phoneNumber,
-                                  style: const TextStyle(fontSize: 16),
-                                ),
-                              ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        phonesAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (error, stack) => Text('Error: $error'),
+          data: (phones) {
+            if (phones.isEmpty) {
+              return const SizedBox.shrink();
+            }
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ...phones.map(
+                  (phone) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8.0),
+                    child: Row(
+                      children: [
+                        const SizedBox(width: 4),
+                        Icon(Icons.phone, size: 20,),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            phone.phoneNumber,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              color: Colors.black87,
                             ),
-                            IconButton(
-                              icon: const Icon(Icons.delete, color: Colors.red),
-                              onPressed: () {
-                                _showDeleteConfirmationDialog(
-                                  context,
-                                  ref,
-                                  phone.id.toString(),
-                                  phone.phoneNumber,
-                                );
-                              },
-                            ),
-                          ],
+                          ),
                         ),
-                      ),
-                    )
-                    .toList(),
-              );
-            },
-          ),
-          const SizedBox(height: 20),
-          Center(
-            child: FilledButton(
-              onPressed: () => _showAddPhoneDialog(context, ref),
-              child: const Text('Add Phone Number'),
+                        IconButton(
+                          icon: Icon(Icons.delete_outline, size: 22, color: Colors.red),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          onPressed: () => _showDeleteConfirmationDialog(
+                            context,
+                            ref,
+                            phone.id,
+                            phone.phoneNumber,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ).toList(),
+              ],
+            );
+          },
+        ),
+        const SizedBox(height: 8),
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton.icon(
+            onPressed: () => _showAddPhoneDialog(context, ref),
+            icon: const Icon(Icons.add, size: 20),
+            label: const Text('Add Another Number'),
+            style: FilledButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

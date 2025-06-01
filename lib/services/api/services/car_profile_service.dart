@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:logging/logging.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:icar_instagram_ui/services/api/endpoints/api_endpoints.dart';
 
 class CarProfileService {
@@ -98,6 +99,13 @@ class CarProfileService {
         throw Exception('No authentication token found');
       }
 
+      // Get current user ID from SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getString('user_id');
+      if (userId == null) {
+        throw Exception('User not logged in');
+      }
+
       // Create the request body as per the new API
       final requestBody = {
         'phone_number': phoneNumber.toString()
@@ -106,9 +114,9 @@ class CarProfileService {
       final requestBodyJson = jsonEncode(requestBody);
       _logger.fine('Sending request with body: $requestBodyJson');
 
-      // Use the new API endpoint for additional phone numbers
+      // Use the new API endpoint for additional phone numbers with the current user's ID
       final response = await client.post(
-        Uri.parse('$baseUrl/api/users/1/additional-phones'),
+        Uri.parse('$baseUrl/api/users/$userId/additional-phones'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
