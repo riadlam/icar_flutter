@@ -83,7 +83,7 @@ class UserService extends BaseApiService {
         case UserRole.mechanic:
         case UserRole.other:
           requestData = {
-            'business_name': formData['businessName'],
+            'business_name': formData['businessName'] ?? 'Mechanic Business',
             'driver_name': formData['driverName'],
             'mobile': formData['mobile'],
             'city': formData['city'],
