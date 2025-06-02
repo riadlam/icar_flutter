@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../../models/car_post.dart';
 import '../../providers/all_cars_provider.dart' as car_providers;
 import '../../widgets/car_post_card.dart';
@@ -108,7 +109,7 @@ class _CarPostsContentState extends ConsumerState<CarPostsContent> {
                 child: OutlinedButton.icon(
                   onPressed: _showFilterModal,
                   icon: const Icon(Icons.filter_list, size: 20),
-                  label: const Text('Filter'),
+                  label: Text('filter'.tr()),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
@@ -132,7 +133,7 @@ class _CarPostsContentState extends ConsumerState<CarPostsContent> {
                     });
                   },
                   icon: const Icon(Icons.refresh, size: 20),
-                  label: const Text('Reset'),
+                  label: Text('reset'.tr()),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
@@ -154,7 +155,7 @@ class _CarPostsContentState extends ConsumerState<CarPostsContent> {
               debugPrint('Stack trace: $stack');
               return Center(
                 child: custom_error.CustomErrorWidget(
-                  message: 'Failed to load cars. Please try again.',
+                  message: 'failed_to_load_cars'.tr(),
                   onRetry: _filterParams?.hasFilters ?? false 
                       ? () => ref.refresh(car_providers.filteredCarsProvider(_filterParams!).future)
                       : () => ref.refresh(car_providers.allCarsProvider.future),
@@ -170,13 +171,13 @@ class _CarPostsContentState extends ConsumerState<CarPostsContent> {
                       const Icon(Icons.car_rental, size: 64, color: Colors.grey),
                       const SizedBox(height: 16),
                       Text(
-                        'No cars found',
+                        'no_cars_found'.tr(),
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                       if (_filterParams?.hasFilters ?? false) ...[
                         const SizedBox(width: 8),
                         Text(
-                          'Filters applied',
+                          'filters_applied'.tr(),
                           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             color: Theme.of(context).primaryColor,
                             fontWeight: FontWeight.bold,
@@ -186,8 +187,8 @@ class _CarPostsContentState extends ConsumerState<CarPostsContent> {
                       const SizedBox(height: 8),
                       Text(
                         _filterParams?.hasFilters ?? false 
-                            ? 'Try adjusting your filters or search again.'
-                            : 'No cars available at the moment.',
+                            ? 'try_adjusting_filters'.tr()
+                            : 'no_cars_available'.tr(),
                         style: Theme.of(context).textTheme.bodyMedium,
                       ),
                     ],

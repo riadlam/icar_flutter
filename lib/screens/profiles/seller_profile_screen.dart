@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:icar_instagram_ui/widgets/two%20truck/menu_navbar/tow_truck_navbar.dart';
 import 'package:icar_instagram_ui/models/car_post.dart';
 import 'package:icar_instagram_ui/widgets/car/car_form_sheet.dart';
@@ -81,7 +82,7 @@ class _SellerProfileScreenState extends ConsumerState<SellerProfileScreen> {
         
         // Show success message
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Car updated successfully!')),
+          SnackBar(content: Text('car_updated_success'.tr())),
         );
         
         // Refresh the car list by invalidating the provider
@@ -92,7 +93,7 @@ class _SellerProfileScreenState extends ConsumerState<SellerProfileScreen> {
         
         // Show error message
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to update car: $error')),
+          SnackBar(content: Text('car_update_failed'.tr(args: [error.toString()]))),
         );
       },
     );
@@ -111,7 +112,7 @@ class _SellerProfileScreenState extends ConsumerState<SellerProfileScreen> {
         
         // Show success message
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Car added successfully!')),
+          SnackBar(content: Text('car_added_success'.tr())),
         );
         
         // Refresh the car list
@@ -126,7 +127,7 @@ class _SellerProfileScreenState extends ConsumerState<SellerProfileScreen> {
         
         // Show error message
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to add car: $error')),
+          SnackBar(content: Text('car_add_failed'.tr(args: [error.toString()]))),
         );
       },
     );
@@ -142,7 +143,7 @@ class _SellerProfileScreenState extends ConsumerState<SellerProfileScreen> {
       key: _scaffoldKey,
       appBar: TowTruckNavBar(
         scaffoldKey: _scaffoldKey,
-        title: 'iCar',
+        title: 'app_title'.tr(),
       ),
       endDrawer: TowTruckNavBar.buildDrawer(context),
       body: SingleChildScrollView(
@@ -177,9 +178,9 @@ class _SellerProfileScreenState extends ConsumerState<SellerProfileScreen> {
                     ),
                     error: (error, stack) => Text(
                       profileAsync.when(
-                        data: (data) => data['name']?.toString() ?? 'Seller',
-                        loading: () => 'Loading...',
-                        error: (error, stack) => 'Error',
+                        data: (data) => data['name']?.toString() ?? 'seller'.tr(),
+                        loading: () => 'loading'.tr(),
+                        error: (error, stack) => 'error_occurred'.tr(),
                       ),
                       style: const TextStyle(
                         fontSize: 28,
@@ -241,7 +242,7 @@ class _SellerProfileScreenState extends ConsumerState<SellerProfileScreen> {
                               ),
                               const SizedBox(height: 16),
                               Text(
-                                'No cars listed yet',
+                                'no_cars_listed'.tr(),
                                 style: TextStyle(
                                   fontSize: 16,
                                   color: Colors.grey[600],
@@ -250,7 +251,7 @@ class _SellerProfileScreenState extends ConsumerState<SellerProfileScreen> {
                               const SizedBox(height: 8),
                               ElevatedButton(
                                 onPressed: _addNewCar,
-                                child: const Text('Add Your First Car'),
+                                child: Text('add_first_car'.tr()),
                               ),
                             ],
                           ),
@@ -277,7 +278,7 @@ class _SellerProfileScreenState extends ConsumerState<SellerProfileScreen> {
                           const Icon(Icons.error_outline, color: Colors.red, size: 48),
                           const SizedBox(height: 16),
                           Text(
-                            'Failed to load cars',
+                            'failed_load_cars'.tr(),
                             style: TextStyle(
                               fontSize: 16,
                               color: Colors.grey[600],
@@ -285,7 +286,7 @@ class _SellerProfileScreenState extends ConsumerState<SellerProfileScreen> {
                           ),
                           TextButton(
                             onPressed: () => ref.refresh(sellerCarsProvider.future),
-                            child: const Text('Retry'),
+                            child: Text('retry'.tr()),
                           ),
                         ],
                       ),

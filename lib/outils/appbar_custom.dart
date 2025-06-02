@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class AnimatedSearchAppBar extends StatefulWidget implements PreferredSizeWidget {
   @override
@@ -17,11 +18,11 @@ class _AnimatedSearchAppBarState extends State<AnimatedSearchAppBar> {
     return AppBar(
       backgroundColor: Colors.white,
       elevation: 2,
-      title: const Padding(
-        padding: EdgeInsets.symmetric(horizontal: 16.0),
+      title: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0),
         child: Text(
-          'iCar',
-          style: TextStyle(
+          'app_title'.tr(),
+          style: const TextStyle(
             color: Colors.black,
             fontSize: 30,
             fontWeight: FontWeight.bold,
@@ -50,8 +51,8 @@ class _AnimatedSearchAppBarState extends State<AnimatedSearchAppBar> {
                       child: TextField(
                         controller: _searchController,
                         autofocus: true,
-                        decoration: const InputDecoration(
-                          hintText: 'Search...',
+                        decoration: InputDecoration(
+                          hintText: 'search_hint'.tr(),
                           border: InputBorder.none,
                           isDense: true,
                         ),

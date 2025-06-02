@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:icar_instagram_ui/models/garage_service.dart';
 import 'package:icar_instagram_ui/widgets/cards/garage_service_card.dart';
@@ -91,7 +92,7 @@ class _GarageProfileScreenState extends ConsumerState<GarageProfileScreen> {
               businessName: decodedData['driverName']?.toString() ?? '',
               ownerName: decodedData['driverName']?.toString() ?? '', // Note: using driver_name as owner_name
               phoneNumber: decodedData['mobile']?.toString() ?? '',
-              location: decodedData['city']?.toString() ?? 'Location not set',
+              location: decodedData['city']?.toString() ?? 'location_not_set'.tr(),
               email: googleEmail.isNotEmpty ? googleEmail : (decodedData['email']?.toString() ?? ''),
             );
           });
@@ -104,10 +105,10 @@ class _GarageProfileScreenState extends ConsumerState<GarageProfileScreen> {
           if (mounted) {
             setState(() {
               _currentService = _currentService.copyWith(
-                businessName: decodedData['showroomName']?.toString() ?? 'Garage',
+                businessName: decodedData['showroomName']?.toString() ?? 'garage'.tr(),
                 ownerName: decodedData['fullName']?.toString() ?? '',
                 phoneNumber: decodedData['mobile']?.toString() ?? '',
-                location: decodedData['city']?.toString() ?? 'Location not set',
+                location: decodedData['city']?.toString() ?? 'location_not_set'.tr(),
                 email: decodedData['email']?.toString() ?? '',
               );
             });
@@ -118,10 +119,10 @@ class _GarageProfileScreenState extends ConsumerState<GarageProfileScreen> {
       if (mounted) {
         setState(() {
           _currentService = _currentService.copyWith(
-            businessName: 'Error loading profile',
-            ownerName: 'N/A',
-            phoneNumber: 'N/A',
-            location: 'Please try again later',
+            businessName: 'error_loading_profile'.tr(),
+            ownerName: 'n/a'.tr(),
+            phoneNumber: 'n/a'.tr(),
+            location: 'please_try_again_later'.tr(),
           );
         });
       }
@@ -176,7 +177,7 @@ class _GarageProfileScreenState extends ConsumerState<GarageProfileScreen> {
         key: _scaffoldKey,
         appBar: TowTruckNavBar(
           scaffoldKey: _scaffoldKey,
-          title: 'iCar',
+          title: 'app_title'.tr(),
         ),
         endDrawer: TowTruckNavBar.buildDrawer(context),
         body: SingleChildScrollView(
@@ -224,12 +225,12 @@ class _GarageProfileScreenState extends ConsumerState<GarageProfileScreen> {
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
+                    children: [
                       Icon(Icons.add, color: Colors.blueAccent),
-                      SizedBox(width: 8),
+                      const SizedBox(width: 8),
                       Text(
-                        "Add a second card",
-                        style: TextStyle(
+                        'add_second_card'.tr(),
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w500,
                           color: Colors.blueAccent,

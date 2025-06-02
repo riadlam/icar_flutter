@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:icar_instagram_ui/models/tow_truck_service.dart';
 import 'package:icar_instagram_ui/screens/profiles/seller_profile_screen.dart';
@@ -48,7 +49,7 @@ class _MechanicProfileScreenState
     super.initState();
     // Initialize with default values that will be overridden by the provider
     _currentService = TowTruckService(
-      businessName: 'Loading...',
+      businessName: 'loading'.tr(),
       phoneNumber: '',
       email: '',
       location: '',
@@ -102,9 +103,9 @@ class _MechanicProfileScreenState
       if (mounted) {
         setState(() {
           _currentService = _currentService.copyWith(
-            businessName: 'Error loading profile',
-            phoneNumber: 'N/A',
-            location: 'Please try again later',
+            businessName: 'error_loading_profile'.tr(),
+            phoneNumber: 'not_available'.tr(),
+            location: 'try_again_later'.tr(),
           );
         });
       }
@@ -161,7 +162,7 @@ class _MechanicProfileScreenState
         key: _scaffoldKey,
         appBar: TowTruckNavBar(
           scaffoldKey: _scaffoldKey,
-          title: 'iCar',
+          title: 'app_title'.tr(),
         ),
         endDrawer: TowTruckNavBar.buildDrawer(context),
         body: SingleChildScrollView(
@@ -207,12 +208,12 @@ GestureDetector(
     ),
     child: Row(
       mainAxisAlignment: MainAxisAlignment.center,
-      children: const [
+      children: [
         Icon(Icons.add, color: Colors.blueAccent),
-        SizedBox(width: 8),
+        const SizedBox(width: 8),
         Text(
-          "Add a second card",
-          style: TextStyle(
+          'add_second_card'.tr(),
+          style: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w500,
             color: Colors.blueAccent,

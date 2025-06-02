@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_image_slideshow/flutter_image_slideshow.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../models/car_post.dart';
 import '../services/share_service.dart' as share_service;
 import '../services/api/services/favorite_seller_service.dart';
@@ -299,7 +300,7 @@ class _CarPostCardState extends State<CarPostCard> {
                                 ],
                               ),
                               child: Text(
-                                (widget.post.sellerName ?? 'Seller').toUpperCase(),
+                                (widget.post.sellerName ?? 'seller'.tr()).toUpperCase(),
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
@@ -334,7 +335,7 @@ class _CarPostCardState extends State<CarPostCard> {
                                               color: _isFavorite ? Colors.red : null,
                                             ),
                                             const SizedBox(width: 8),
-                                            Text(_isFavorite ? 'Remove from my favorite sellers' : 'Add to my favorite sellers'),
+                                            Text(_isFavorite ? 'remove_from_favorite_sellers'.tr() : 'add_to_favorite_sellers'.tr()),
                                           ],
                                         ),
                                       ),
@@ -350,8 +351,8 @@ class _CarPostCardState extends State<CarPostCard> {
                                             const SizedBox(width: 8),
                                             Text(
                                               widget.isPostNotificationsActive 
-                                                  ? 'Turn off new posts notifications' 
-                                                  : 'Turn on new posts notifications',
+                                                  ? 'turn_off_post_notifications'.tr()
+                                                  : 'turn_on_post_notifications'.tr(),
                                             ),
                                           ],
                                         ),

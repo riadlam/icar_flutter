@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'base_content_widget.dart';
 
 class SparePartsContent extends BaseContentWidget {
@@ -6,9 +7,9 @@ class SparePartsContent extends BaseContentWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
+    return Center(
       child: Text(
-        'Spare parts\n(Coming Soon)',
+        'spare_parts_coming_soon'.tr(),
         style: TextStyle(fontSize: 18, color: Colors.grey),
         textAlign: TextAlign.center,
       ),

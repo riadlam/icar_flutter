@@ -109,7 +109,14 @@ class _CarFilterModalState extends State<CarFilterModal> {
           const SizedBox(height: 16),
           _buildSectionTitle('brand'.tr()),
           _buildChips(
-            ['all'.tr(), 'Toyota', 'Honda', 'Nissan', 'BMW', 'Mercedes'],
+            [
+              'all'.tr(),
+              'brand_toyota'.tr(),
+              'brand_honda'.tr(),
+              'brand_nissan'.tr(),
+              'brand_bmw'.tr(),
+              'brand_mercedes'.tr(),
+            ],
             _selectedBrand,
             (value) => setState(() => _selectedBrand = value),
           ),
@@ -258,8 +265,8 @@ class _CarFilterModalState extends State<CarFilterModal> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('2000'),
-              Text('2023'),
+              Text('year_min'.tr()),
+              Text('year_max'.tr()),
             ],
           ),
         ),
@@ -290,8 +297,8 @@ class _CarFilterModalState extends State<CarFilterModal> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(r'$0'),
-              Text(r'$200K'),
+              Text('price_min'.tr()),
+              Text('price_max'.tr()),
             ],
           ),
         ),
@@ -325,7 +332,7 @@ class _CarFilterModalState extends State<CarFilterModal> {
           min: 0,
           max: 200000,
           divisions: 20,
-          label: '${(_mileage / 1000).round()}K Km',
+          label: '${(_mileage / 1000).round()}K ${'unit_kilometers_abbr'.tr()}',
           onChanged: (value) {
             setState(() {
               _mileage = value;
@@ -337,8 +344,8 @@ class _CarFilterModalState extends State<CarFilterModal> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('0 km'),
-              Text('200 km'),
+              Text('0 ${'unit_km'.tr()}'),
+              Text('200 ${'unit_km'.tr()}'),
             ],
           ),
         ),
