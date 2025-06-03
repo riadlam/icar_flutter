@@ -16,7 +16,7 @@ class BaseApiService {
   })  : _client = client,
         _storage = storage;
 
-  Future<Map<String, String>> _getAuthHeaders() async {
+  Future<Map<String, String>> getAuthHeaders() async {
     final token = await _storage.read(key: 'auth_token');
     return {
       'Authorization': 'Bearer $token',
@@ -28,7 +28,7 @@ class BaseApiService {
   Future<dynamic> get(String endpoint) async {
     try {
       final uri = Uri.parse('${ApiEndpoints.baseUrl}$endpoint');
-      final headers = await _getAuthHeaders();
+      final headers = await getAuthHeaders();
       
       if (kDebugMode) {
         debugPrint('GET $uri');
@@ -50,7 +50,7 @@ class BaseApiService {
   Future<dynamic> post(String endpoint, {dynamic body}) async {
     try {
       final uri = Uri.parse('${ApiEndpoints.baseUrl}$endpoint');
-      final headers = await _getAuthHeaders();
+      final headers = await getAuthHeaders();
       final encodedBody = body != null ? json.encode(body) : null;
       
       if (kDebugMode) {

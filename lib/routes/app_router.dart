@@ -15,6 +15,7 @@ import '../widgets/bottom_navigation_bar.dart';
 import '../screens/add/add_screen.dart';
 import '../models/user_role.dart' as models;
 import '../models/car_post.dart';
+import '../screens/car_search_results_screen.dart';
 
 final _log = Logger('AppRouter');
 
@@ -60,6 +61,19 @@ class AppRouter {
         builder: (context, state) {
           final carPost = state.extra as CarPost;
           return CarDetailScreen(post: carPost);
+        },
+      ),
+      GoRoute(
+        path: '/search-results/:query',
+        name: 'searchResults', // Optional: for named navigation
+        builder: (context, state) {
+          final query = state.pathParameters['query'] ?? '';
+          // It's good practice to decode the query parameter in case it contains special characters
+          final decodedQuery = Uri.decodeComponent(query);
+          if (decodedQuery.isEmpty) {
+            _log.warning('Search results route called with empty query.');
+          }
+          return CarSearchResultsScreen(searchQuery: decodedQuery);
         },
       ),
       

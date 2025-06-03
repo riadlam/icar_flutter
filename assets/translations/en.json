@@ -187,5 +187,8 @@
   "signing_out": "Signing out...",
   "business_driver_name": "Business/Driver Name",
   "business_name": "Business Name",
-  "mechanic_name": "Business Name/Mechanic Name"
+  "mechanic_name": "Business Name/Mechanic Name",
+  "search_results_title": "Search Results for: {0}",
+  "no_cars_found_for_query": "No cars found for '{0}'",
+  "error_loading_search_results": "Error loading search results. Please try again."
 }

@@ -15,6 +15,7 @@ class ApiEndpoints {
   static const String cars = '$apiPrefix/cars';
   static const String userCars = '$apiPrefix/user/cars';
   static const String userCarsList = '$apiPrefix/user/cars/list';
+  static const String searchCars = '$apiPrefix/cars/search';
   
   // Timeouts
   static const Duration connectTimeout = Duration(seconds: 30);

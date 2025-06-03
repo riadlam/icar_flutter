@@ -363,48 +363,124 @@ class CarService extends BaseApiService {
   /// Filters cars based on the provided criteria
   /// 
   /// [brand] - Filter by car brand
+  /// [model] - Filter by car model
   /// [type] - Filter by listing type ('sale' or 'rent')
   /// [year] - Filter by manufacturing year
   /// [transmission] - Filter by transmission type
   /// [fuelType] - Filter by fuel type
   /// [mileage] - Filter by maximum mileage
+  /// [priceMin] - Filter by minimum price
+  /// [priceMax] - Filter by maximum price
   /// Returns a list of cars matching the criteria
   Future<List<CarPost>> filterCars({
     String? brand,
+    String? model,
     String? type,
     int? year,
     String? transmission,
     String? fuelType,
     int? mileage,
+    double? priceMin,
+    double? priceMax,
   }) async {
+    print('🚀 filterCars called with:');
+    print('  - brand: $brand');
+    print('  - model: $model');
+    print('  - type: $type');
+    print('  - year: $year');
+    print('  - transmission: $transmission');
+    print('  - fuelType: $fuelType');
+    print('  - mileage: $mileage');
+    print('  - priceMin: $priceMin');
+    print('  - priceMax: $priceMax');
     try {
-      // Build request body
+      // Debug log all input parameters
+      if (kDebugMode) {
+        print('🔍 filterCars called with parameters:');
+        print('  - brand: $brand');
+        print('  - model: $model');
+        print('  - type: $type');
+        print('  - year: $year');
+        print('  - transmission: $transmission');
+        print('  - fuelType: $fuelType');
+        print('  - mileage: $mileage');
+        print('  - priceMin: $priceMin');
+        print('  - priceMax: $priceMax');
+      }
+      
+      // Build request body with case-insensitive matching and debug logging
       final Map<String, dynamic> requestBody = {};
-      if (brand != null && brand != 'all') requestBody['brand'] = brand;
-      if (type != null && type != 'all') requestBody['type'] = type;
-      if (year != null) requestBody['year'] = year;
-      if (transmission != null && transmission != 'all') requestBody['transmission'] = transmission;
-      if (fuelType != null && fuelType != 'all') requestBody['fuel_type'] = fuelType;
-      if (mileage != null) requestBody['mileage'] = mileage;
+      
+      // Add brand if provided
+      if (brand != null && brand != 'all') {
+        final brandValue = brand.toLowerCase();
+        requestBody['brand'] = brandValue;
+        if (kDebugMode) print('✅ Added brand to request: $brandValue');
+      }
+      
+      // Add model if provided
+      if (model != null && model.isNotEmpty) {
+        final modelValue = model.toLowerCase();
+        requestBody['model'] = modelValue;
+        if (kDebugMode) print('✅ Added model to request: $modelValue');
+      } else {
+        if (kDebugMode) print('ℹ️ No model provided or model is empty');
+      }
+      
+      // Add other filters
+      if (type != null && type != 'all') {
+        requestBody['type'] = type;
+        if (kDebugMode) print('✅ Added type to request: $type');
+      }
+      if (year != null) {
+        requestBody['year'] = year;
+        if (kDebugMode) print('✅ Added year to request: $year');
+      }
+      if (transmission != null && transmission != 'all') {
+        requestBody['transmission'] = transmission;
+        if (kDebugMode) print('✅ Added transmission to request: $transmission');
+      }
+      if (fuelType != null && fuelType != 'all') {
+        requestBody['fuel_type'] = fuelType;
+        if (kDebugMode) print('✅ Added fuelType to request: $fuelType');
+      }
+      if (mileage != null) {
+        requestBody['mileage'] = mileage;
+        if (kDebugMode) print('✅ Added mileage to request: $mileage');
+      }
+      if (priceMin != null) {
+        requestBody['price_min'] = priceMin;
+        if (kDebugMode) print('✅ Added priceMin to request: $priceMin');
+      }
+      if (priceMax != null) {
+        requestBody['price_max'] = priceMax;
+        if (kDebugMode) print('✅ Added priceMax to request: $priceMax');
+      }
+      
+      // Debug log the request body before sending
+      if (kDebugMode) {
+        print('📦 Final request body before encoding: $requestBody');
+        print('🔢 Number of parameters in request body: ${requestBody.length}');
+      }
 
-      final uri = Uri.parse('${ApiEndpoints.baseUrl}${ApiEndpoints.cars}/filter');
+      final endpoint = '${ApiEndpoints.baseUrl}${ApiEndpoints.cars}/filter';
+      final uri = Uri.parse(endpoint);
       final headers = {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       };
 
-      // Debug log the complete request
+      // Enhanced debug logging
       if (kDebugMode) {
-        print('╔══════════════════════════════════════════════════════════════');
-        print('║ 🚗 FILTER CARS REQUEST');
-        print('╟──────────────────────────────────────────────────────────────');
-        print('║ Endpoint: ${uri.toString()}');
-        print('║ Method: POST');
-        print('║ Headers:');
-        headers.forEach((key, value) => print('║   • $key: $value'));
-        print('║ Body:');
-        print('║   ${jsonEncode(requestBody)}');
-        print('╚══════════════════════════════════════════════════════════════');
+        print('\n📡 API FILTER REQUEST');
+        print('├─ Endpoint: $endpoint');
+        print('├─ Method: POST');
+        print('├─ Headers:');
+        headers.forEach((key, value) => print('│  ├─ $key: $value'));
+        print('├─ Request Body:');
+        final encoder = JsonEncoder.withIndent('  ');
+        print(encoder.convert(requestBody).split('\n').map((line) => '│  $line').join('\n'));
+        print('└──────────────────────────────────────────────────────────────\n');
       }
 
       final response = await _httpClient.post(
@@ -413,20 +489,33 @@ class CarService extends BaseApiService {
         body: jsonEncode(requestBody),
       );
 
-      // Debug log the response
+      // Enhanced response logging
       if (kDebugMode) {
-        print('╔══════════════════════════════════════════════════════════════');
-        print('║ 🚗 FILTER CARS RESPONSE');
-        print('╟──────────────────────────────────────────────────────────────');
-        print('║ Status Code: ${response.statusCode}');
-        print('║ Headers:');
-        response.headers.forEach((key, value) => print('║   • $key: $value'));
-        print('║ Body:');
-        print('║   ${response.body.replaceAll('\n', '\n║   ')}');
-        print('╚══════════════════════════════════════════════════════════════');
+        final responseTime = DateTime.now();
+        print('\n📡 API FILTER RESPONSE');
+        print('├─ Status Code: ${response.statusCode} ${response.reasonPhrase}');
+        print('├─ Response Time: $responseTime');
+        print('├─ Headers:');
+        response.headers.forEach((key, value) => print('│  ├─ $key: $value'));
+        print('├─ Response Body:');
+        try {
+          final jsonResponse = json.decode(response.body);
+          final encoder = JsonEncoder.withIndent('  ');
+          print(encoder.convert(jsonResponse).split('\n').map((line) => '│  $line').join('\n'));
+        } catch (e) {
+          print('│  ${response.body.replaceAll('\n', '\n│  ')}');
+        }
+        print('└──────────────────────────────────────────────────────────────\n');
       }
 
+      // Successfully processed filterCars response logging, now checking status code
       if (response.statusCode == 200) {
+  // THIS IS THE END OF THE ORIGINAL filterCars METHOD's try block before error handling or returning
+  // The new searchCars method will be inserted AFTER the entire filterCars method.
+  // The actual insertion point will be after the closing brace of filterCars.
+  // THIS CHUNK IS JUST FOR LOCATING THE END OF filterCars.
+  // The REAL TargetContent for insertion should be the closing brace of filterCars.
+
         final responseData = json.decode(utf8.decode(response.bodyBytes));
         
         if (responseData is Map && responseData['success'] == true) {
@@ -468,6 +557,58 @@ class CarService extends BaseApiService {
     } catch (e) {
       if (kDebugMode) {
         print('Error in filterCars: $e');
+      }
+      rethrow;
+    }
+  }
+
+  /// Searches for cars based on a query string
+  Future<List<CarPost>> searchCars(String query) async {
+    try {
+      if (kDebugMode) {
+        print('Searching cars with query: $query');
+      }
+
+      // Construct the URI with the query parameter
+      final uri = Uri.parse('${ApiEndpoints.baseUrl}${ApiEndpoints.searchCars}').replace(queryParameters: {'q': query});
+
+      final response = await _httpClient.get(
+        uri,
+        headers: await getAuthHeaders(), // Assuming getAuthHeaders() is available from BaseApiService or similar
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = json.decode(utf8.decode(response.bodyBytes));
+        if (responseData is Map && responseData['success'] == true) {
+          final List<dynamic> carsData = responseData['data'] ?? [];
+          if (kDebugMode) {
+            print('Search successful, found ${carsData.length} cars.');
+          }
+          return carsData.map((carJson) => CarPost.fromJson(carJson)).toList();
+        } else {
+          if (kDebugMode) {
+            print('Search response format unexpected or success false: ${response.body}');
+          }
+          if (responseData is Map && responseData.containsKey('data') && responseData['data'] is List) {
+             final List<dynamic> carsData = responseData['data'];
+             return carsData.map((carJson) => CarPost.fromJson(carJson)).toList();
+          }
+          return []; 
+        }
+      } else {
+        if (kDebugMode) {
+          print('Failed to search cars: ${response.statusCode} - ${response.body}');
+        }
+        throw Exception('Failed to search cars: ${response.statusCode} - ${response.body}');
+      }
+    } on http.ClientException catch (e) {
+      if (kDebugMode) {
+        print('Network error in searchCars: $e');
+      }
+      throw Exception('Network error: ${e.message}');
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error in searchCars: $e');
       }
       rethrow;
     }

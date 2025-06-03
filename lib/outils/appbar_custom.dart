@@ -1,7 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:go_router/go_router.dart';
 
 class AnimatedSearchAppBar extends StatefulWidget implements PreferredSizeWidget {
+  final bool showCustomBackButton;
+  final VoidCallback? onCustomBackButtonPressed;
+
+  const AnimatedSearchAppBar({
+    super.key,
+    this.showCustomBackButton = false,
+    this.onCustomBackButtonPressed,
+  });
+
   @override
   _AnimatedSearchAppBarState createState() => _AnimatedSearchAppBarState();
 
@@ -16,10 +26,18 @@ class _AnimatedSearchAppBarState extends State<AnimatedSearchAppBar> {
   @override
   Widget build(BuildContext context) {
     return AppBar(
+      leading: widget.showCustomBackButton
+          ? IconButton(
+              icon: const Icon(Icons.arrow_back, color: Colors.black),
+              onPressed: () {
+                widget.onCustomBackButtonPressed?.call();
+              },
+            )
+          : null,
       backgroundColor: Colors.white,
       elevation: 2,
       title: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+        padding: EdgeInsets.symmetric(horizontal: widget.showCustomBackButton ? 0.0 : 16.0),
         child: Text(
           'app_title'.tr(),
           style: const TextStyle(
@@ -57,6 +75,18 @@ class _AnimatedSearchAppBarState extends State<AnimatedSearchAppBar> {
                           isDense: true,
                         ),
                         style: const TextStyle(fontSize: 16),
+                        onSubmitted: (query) {
+                          if (query.trim().isNotEmpty) {
+                            // URI encode the query to handle special characters in the path
+                            final encodedQuery = Uri.encodeComponent(query.trim());
+                            context.go('/search-results/$encodedQuery');
+                            // Optionally, close search bar after submission
+                            // setState(() {
+                            //   _isSearching = false;
+                            //   _searchController.clear();
+                            // });
+                          }
+                        },
                       ),
                     ),
                   ],

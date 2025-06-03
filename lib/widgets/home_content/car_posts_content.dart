@@ -58,25 +58,63 @@ class _CarPostsContentState extends ConsumerState<CarPostsContent> {
       );
 
       if (filters != null && mounted) {
-        print('Received filters in CarPostsContent: $filters');
+        print('\n📥 Received filters in CarPostsContent:');
+        filters.forEach((key, value) => print('   - $key: $value (${value?.runtimeType})'));
+        
+        final brand = filters['brand'] as String?;
+        final model = filters['model'] as String?;
+        final type = filters['type'] as String?;
+        final year = filters['year'] is int 
+            ? filters['year'] as int? 
+            : (filters['year'] is double 
+                ? (filters['year'] as double).toInt() 
+                : null);
+        final transmission = filters['transmission'] as String?;
+        final fuelType = filters['fuelType'] as String?;
+        final mileage = filters['mileage'] is int 
+            ? filters['mileage'] as int? 
+            : (filters['mileage'] is double 
+                ? (filters['mileage'] as double).toInt() 
+                : null);
+        final priceMin = filters['minPrice'] is int
+            ? (filters['minPrice'] as int).toDouble()
+            : (filters['minPrice'] is double
+                ? filters['minPrice'] as double?
+                : null);
+        final priceMax = filters['maxPrice'] is int
+            ? (filters['maxPrice'] as int).toDouble()
+            : (filters['maxPrice'] is double
+                ? filters['maxPrice'] as double?
+                : null);
+        
+        print('\n🔧 Creating CarFilterParams with:');
+        print('   - brand: $brand');
+        print('   - model: $model');
+        print('   - type: $type');
+        print('   - year: $year');
+        print('   - transmission: $transmission');
+        print('   - fuelType: $fuelType');
+        print('   - mileage: $mileage');
+        print('   - priceMin: $priceMin');
+        print('   - priceMax: $priceMax');
+        
         setState(() {
           _filterParams = car_providers.CarFilterParams(
-            brand: filters['brand'] as String?,
-            type: filters['type'] as String?,
-            year: filters['year'] is int 
-                ? filters['year'] as int? 
-                : (filters['year'] is double 
-                    ? (filters['year'] as double).toInt() 
-                    : null),
-            transmission: filters['transmission'] as String?,
-            fuelType: filters['fuelType'] as String?,
-            mileage: filters['mileage'] is int 
-                ? filters['mileage'] as int? 
-                : (filters['mileage'] is double 
-                    ? (filters['mileage'] as double).toInt() 
-                    : null),
+            brand: brand,
+            model: model,
+            type: type,
+            year: year,
+            transmission: transmission,
+            fuelType: fuelType,
+            mileage: mileage,
+            priceMin: priceMin,
+            priceMax: priceMax,
           );
-          print('Created new filter params: ${_filterParams?.toMap()}');
+          
+          print('\n✅ Created new filter params:');
+          _filterParams?.toMap().forEach((key, value) {
+            print('   - $key: $value (${value?.runtimeType})');
+          });
           print('Has filters: ${_filterParams?.hasFilters}');
         });
       } else if (mounted) {
