@@ -16,6 +16,9 @@ import '../screens/add/add_screen.dart';
 import '../models/user_role.dart' as models;
 import '../models/car_post.dart';
 import '../screens/car_search_results_screen.dart';
+import '../screens/car_notification_screen.dart'; // Added for notifications
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/car_detail_provider.dart';
 
 final _log = Logger('AppRouter');
 
@@ -57,10 +60,45 @@ class AppRouter {
         },
       ),
       GoRoute(
-        path: '/car-detail',
+        path: '/car-detail/:id',
+        name: 'carDetail',
         builder: (context, state) {
-          final carPost = state.extra as CarPost;
-          return CarDetailScreen(post: carPost);
+          // First try to get the carPost from extra (for existing code)
+          if (state.extra is CarPost) {
+            return CarDetailScreen(post: state.extra as CarPost);
+          }
+          
+          // Get the car ID from the path parameters
+          final carId = int.tryParse(state.pathParameters['id'] ?? '');
+          if (carId == null) {
+            return Scaffold(
+              appBar: AppBar(title: const Text('Error')),
+              body: const Center(child: Text('Invalid car ID')),
+            );
+          }
+          
+          // Use the carDetailProvider to fetch the car details
+          return ProviderScope(
+            child: Consumer(
+              builder: (context, ref, _) {
+                final carAsync = ref.watch(carDetailProvider(carId));
+                
+                return carAsync.when(
+                  data: (car) => CarDetailScreen(post: car),
+                  loading: () => Scaffold(
+                    appBar: AppBar(title: const Text('Car Details')),
+                    body: const Center(child: CircularProgressIndicator()),
+                  ),
+                  error: (error, stackTrace) => Scaffold(
+                    appBar: AppBar(title: const Text('Error')),
+                    body: Center(
+                      child: Text('Failed to load car details: $error'),
+                    ),
+                  ),
+                );
+              },
+            ),
+          );
         },
       ),
       GoRoute(
@@ -75,6 +113,11 @@ class AppRouter {
           }
           return CarSearchResultsScreen(searchQuery: decodedQuery);
         },
+      ),
+      GoRoute(
+        path: '/notifications',
+        name: 'notifications',
+        builder: (context, state) => const CarNotificationScreen(),
       ),
       
       // Shell route for main app with bottom navigation

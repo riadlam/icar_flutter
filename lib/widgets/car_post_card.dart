@@ -6,6 +6,9 @@ import 'package:easy_localization/easy_localization.dart';
 import '../models/car_post.dart';
 import '../services/share_service.dart' as share_service;
 import '../services/api/services/favorite_seller_service.dart';
+import '../services/api/services/subscription_service.dart';
+import 'package:http/http.dart' as http;
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class CarPostCard extends StatefulWidget {
   final CarPost post;
@@ -33,12 +36,18 @@ class _CarPostCardState extends State<CarPostCard> {
   late bool _isFavorite;
   bool _isLoading = false;
   final FavoriteSellerService _favoriteService = FavoriteSellerService();
+  final SubscriptionService _subscriptionService = SubscriptionService(client: http.Client(), storage: const FlutterSecureStorage());
+
+  bool _isSubscribed = false; // Initial state before checking API
+  bool _isSubscriptionLoading = true; // Start loading as we will check status in initState
 
   @override
   void initState() {
     super.initState();
-    _isFavorite = widget.isFavoriteSeller;
+    _isFavorite = widget.isFavoriteSeller; // Keep this for favorite sellers
+    // _isSubscribed will be set by _checkSubscriptionStatus
     _checkFavoriteStatus();
+    _checkSubscriptionStatus();
   }
 
   Future<void> _checkFavoriteStatus() async {
@@ -55,6 +64,33 @@ class _CarPostCardState extends State<CarPostCard> {
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _checkSubscriptionStatus() async {
+    if (widget.post.sellerId == null) {
+      if (mounted) setState(() => _isSubscriptionLoading = false);
+      return;
+    }
+    if (mounted) setState(() => _isSubscriptionLoading = true);
+
+    try {
+      final currentStatus = await _subscriptionService.checkSubscriptionStatus(
+        int.parse(widget.post.sellerId!),
+      );
+      if (mounted) {
+        setState(() {
+          _isSubscribed = currentStatus;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        print('Failed to check initial subscription status: $e');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSubscriptionLoading = false);
       }
     }
   }
@@ -101,8 +137,77 @@ class _CarPostCardState extends State<CarPostCard> {
     }
   }
 
+  // Placeholder: Replace with your actual method to get the current user's ID
+  Future<String?> _getCurrentUserId() async {
+    // Example: Fetch from a service or secure storage
+    // final userId = await YourAuthService.instance.getCurrentUserId();
+    // For now, returning a placeholder. Replace this with actual logic.
+    // If your user ID is an int, adjust the return type and comparison.
+    // FlutterSecureStorage storage = const FlutterSecureStorage();
+    // return await storage.read(key: 'user_id'); 
+    print('Placeholder: _getCurrentUserId() needs to be implemented.');
+    return null; // Or some default if not available / not logged in
+  }
+
+  Future<void> _toggleSubscription() async {
+    if (widget.post.sellerId == null) return;
+
+    // Check for self-subscription
+    final currentUserId = await _getCurrentUserId(); // Assuming this returns String ID
+    if (currentUserId != null && currentUserId == widget.post.sellerId) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('cant_subscribe_to_self'.tr()),
+            backgroundColor: Colors.orange, // Or your preferred color for warnings
+          ),
+        );
+      }
+      return; // Prevent further action
+    }
+
+    setState(() => _isSubscriptionLoading = true);
+    try {
+      final response = await _subscriptionService.toggleSubscription(
+        int.parse(widget.post.sellerId!),
+      );
+
+      if (mounted) {
+        final isNowSubscribed = response['action'] == 'subscribed';
+        setState(() => _isSubscribed = isNowSubscribed);
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              isNowSubscribed 
+                  ? '${'subscribed_to_notifications_from'.tr()} ${widget.post.sellerName ?? 'this seller'}' 
+                  : '${'unsubscribed_from_notifications_from'.tr()} ${widget.post.sellerName ?? 'this seller'}',
+            ),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+
+        widget.onPostNotificationsChanged?.call(isNowSubscribed);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('failed_to_update_subscription_status'.tr()),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      print('Error toggling subscription: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _isSubscriptionLoading = false);
+      }
+    }
+  }
+
   void _navigateToDetail(BuildContext context) {
-    context.push('/car-detail', extra: widget.post);
+    context.go('/car-detail/${widget.post.id}', extra: widget.post);
   }
   
   String _formatPrice(double price) {
@@ -322,17 +427,18 @@ class _CarPostCardState extends State<CarPostCard> {
                                       if (value == 'favorite') {
                                         _toggleFavorite();
                                       } else if (value == 'notifications') {
-                                        widget.onPostNotificationsChanged?.call(!widget.isPostNotificationsActive);
+                                        _toggleSubscription(); // Call the new toggle method
                                       }
                                     },
                                     itemBuilder: (BuildContext context) => [
                                       PopupMenuItem(
                                         value: 'favorite',
+                                        enabled: !_isLoading, // Disable if favorite action is loading
                                         child: Row(
                                           children: [
                                             Icon(
-                                              _isFavorite ? Icons.favorite : Icons.favorite_border,
-                                              color: _isFavorite ? Colors.red : null,
+                                              _isFavorite ? Icons.star : Icons.star_border,
+                                              color: _isFavorite ? Colors.amber : Colors.grey,
                                             ),
                                             const SizedBox(width: 8),
                                             Text(_isFavorite ? 'remove_from_favorite_sellers'.tr() : 'add_to_favorite_sellers'.tr()),
@@ -341,21 +447,29 @@ class _CarPostCardState extends State<CarPostCard> {
                                       ),
                                       PopupMenuItem(
                                         value: 'notifications',
-                                        child: Row(
-                                          children: [
-                                            Icon(
-                                              widget.isPostNotificationsActive 
-                                                  ? Icons.notifications_off 
-                                                  : Icons.notifications_none,
+                                        enabled: !_isSubscriptionLoading, // Disable item if subscription action is loading
+                                        child: _isSubscriptionLoading
+                                          ? Row(
+                                              children: [
+                                                const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2)),
+                                                const SizedBox(width: 8),
+                                                Text('loading'.tr()), // Assuming 'loading' key exists
+                                              ],
+                                            )
+                                          : Row(
+                                              children: [
+                                                Icon(
+                                                  _isSubscribed ? Icons.notifications_active : Icons.notifications_none,
+                                                  color: _isSubscribed ? Theme.of(context).primaryColor : Colors.grey,
+                                                ),
+                                                const SizedBox(width: 8),
+                                                Text(
+                                                  _isSubscribed 
+                                                      ? 'turn_off_post_notifications'.tr() 
+                                                      : 'turn_on_post_notifications'.tr(),
+                                                ),
+                                              ],
                                             ),
-                                            const SizedBox(width: 8),
-                                            Text(
-                                              widget.isPostNotificationsActive 
-                                                  ? 'turn_off_post_notifications'.tr()
-                                                  : 'turn_on_post_notifications'.tr(),
-                                            ),
-                                          ],
-                                        ),
                                       ),
                                     ],
                                   ),

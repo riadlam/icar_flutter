@@ -190,5 +190,14 @@
   "mechanic_name": "Business Name/Mechanic Name",
   "search_results_title": "Search Results for: {0}",
   "no_cars_found_for_query": "No cars found for '{0}'",
-  "error_loading_search_results": "Error loading search results. Please try again."
+  "error_loading_search_results": "Error loading search results. Please try again.",
+  "subscribed_to_notifications_from": "Subscribed to notifications from",
+  "unsubscribed_from_notifications_from": "Unsubscribed from notifications from",
+  "failed_to_update_subscription_status": "Failed to update subscription status",
+  "subscribe_to_notifications": "Subscribe to new post notifications",
+  "unsubscribe_from_notifications": "Unsubscribe from new post notifications",
+  "cant_subscribe_to_self": "You cannot subscribe to your own posts.",
+  "notifications_screen_title": "Notifications",
+  "no_notifications_found": "No notifications found.",
+  "received_on": "Received on: {0}"
 }

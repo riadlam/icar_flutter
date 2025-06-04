@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/notification_provider.dart';
+import '../widgets/notification_badge.dart';
 
 class AnimatedSearchAppBar extends StatefulWidget implements PreferredSizeWidget {
   final bool showCustomBackButton;
@@ -106,11 +109,34 @@ class _AnimatedSearchAppBarState extends State<AnimatedSearchAppBar> {
             });
           },
         ),
-        // Notification Icon
-        IconButton(
-          icon: const Icon(Icons.notifications_none, color: Colors.black),
-          onPressed: () {
-            // Handle notification tap
+        // Notification Icon with Badge
+        Consumer(
+          builder: (context, ref, _) {
+            final unreadCount = ref.watch(unreadCountProvider);
+            
+            return unreadCount.when(
+              data: (count) => IconButton(
+                icon: NotificationBadge(
+                  count: count,
+                  child: const Icon(Icons.notifications_none, color: Colors.black),
+                ),
+                onPressed: () {
+                  ref.read(unreadCountProvider.notifier).refresh();
+                  context.goNamed('notifications');
+                },
+              ),
+              loading: () => const IconButton(
+                icon: Icon(Icons.notifications_none, color: Colors.black),
+                onPressed: null,
+              ),
+              error: (_, __) => IconButton(
+                icon: const Icon(Icons.notifications_none, color: Colors.black),
+                onPressed: () {
+                  ref.read(unreadCountProvider.notifier).refresh();
+                  context.goNamed('notifications');
+                },
+              ),
+            );
           },
         ),
       ],

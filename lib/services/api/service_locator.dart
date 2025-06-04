@@ -7,6 +7,7 @@ import 'services/auth_service.dart';
 import 'services/user_service.dart';
 import 'services/car_service.dart';
 import 'services/car_profile_service.dart';
+import 'services/notification_service.dart';
 
 class ServiceLocator {
   static final ServiceLocator _instance = ServiceLocator._internal();
@@ -16,6 +17,7 @@ class ServiceLocator {
   late final UserService userService;
   late final CarService carService;
   late final CarProfileService carProfileService;
+  late final NotificationService notificationService;
   
   // Async initialization flag
   bool _isInitialized = false;
@@ -91,6 +93,12 @@ class ServiceLocator {
     
     // Initialize CarProfileService with FlutterSecureStorage
     carProfileService = CarProfileService(
+      client: _httpClient,
+      storage: _storage,
+    );
+    
+    // Initialize NotificationService
+    notificationService = NotificationService(
       client: _httpClient,
       storage: _storage,
     );

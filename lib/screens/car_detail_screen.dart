@@ -1,6 +1,7 @@
 import 'dart:developer';
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_image_slideshow/flutter_image_slideshow.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:icar_instagram_ui/models/car_post.dart';
@@ -41,6 +42,19 @@ class CarDetailScreen extends StatelessWidget {
   // Handle view profile action
   Future<void> _handleViewProfile(BuildContext context) async {
     try {
+      // Log post object details
+      log('Post object details:');
+      log('  - ID: ${post.id}');
+      log('  - Type: ${post.type}');
+      log('  - Brand: ${post.brand}');
+      log('  - Model: ${post.model}');
+      log('  - Price: ${post.price}');
+      log('  - Seller ID: ${post.sellerId}');
+      log('  - Seller Name: ${post.fullName}');
+      log('  - Seller Phone: ${post.sellerPhone}');
+      log('  - City: ${post.city}');
+      log('  - Images: ${post.images}');
+
       // Show loading dialog
       showDialog(
         context: context,
@@ -128,7 +142,7 @@ class CarDetailScreen extends StatelessWidget {
                 ),
                 child: const Icon(Icons.arrow_back, color: Colors.white),
               ),
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () => context.go('/home'),
             ),
             actions: [
               IconButton(

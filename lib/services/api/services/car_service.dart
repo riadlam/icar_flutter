@@ -148,6 +148,28 @@ class CarService extends BaseApiService {
   }
 
   /// Fetches all cars listed by the authenticated user
+  /// Fetches a single car by its ID
+  /// 
+  /// [carId] - The ID of the car to fetch
+  /// Returns a [CarPost] if found, throws an exception otherwise
+  Future<CarPost> getCarById(int carId) async {
+    try {
+      final response = await get('${ApiEndpoints.cars}/$carId');
+      
+      if (response is Map<String, dynamic>) {
+        return CarPost.fromJson(response);
+      } else {
+        throw Exception('Unexpected response format when fetching car by ID');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error fetching car by ID: $e');
+      }
+      rethrow;
+    }
+  }
+
+  /// Fetches all cars listed by the authenticated user
   Future<List<CarPost>> getUserCars() async {
     try {
       // Get auth token from secure storage
