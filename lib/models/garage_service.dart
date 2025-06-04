@@ -4,7 +4,6 @@ class GarageService {
   final String ownerName;
   final String phoneNumber;
   final String location;
-  final String email;
   final String imageUrl;
   final bool isFavorite;
   final List<String> services; // e.g., ["Towing", "Flat Tire", "Jump Start"]
@@ -17,7 +16,6 @@ class GarageService {
     required this.ownerName,
     required this.phoneNumber,
     required this.location,
-    required this.email,
     required this.imageUrl,
     this.isFavorite = false,
     required this.services,
@@ -33,7 +31,6 @@ class GarageService {
       ownerName: 'Ahmed Hassan',
       phoneNumber: '(555) 123-4567',
       location: '123 Main St, Downtown',
-      email: 'ahmed@cityautocare.com',
       imageUrl: 'https://example.com/garage1.jpg',
       isFavorite: true,
       services: ["24/7 Towing", "Flat Tire", "Jump Start", "Lockout"],
@@ -46,7 +43,6 @@ class GarageService {
       ownerName: 'Mohamed Ali',
       phoneNumber: '(555) 987-6543',
       location: '456 Park Ave, Uptown',
-      email: 'mohamed@expresstowing.com',
       imageUrl: 'https://example.com/garage2.jpg',
       isFavorite: false,
       services: ["Heavy Duty Towing", "Recovery", "Long Distance"],
@@ -59,7 +55,6 @@ class GarageService {
       ownerName: 'Omar Khalid',
       phoneNumber: '(555) 456-7890',
       location: '789 Oak St, Midtown',
-      email: 'omar@proautoservices.com',
       imageUrl: 'https://example.com/garage3.jpg',
       isFavorite: false,
       services: ["Emergency Towing", "Battery Service", "Fuel Delivery"],

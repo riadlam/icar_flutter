@@ -24,7 +24,6 @@ extension GarageServiceX on GarageService {
       ownerName: ownerName ?? this.ownerName,
       phoneNumber: phoneNumber ?? this.phoneNumber,
       location: location ?? this.location,
-      email: email ?? this.email,
       imageUrl: imageUrl,
       isFavorite: isFavorite ?? this.isFavorite,
       services: services,
@@ -55,7 +54,6 @@ class _GarageProfileScreenState extends ConsumerState<GarageProfileScreen> {
       businessName: 'Loading...',
       ownerName: '',
       phoneNumber: '',
-      email: '',
       location: '',
       isFavorite: false,
       imageUrl: 'https://images.unsplash.com/photo-1584917865445-d0a8a01f2a9a',
@@ -143,7 +141,6 @@ class _GarageProfileScreenState extends ConsumerState<GarageProfileScreen> {
           businessName: name,
           ownerName: name, // Using the same name for business and owner for now
           phoneNumber: phone,
-          email: email ?? _currentService.email,
           location: city,
         );
       });
@@ -164,7 +161,6 @@ class _GarageProfileScreenState extends ConsumerState<GarageProfileScreen> {
         initialName: _currentService.businessName,
         initialCity: city,
         initialPhone: _currentService.phoneNumber,
-        initialEmail: _currentService.email,
         onSubmit: _handleUpdateService,
       ),
     );

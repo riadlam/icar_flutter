@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:icar_instagram_ui/models/user_role.dart' as models;
 import 'package:icar_instagram_ui/services/api/services/user_service.dart';
 import 'package:icar_instagram_ui/services/api/service_locator.dart';
+import 'package:flutter/services.dart';
 import 'dart:convert'; // For JSON encoding
 
 final _log = Logger('ConditionalFormScreen');
@@ -26,6 +27,15 @@ class _ConditionalFormScreenState extends State<ConditionalFormScreen> {
   // Form fields
   final Map<String, dynamic> formData = {};
   bool _isSubmitting = false;
+  
+  // Services for garage role
+  final List<String> _garageServices = [
+    'Body Repair Technician',
+    'Automotive Diagnostic',
+    'Mechanic',
+    'Tire Technician',
+  ];
+  List<String> _selectedServices = [];
   
   // Get services
   late final UserService _userService = serviceLocator.userService;
@@ -252,6 +262,7 @@ class _ConditionalFormScreenState extends State<ConditionalFormScreen> {
           _textField('mechanic_name'.tr(), (v) => formData['driverName'] = v),
           _textField('mobile_number'.tr(), (v) => formData['mobile'] = v, keyboardType: TextInputType.phone),
           _textField('city'.tr(), (v) => formData['city'] = v),
+          _buildServiceDropdown(),
         ];
     }
   }
@@ -267,6 +278,75 @@ class _ConditionalFormScreenState extends State<ConditionalFormScreen> {
         keyboardType: keyboardType,
         validator: (v) => (v == null || v.isEmpty) ? 'required_field'.tr() : null,
         onChanged: onSaved,
+      ),
+    );
+  }
+
+  Widget _buildServiceDropdown() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Select Services (Multiple)'.tr(),
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey[700],
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey[300]!),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              children: [
+                ..._garageServices.map((service) {
+                  bool isSelected = _selectedServices.contains(service);
+                  return CheckboxListTile(
+                    title: Text(service),
+                    value: isSelected,
+                    onChanged: (bool? value) {
+                      setState(() {
+                        if (value == true) {
+                          _selectedServices.add(service);
+                        } else {
+                          _selectedServices.remove(service);
+                        }
+                        // Update form data with the list of selected services
+                        formData['services'] = List<String>.from(_selectedServices);
+                      });
+                    },
+                    controlAffinity: ListTileControlAffinity.leading,
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
+                  );
+                }).toList(),
+              ],
+            ),
+          ),
+          if (_selectedServices.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              children: _selectedServices.map((service) {
+                return Chip(
+                  label: Text(service),
+                  onDeleted: () {
+                    setState(() {
+                      _selectedServices.remove(service);
+                      formData['services'] = List<String>.from(_selectedServices);
+                    });
+                  },
+                );
+              }).toList(),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -290,10 +370,10 @@ class _ConditionalFormScreenState extends State<ConditionalFormScreen> {
         break;
       case models.UserRole.mechanic:
       case models.UserRole.other:
-        canFinish = (formData['businessName']?.toString().isNotEmpty ?? false) &&
-            (formData['driverName']?.toString().isNotEmpty ?? false) &&
+        canFinish = (formData['driverName']?.toString().isNotEmpty ?? false) &&
             (formData['mobile']?.toString().isNotEmpty ?? false) &&
-            (formData['city']?.toString().isNotEmpty ?? false);
+            (formData['city']?.toString().isNotEmpty ?? false) &&
+            (_selectedServices.isNotEmpty); // Validate at least one service is selected
         break;
     }
     
