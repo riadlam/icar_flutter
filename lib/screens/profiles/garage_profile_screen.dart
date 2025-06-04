@@ -17,6 +17,7 @@ extension GarageServiceX on GarageService {
     String? location,
     String? email,
     bool? isFavorite,
+    List<String>? services,
   }) {
     return GarageService(
       id: id,
@@ -26,7 +27,7 @@ extension GarageServiceX on GarageService {
       location: location ?? this.location,
       imageUrl: imageUrl,
       isFavorite: isFavorite ?? this.isFavorite,
-      services: services,
+      services: services ?? this.services,
       rating: rating,
       reviews: reviews,
     );
@@ -86,12 +87,17 @@ class _GarageProfileScreenState extends ConsumerState<GarageProfileScreen> {
         final decodedData = jsonDecode(data) as Map<String, dynamic>;
         if (mounted) {
           setState(() {
+            final services = decodedData['services'] is List
+                ? List<String>.from(decodedData['services'])
+                : <String>[];
+                
             _currentService = _currentService.copyWith(
               businessName: decodedData['driverName']?.toString() ?? '',
               ownerName: decodedData['driverName']?.toString() ?? '', // Note: using driver_name as owner_name
               phoneNumber: decodedData['mobile']?.toString() ?? '',
               location: decodedData['city']?.toString() ?? 'location_not_set'.tr(),
               email: googleEmail.isNotEmpty ? googleEmail : (decodedData['email']?.toString() ?? ''),
+              services: services,
             );
           });
         }
@@ -102,12 +108,17 @@ class _GarageProfileScreenState extends ConsumerState<GarageProfileScreen> {
           final decodedData = jsonDecode(buyerData) as Map<String, dynamic>;
           if (mounted) {
             setState(() {
+              final services = decodedData['services'] is List
+                  ? List<String>.from(decodedData['services'])
+                  : <String>[];
+                  
               _currentService = _currentService.copyWith(
                 businessName: decodedData['showroomName']?.toString() ?? 'garage'.tr(),
                 ownerName: decodedData['fullName']?.toString() ?? '',
                 phoneNumber: decodedData['mobile']?.toString() ?? '',
                 location: decodedData['city']?.toString() ?? 'location_not_set'.tr(),
                 email: decodedData['email']?.toString() ?? '',
+                services: services,
               );
             });
           }
@@ -132,13 +143,13 @@ class _GarageProfileScreenState extends ConsumerState<GarageProfileScreen> {
     String name,
     String city,
     String phone,
-    String? additionalPhone,
-    String? email,
+    List<String> services,
   ) async {
     if (mounted) {
       setState(() {
         _currentService = _currentService.copyWith(
           businessName: name,
+          services: services,
           ownerName: name, // Using the same name for business and owner for now
           phoneNumber: phone,
           location: city,
@@ -161,7 +172,10 @@ class _GarageProfileScreenState extends ConsumerState<GarageProfileScreen> {
         initialName: _currentService.businessName,
         initialCity: city,
         initialPhone: _currentService.phoneNumber,
-        onSubmit: _handleUpdateService,
+        initialServices: _currentService.services,
+        onSubmit: (name, city, phone, services) {
+          _handleUpdateService(name, city, phone, services);
+        },
       ),
     );
   }
@@ -206,8 +220,9 @@ class _GarageProfileScreenState extends ConsumerState<GarageProfileScreen> {
                       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                     ),
                     builder: (context) => AddGarageFormSheet(
-                      onSubmit: (name, city, phone, additionalPhone, email) {
+                      onSubmit: (name, city, phone, services) {
                         // Handle adding a new garage service
+                        _handleUpdateService(name, city, phone, services);
                       },
                     ),
                   );

@@ -8,6 +8,7 @@ import 'services/user_service.dart';
 import 'services/car_service.dart';
 import 'services/car_profile_service.dart';
 import 'services/notification_service.dart';
+import 'services/garage_service.dart';
 
 class ServiceLocator {
   static final ServiceLocator _instance = ServiceLocator._internal();
@@ -18,6 +19,7 @@ class ServiceLocator {
   late final CarService carService;
   late final CarProfileService carProfileService;
   late final NotificationService notificationService;
+  late final GarageService garageService;
   
   // Async initialization flag
   bool _isInitialized = false;
@@ -78,30 +80,14 @@ class ServiceLocator {
     authService = AuthService(
       client: _httpClient,
       storage: _storage,
-      googleSignIn: _googleSignIn,
+      googleSignIn: _googleSignIn!,
     );
     
-    userService = UserService(
-      client: _httpClient,
-      storage: _storage,
-    );
-    
-    carService = CarService(
-      client: _httpClient,
-      storage: _storage,
-    );
-    
-    // Initialize CarProfileService with FlutterSecureStorage
-    carProfileService = CarProfileService(
-      client: _httpClient,
-      storage: _storage,
-    );
-    
-    // Initialize NotificationService
-    notificationService = NotificationService(
-      client: _httpClient,
-      storage: _storage,
-    );
+    userService = UserService(client: _httpClient, storage: _storage);
+    carService = CarService(client: _httpClient, storage: _storage);
+    carProfileService = CarProfileService(client: _httpClient, storage: _storage);
+    notificationService = NotificationService(client: _httpClient, storage: _storage);
+    garageService = GarageService(client: _httpClient, storage: _storage);
     
     // Initialize the service
     await carProfileService.initialize();
