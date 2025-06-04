@@ -104,7 +104,6 @@ class _CarNotificationScreenState extends State<CarNotificationScreen> {
                 child: ListTile(
                   leading: Icon(Icons.notifications_active, color: Theme.of(context).colorScheme.primary),
                   title: Text(notification.message, style: const TextStyle(fontWeight: FontWeight.w500)),
-                  subtitle: Text('received_on'.tr(args: [DateFormat.yMd().add_jm().format(createdAtDate)])),
                   trailing: const Icon(Icons.arrow_forward_ios, size: 16.0),
                   onTap: () async {
                     // Mark the notification as read
