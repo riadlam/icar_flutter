@@ -3,9 +3,25 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:icar_instagram_ui/services/api/services/base_api_service.dart';
+import 'package:icar_instagram_ui/services/api/endpoints/api_endpoints.dart';
 import 'package:icar_instagram_ui/models/garage_profile.dart';
 
 class GarageService extends BaseApiService {
+  // Hardcoded list of available cities
+  static const List<String> availableCities = [
+    'City 1',
+    'City 2',
+    'City 3',
+  ];
+
+  // Hardcoded list of available services
+  static const List<String> availableServices = [
+    'Body Repair Technician',
+    'Automotive Diagnostic',
+    'Mechanic',
+    'Tire Technician',
+  ];
+  
   final http.Client client;
   final FlutterSecureStorage storage;
 
@@ -183,17 +199,37 @@ class GarageService extends BaseApiService {
     }
   }
 
-  Future<List<GarageProfile>> getPublicGarageProfiles() async {
+  Future<List<GarageProfile>> getPublicGarageProfiles({
+    String? city,
+    String? service,
+  }) async {
     try {
       if (kDebugMode) {
         debugPrint('🔍 Fetching public garage profiles from API...');
       }
       
-      // Use the base URL from environment or config
-      const url = 'http://192.168.1.8:8000/api/garage-profiles/all';
+      // Build query parameters
+      final params = <String, String>{};
+      if (city != null && city.isNotEmpty) {
+        // Convert city to lowercase to match API expectations
+        params['city'] = city.toLowerCase();
+      }
+      if (service != null && service.isNotEmpty) {
+        params['service'] = service;
+      }
+      
+      // Build the URL with query parameters using ApiEndpoints
+      final uri = Uri.parse('${ApiEndpoints.baseUrl}/api/garage-profiles/all').replace(
+        queryParameters: params.isNotEmpty ? params : null,
+      );
+      
+      if (kDebugMode) {
+        debugPrint('🌐 Request URL: $uri');
+        debugPrint('Query parameters: $params');
+      }
       
       final response = await client.get(
-        Uri.parse(url),
+        uri,
         headers: {
           'Accept': 'application/json',
         },

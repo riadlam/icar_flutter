@@ -1,14 +1,53 @@
 import 'package:flutter/material.dart';
 import 'package:icar_instagram_ui/models/garage_profile.dart';
 import 'package:icar_instagram_ui/widgets/garage/garage_profile_card.dart';
+import 'package:icar_instagram_ui/widgets/garage/garage_filters_sheet.dart';
 import 'package:icar_instagram_ui/services/api/service_locator.dart';
-import 'base_content_widget.dart';
 
-class GarageContent extends BaseContentWidget {
+class GarageContent extends StatefulWidget {
   const GarageContent({Key? key}) : super(key: key);
 
-  Future<void> _refreshProfiles() async {
-    // This will trigger a rebuild of the FutureBuilder
+  @override
+  State<GarageContent> createState() => _GarageContentState();
+}
+
+class _GarageContentState extends State<GarageContent> {
+  String? _selectedCity;
+  String? _selectedService;
+
+  Future<List<GarageProfile>> _loadProfiles() async {
+    try {
+      // Pass filters directly to the API
+      return await serviceLocator.garageService.getPublicGarageProfiles(
+        city: _selectedCity,
+        service: _selectedService,
+      );
+    } catch (e) {
+      debugPrint('Error loading garage profiles: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> _refreshProfiles() {
+    setState(() {});
+    return Future.value();
+  }
+
+  void _showFilterSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => GarageFiltersSheet(
+        initialCity: _selectedCity,
+        initialService: _selectedService,
+        onApplyFilters: (filters) {
+          setState(() {
+            _selectedCity = filters['city'];
+            _selectedService = filters['services'];
+          });
+        },
+      ),
+    );
   }
 
   @override
@@ -16,14 +55,20 @@ class GarageContent extends BaseContentWidget {
     return RefreshIndicator(
       onRefresh: _refreshProfiles,
       child: FutureBuilder<List<GarageProfile>>(
-        future: serviceLocator.garageService.getPublicGarageProfiles(),
+        future: _loadProfiles(),
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+          // Data loading and processing
+          if (snapshot.hasData) {
+            // No need to extract cities and services anymore
+            // as we're using the hardcoded lists from FilterConstants
           }
 
-          if (snapshot.hasError) {
-            return Center(
+          Widget content;
+          
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            content = const Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            content = Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -33,45 +78,95 @@ class GarageContent extends BaseContentWidget {
                   ),
                   const SizedBox(height: 16),
                   ElevatedButton(
-                    onPressed: () {
-                      // Refresh the widget
-                      (context as Element).markNeedsBuild();
-                    },
+                    onPressed: _refreshProfiles,
                     child: const Text('Retry'),
                   ),
                 ],
               ),
             );
-          }
-
-          final profiles = snapshot.data ?? [];
-
-          if (profiles.isEmpty) {
-            return const Center(
-              child: Text('No garage profiles found'),
-            );
-          }
-
-          return ListView.builder(
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-            itemCount: profiles.length,
-            itemBuilder: (context, index) {
-              final profile = profiles[index];
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: GarageProfileCard(
-                  profile: profile,
-                  onTap: () {
-                    // Handle profile tap (e.g., navigate to details)
-                  },
-                  // Disable favorite and edit in public view
-                  isFavorite: false,
-                  showEditButton: false,
-                  onFavoritePressed: null,
-                  onEditPressed: null,
-                ),
+          } else {
+            final profiles = snapshot.data ?? [];
+            
+            if (profiles.isEmpty) {
+              content = const Center(
+                child: Text('No garage profiles found'),
               );
-            },
+            } else {
+              content = ListView.builder(
+                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                itemCount: profiles.length,
+                itemBuilder: (context, index) {
+                  final profile = profiles[index];
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: GarageProfileCard(
+                      profile: profile,
+                      onTap: () {
+                        // Handle profile tap (e.g., navigate to details)
+                      },
+                      isFavorite: false,
+                      showEditButton: false,
+                      onFavoritePressed: null,
+                      onEditPressed: null,
+                    ),
+                  );
+                },
+              );
+            }
+          }
+
+          return Column(
+            children: [
+              // Filter button
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: _showFilterSheet,
+                        icon: const Icon(Icons.filter_list, size: 20),
+                        label: const Text('Filter'),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          side: BorderSide(
+                            color: (_selectedCity != null || _selectedService != null)
+                                ? Theme.of(context).primaryColor 
+                                : Colors.grey.shade300,
+                            width: (_selectedCity != null || _selectedService != null) ? 2.0 : 1.0,
+                          ),
+                        ),
+                      ),
+                    ),
+                    if (_selectedCity != null || _selectedService != null) ...[
+                      const SizedBox(width: 10),
+                      OutlinedButton.icon(
+                        onPressed: () {
+                          setState(() {
+                            _selectedCity = null;
+                            _selectedService = null;
+                          });
+                        },
+                        icon: const Icon(Icons.refresh, size: 20),
+                        label: const Text('Reset'),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          side: BorderSide(color: Colors.grey.shade300),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              // Content
+              Expanded(child: content),
+            ],
           );
         },
       ),
