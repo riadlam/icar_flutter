@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:icar_instagram_ui/models/garage_profile.dart';
-import 'package:icar_instagram_ui/widgets/garage/garage_profile_card.dart';
+import 'package:icar_instagram_ui/models/garage_service.dart';
+import 'package:icar_instagram_ui/widgets/cards/garage_service_card.dart';
 import 'package:icar_instagram_ui/widgets/garage/garage_filters_sheet.dart';
 import 'package:icar_instagram_ui/services/api/service_locator.dart';
 
@@ -97,18 +98,25 @@ class _GarageContentState extends State<GarageContent> {
                 itemCount: profiles.length,
                 itemBuilder: (context, index) {
                   final profile = profiles[index];
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: GarageProfileCard(
-                      profile: profile,
-                      onTap: () {
-                        // Handle profile tap (e.g., navigate to details)
-                      },
-                      isFavorite: false,
-                      showEditButton: false,
-                      onFavoritePressed: null,
-                      onEditPressed: null,
-                    ),
+                  // Convert GarageProfile to GarageService
+                  final garageService = GarageService(
+                    id: profile.id.toString(),
+                    businessName: profile.businessName,
+                    ownerName: profile.mechanicName,
+                    phoneNumber: profile.mobile,
+                    location: profile.city,
+                    imageUrl: 'https://via.placeholder.com/300x150?text=${Uri.encodeComponent(profile.businessName)}',
+                    services: profile.services ?? [],
+                    rating: 4.5, // Default rating
+                    reviews: 10,  // Default reviews
+                  );
+                  
+                  return GarageServiceCard(
+                    service: garageService,
+                    onTap: () {
+                      // Handle tap
+                    },
+                    // The card from cards/ already has built-in favorite functionality
                   );
                 },
               );

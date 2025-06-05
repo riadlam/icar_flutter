@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:icar_instagram_ui/models/garage_service.dart';
+import 'package:icar_instagram_ui/providers/wishlist_provider.dart';
 
 class GarageServiceCard extends StatelessWidget {
   final GarageService service;
   final VoidCallback? onTap;
   final VoidCallback? onFavoritePressed;
   final VoidCallback? onEditPressed;
+  final bool showFavoriteButton;
 
 
   const GarageServiceCard({
@@ -14,6 +17,7 @@ class GarageServiceCard extends StatelessWidget {
     this.onTap,
     this.onFavoritePressed,
     this.onEditPressed,
+    this.showFavoriteButton = true,
   }) : super(key: key);
 
   @override
@@ -171,6 +175,30 @@ class GarageServiceCard extends StatelessWidget {
                             size: 18,
                           ),
                         ),
+                      ),
+                    ),
+                  if (showFavoriteButton)
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Consumer(
+                        builder: (context, ref, _) {
+                          final isInWishlist = ref.watch(wishlistProvider).any((item) => item.id == service.id);
+                          return IconButton(
+                            icon: Icon(
+                              isInWishlist ? Icons.favorite : Icons.favorite_border,
+                              color: isInWishlist ? Colors.red : Colors.white,
+                              size: 30,
+                            ),
+                            onPressed: () {
+                              if (onFavoritePressed != null) {
+                                onFavoritePressed!();
+                              } else {
+                                ref.read(wishlistProvider.notifier).toggleWishlist(service);
+                              }
+                            },
+                          );
+                        },
                       ),
                     ),
                 ],

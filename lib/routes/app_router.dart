@@ -17,6 +17,7 @@ import '../models/user_role.dart' as models;
 import '../models/car_post.dart';
 import '../screens/car_search_results_screen.dart';
 import '../screens/car_notification_screen.dart'; // Added for notifications
+import '../screens/wishlist_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/car_detail_provider.dart';
 
@@ -59,6 +60,8 @@ class AppRouter {
           return ConditionalFormScreen(role: role);
         },
       ),
+
+      // Car detail route
       GoRoute(
         path: '/car-detail/:id',
         name: 'carDetail',
@@ -134,6 +137,12 @@ class AppRouter {
             path: '/home',
             pageBuilder: (context, state) => const NoTransitionPage(
               child: HomeScreen(),
+            ),
+          ),
+          GoRoute(
+            path: '/wishlist',
+            pageBuilder: (context, state) => const NoTransitionPage(
+              child: WishlistScreen(),
             ),
           ),
           GoRoute(

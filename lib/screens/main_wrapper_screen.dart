@@ -33,8 +33,8 @@ class _MainWrapperScreenState extends State<MainWrapperScreen> {
           context.go('/home');
           break;
         case 1:
-          // Wishlist screen (currently goes to home as a placeholder)
-          context.go('/home');
+          // Wishlist screen
+          context.go('/wishlist');
           break;
         case 3:
           // Profile screen

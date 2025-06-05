@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../../providers/wishlist_provider.dart';
 
 class BottomNavigationBarWidget extends StatelessWidget {
   final int currentIndex;
@@ -43,16 +46,53 @@ class BottomNavigationBarWidget extends StatelessWidget {
             ),
 
             // Favorite/Wishlist icon
-            Tooltip(
-              message: 'wishlist'.tr(),
-              child: IconButton(
-                icon: Icon(
-                  currentIndex == 1 ? Icons.favorite : Icons.favorite_border,
-                  color: currentIndex == 1 ? Colors.pinkAccent : Colors.grey,
-                  size: 28,
-                ),
-                onPressed: () => onTap(1),
-              ),
+            Consumer(
+              builder: (context, ref, _) {
+                final wishlistCount = ref.watch(wishlistCountProvider);
+                return Tooltip(
+                  message: 'wishlist'.tr(),
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      IconButton(
+                        icon: Icon(
+                          currentIndex == 1 ? Icons.favorite : Icons.favorite_border,
+                          color: currentIndex == 1 ? Colors.pinkAccent : Colors.grey,
+                          size: 28,
+                        ),
+                        onPressed: () {
+                          onTap(1);
+                          context.go('/wishlist');
+                        },
+                      ),
+                      if (wishlistCount > 0)
+                        Positioned(
+                          right: 8,
+                          top: 4,
+                          child: Container(
+                            padding: const EdgeInsets.all(2),
+                            decoration: const BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
+                            ),
+                            constraints: const BoxConstraints(
+                              minWidth: 16,
+                              minHeight: 16,
+                            ),
+                            child: Text(
+                              wishlistCount > 9 ? '9+' : '$wishlistCount',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                );
+              },
             ),
 
             // Center big add button with gradient background
