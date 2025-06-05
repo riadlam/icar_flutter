@@ -122,7 +122,7 @@ class _AddGarageFormSheetState extends State<AddGarageFormSheet> {
           
           // Show success message
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Garage card created successfully')),
+            const SnackBar(content: Text('Garage profile created successfully')),
           );
         }
       }

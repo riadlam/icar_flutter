@@ -1,7 +1,9 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:icar_instagram_ui/services/api/services/base_api_service.dart';
+import 'package:icar_instagram_ui/models/garage_profile.dart';
 
 class GarageService extends BaseApiService {
   final http.Client client;
@@ -11,6 +13,65 @@ class GarageService extends BaseApiService {
     required this.client,
     required this.storage,
   }) : super(client: client, storage: storage);
+
+  Future<List<GarageProfile>> getGarageProfiles() async {
+    try {
+      if (kDebugMode) {
+        debugPrint('🔍 Fetching garage profiles from API...');
+      }
+      
+      final response = await get('/api/garage-profiles');
+      
+      if (kDebugMode) {
+        debugPrint('✅ API Response received');
+        debugPrint('Response type: ${response.runtimeType}');
+        debugPrint('Response data: $response');
+      }
+      
+      if (response is Map<String, dynamic>) {
+        if (response['success'] == true) {
+          final List<dynamic> data = response['data'] is List ? response['data'] : [];
+          
+          if (kDebugMode) {
+            debugPrint('📊 Found ${data.length} garage profiles');
+            if (data.isNotEmpty) {
+              debugPrint('First profile data: ${data.first}');
+            }
+          }
+          
+          try {
+            final profiles = data.map<GarageProfile>((json) {
+              if (json is Map<String, dynamic>) {
+                return GarageProfile.fromJson(json);
+              }
+              throw const FormatException('Invalid profile data format');
+            }).toList();
+            
+            if (kDebugMode) {
+              debugPrint('✅ Successfully parsed ${profiles.length} garage profiles');
+            }
+            
+            return profiles;
+          } catch (e, stackTrace) {
+            debugPrint('❌ Error parsing garage profiles: $e');
+            debugPrint('Stack trace: $stackTrace');
+            rethrow;
+          }
+        } else {
+          final errorMsg = response['message']?.toString() ?? 'Unknown error';
+          debugPrint('❌ API Error: $errorMsg');
+          throw Exception('Failed to load garage profiles: $errorMsg');
+        }
+      } else {
+        debugPrint('❌ Invalid response format: Expected Map<String, dynamic>');
+        throw const FormatException('Invalid API response format');
+      }
+    } catch (e, stackTrace) {
+      debugPrint('❌ Error in getGarageProfiles: $e');
+      debugPrint('Stack trace: $stackTrace');
+      rethrow;
+    }
+  }
 
   Future<Map<String, dynamic>> createGarageProfile({
     required String businessName,
@@ -64,11 +125,61 @@ class GarageService extends BaseApiService {
     }
   }
 
+  Future<Map<String, dynamic>> updateGarageProfile({
+    required int id,
+    required String businessName,
+    required String mechanicName,
+    required String mobile,
+    required String city,
+    required List<String> services,
+  }) async {
+    try {
+      debugPrint('1. Reading auth token from storage...');
+      final token = await storage.read(key: 'auth_token');
+      
+      if (token == null) {
+        throw Exception('No authentication token found. Please log in again.');
+      }
+      
+      debugPrint('2. Token found. Preparing update request...');
+      final url = Uri.parse('http://192.168.1.8:8000/api/garage-profiles/$id');
+      debugPrint('3. Update URL: $url');
+      
+      final requestBody = {
+        'business_name': businessName,
+        'mechanic_name': mechanicName,
+        'mobile': mobile,
+        'city': city,
+        'services': services,
+      };
+      
+      debugPrint('4. Request body: $requestBody');
+      
+      final response = await client.put(
+        url,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode(requestBody),
+      );
+      
+      debugPrint('5. Response status: ${response.statusCode}');
+      debugPrint('6. Response body: ${response.body}');
+
+      return _handleResponse(response);
+    } catch (e) {
+      debugPrint('Error in updateGarageProfile: $e');
+      rethrow;
+    }
+  }
+
   Map<String, dynamic> _handleResponse(http.Response response) {
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return jsonDecode(response.body) as Map<String, dynamic>;
     } else {
-      throw Exception('Failed to create garage profile: ${response.statusCode}');
+      throw Exception('Request failed with status: ${response.statusCode}');
     }
   }
 }

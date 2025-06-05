@@ -7,6 +7,7 @@ import 'package:icar_instagram_ui/models/garage_service.dart';
 import 'package:icar_instagram_ui/widgets/cards/garage_service_card.dart';
 import 'package:icar_instagram_ui/widgets/garage/add_garage_form_sheet.dart';
 import 'package:icar_instagram_ui/widgets/two%20truck/menu_navbar/tow_truck_navbar.dart';
+import 'package:icar_instagram_ui/widgets/garage/garage_profiles_list.dart';
 
 // Extension to make it easier to create a copy of the service with updated fields
 extension GarageServiceX on GarageService {
@@ -182,94 +183,136 @@ class _GarageProfileScreenState extends ConsumerState<GarageProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Scaffold(
-        key: _scaffoldKey,
-        appBar: TowTruckNavBar(
-          scaffoldKey: _scaffoldKey,
-          title: 'app_title'.tr(),
-        ),
-        endDrawer: TowTruckNavBar.buildDrawer(context),
-        body: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [             
-              // Garage Service Card
-              GarageServiceCard(
-                service: _currentService,
-                onTap: () {
-                  // Action when card is tapped
-                },
-                onFavoritePressed: () {
-                  setState(() {
-                    _currentService = _currentService.copyWith(
-                      isFavorite: !_currentService.isFavorite,
-                    );
-                  });
-                },
-                onEditPressed: _showEditForm,
-              ),
-              const SizedBox(height: 24), // spacing between cards
-              GestureDetector(
-                onTap: () {
-                  showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-                    ),
-                    builder: (context) => AddGarageFormSheet(
-                      onSubmit: (name, city, phone, services) {
-                        // Handle adding a new garage service
-                        _handleUpdateService(name, city, phone, services);
+    return Scaffold(
+      key: _scaffoldKey,
+      appBar: TowTruckNavBar(
+        scaffoldKey: _scaffoldKey,
+        title: 'app_title'.tr(),
+      ),
+      endDrawer: TowTruckNavBar.buildDrawer(context),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Main content with SingleChildScrollView
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Garage Service Card
+                    GarageServiceCard(
+                      service: _currentService,
+                      onTap: () {
+                        // Action when card is tapped
                       },
+                      onFavoritePressed: () {
+                        setState(() {
+                          _currentService = _currentService.copyWith(
+                            isFavorite: !_currentService.isFavorite,
+                          );
+                        });
+                      },
+                      onEditPressed: _showEditForm,
                     ),
-                  );
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey.shade300),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.add, color: Colors.blueAccent),
-                      const SizedBox(width: 8),
-                      Text(
-                        'add_second_card'.tr(),
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.blueAccent,
+                    
+                    const SizedBox(height: 24),
+                    
+                    // Add Garage Button
+                    GestureDetector(
+                      onTap: () {
+                        showModalBottomSheet(
+                          context: context,
+                          isScrollControlled: true,
+                          shape: const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.vertical(
+                              top: Radius.circular(20),
+                            ),
+                          ),
+                          builder: (context) => AddGarageFormSheet(
+                            onSubmit: _handleUpdateService,
+                          ),
+                        );
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[100],
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.grey.shade300,
+                          ),
+                        ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.add,
+                              color: Colors.blueAccent,
+                            ),
+                            SizedBox(width: 8),
+                            Text(
+                              'Add Garage Profile',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.blueAccent,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                    
+                    const SizedBox(height: 24),
+                    
+                    // Garage Profiles List Section
+                    Padding(
+                      padding: const EdgeInsets.only(left: 15),
+                      child: const Text(
+                        'My Cards',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    // Garage Profiles List
+                    const SizedBox(
+                      height: 400, // Fixed height to prevent overflow
+                      child: GarageProfilesList(),
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 
   Widget _buildInfoRow(IconData icon, String text) {
-    return Row(
-      children: [
-        Icon(icon, size: 20, color: Colors.grey[600]),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            text,
-            style: const TextStyle(fontSize: 14),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 20, color: Colors.grey[600]),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(fontSize: 14, height: 1.4),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

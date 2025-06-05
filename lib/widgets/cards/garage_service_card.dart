@@ -7,6 +7,7 @@ class GarageServiceCard extends StatelessWidget {
   final VoidCallback? onFavoritePressed;
   final VoidCallback? onEditPressed;
 
+
   const GarageServiceCard({
     Key? key,
     required this.service,
