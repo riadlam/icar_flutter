@@ -182,4 +182,68 @@ class GarageService extends BaseApiService {
       throw Exception('Request failed with status: ${response.statusCode}');
     }
   }
+
+  Future<List<GarageProfile>> getPublicGarageProfiles() async {
+    try {
+      if (kDebugMode) {
+        debugPrint('🔍 Fetching public garage profiles from API...');
+      }
+      
+      // Use the base URL from environment or config
+      const url = 'http://192.168.1.8:8000/api/garage-profiles/all';
+      
+      final response = await client.get(
+        Uri.parse(url),
+        headers: {
+          'Accept': 'application/json',
+        },
+      );
+      
+      if (kDebugMode) {
+        debugPrint('✅ Public profiles API Response received');
+        debugPrint('Status code: ${response.statusCode}');
+      }
+      
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body) as Map<String, dynamic>;
+        
+        if (responseData['success'] == true) {
+          final List<dynamic> data = responseData['data'] is List ? responseData['data'] : [];
+          
+          if (kDebugMode) {
+            debugPrint('📊 Found ${data.length} public garage profiles');
+          }
+          
+          try {
+            final profiles = data.map<GarageProfile>((json) {
+              if (json is Map<String, dynamic>) {
+                return GarageProfile.fromJson(json);
+              }
+              throw const FormatException('Invalid profile data format');
+            }).toList();
+            
+            if (kDebugMode) {
+              debugPrint('✅ Successfully parsed ${profiles.length} public garage profiles');
+            }
+            
+            return profiles;
+          } catch (e, stackTrace) {
+            debugPrint('❌ Error parsing public garage profiles: $e');
+            debugPrint('Stack trace: $stackTrace');
+            rethrow;
+          }
+        } else {
+          final errorMsg = responseData['message']?.toString() ?? 'Unknown error';
+          debugPrint('❌ API Error: $errorMsg');
+          throw Exception('Failed to load public garage profiles: $errorMsg');
+        }
+      } else {
+        throw Exception('Failed to load public garage profiles. Status code: ${response.statusCode}');
+      }
+    } catch (e, stackTrace) {
+      debugPrint('❌ Error in getPublicGarageProfiles: $e');
+      debugPrint('Stack trace: $stackTrace');
+      rethrow;
+    }
+  }
 }

@@ -3,7 +3,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:icar_instagram_ui/providers/garage_profiles_provider.dart';
 import 'package:icar_instagram_ui/widgets/garage/garage_profile_card.dart';
+import 'package:icar_instagram_ui/widgets/garage/add_garage_form_sheet.dart';
 import 'package:icar_instagram_ui/models/garage_profile.dart';
+import 'package:icar_instagram_ui/services/api/service_locator.dart';
 
 class GarageProfilesList extends ConsumerWidget {
   const GarageProfilesList({Key? key}) : super(key: key);
@@ -350,11 +352,59 @@ class GarageProfilesList extends ConsumerWidget {
                 child: GarageProfileCard(
                   key: ValueKey('garage_profile_${profile.id}_${profile.updatedAt.millisecondsSinceEpoch}'),
                   profile: profile,
+                  showEditButton: true, // Enable edit button in profile screen
                   onTap: () {
                     debugPrint('👆 Tapped on garage profile: ${profile.businessName} (${profile.id})');
                     // Update the selected profile in the provider
                     ref.read(selectedGarageProfileProvider.notifier).state = profile;
                     // TODO: Navigate to profile details or show bottom sheet
+                  },
+                  onEditPressed: () {
+                    debugPrint('✏️ Edit garage profile: ${profile.businessName} (${profile.id})');
+                    // Show the edit form in a bottom sheet
+                    showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (context) => Container(
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                        ),
+                        child: AddGarageFormSheet(
+                          initialName: profile.businessName,
+                          initialCity: profile.city,
+                          initialPhone: profile.mobile,
+                          initialServices: profile.services ?? [],
+                          onSubmit: (name, city, phone, services) async {
+                            try {
+                              // Call the update API
+                              await serviceLocator.garageService.updateGarageProfile(
+                                id: profile.id,
+                                businessName: name,
+                                mechanicName: name,
+                                mobile: phone,
+                                city: city,
+                                services: services,
+                              );
+                              
+                              // Close the bottom sheet
+                              if (context.mounted) {
+                                Navigator.of(context).pop();
+                                // Refresh the profiles list
+                                ref.invalidate(garageProfilesProvider);
+                              }
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Failed to update profile: $e')),
+                                );
+                              }
+                            }
+                          },
+                        ),
+                      ),
+                    );
                   },
                 ),
               );

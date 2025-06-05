@@ -12,6 +12,7 @@ class GarageProfileCard extends StatefulWidget {
   final VoidCallback? onFavoritePressed;
   final VoidCallback? onEditPressed;
   final bool isFavorite;
+  final bool showEditButton;
 
   const GarageProfileCard({
     Key? key,
@@ -20,6 +21,7 @@ class GarageProfileCard extends StatefulWidget {
     this.onFavoritePressed,
     this.onEditPressed,
     this.isFavorite = false,
+    this.showEditButton = false,
   }) : super(key: key);
 
   @override
@@ -102,15 +104,9 @@ class _GarageProfileCardState extends State<GarageProfileCard> {
       children: [
         GarageServiceCard(
           service: mockService,
-          onTap: () {
-            widget.onTap?.call();
-            _showEditSheet();
-          },
+          onTap: widget.onTap,
           onFavoritePressed: widget.onFavoritePressed,
-          onEditPressed: () {
-            widget.onEditPressed?.call();
-            _showEditSheet();
-          },
+          onEditPressed: widget.showEditButton ? widget.onEditPressed : null,
         ),
         if (_isLoading)
           const Positioned.fill(
