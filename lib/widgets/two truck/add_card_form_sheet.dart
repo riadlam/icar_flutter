@@ -1,21 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:icar_instagram_ui/services/api/service_locator.dart';
 
 class AddCardFormSheet extends StatefulWidget {
   final String? initialName;
   final String? initialCity;
   final String? initialPhone;
-  final String? initialAdditionalPhone;
-  final String? initialEmail;
-  final Function(String, String, String, String?, String?)? onSubmit;
+  final Function(String, String, String)? onSubmit;
+  final Function()? onSuccess;
 
   const AddCardFormSheet({
     super.key,
     this.initialName = '',
     this.initialCity = '',
     this.initialPhone = '',
-    this.initialAdditionalPhone = '',
-    this.initialEmail = '',
     this.onSubmit,
+    this.onSuccess,
   });
 
   @override
@@ -23,11 +22,11 @@ class AddCardFormSheet extends StatefulWidget {
 }
 
 class _AddCardFormSheetState extends State<AddCardFormSheet> {
+  final _formKey = GlobalKey<FormState>();
+  bool _isLoading = false;
   late final TextEditingController _nameController;
   late final TextEditingController _cityController;
   late final TextEditingController _phoneController;
-  late final TextEditingController _additionalPhoneController;
-  late final TextEditingController _emailController;
 
   @override
   void initState() {
@@ -35,8 +34,6 @@ class _AddCardFormSheetState extends State<AddCardFormSheet> {
     _nameController = TextEditingController(text: widget.initialName);
     _cityController = TextEditingController(text: widget.initialCity);
     _phoneController = TextEditingController(text: widget.initialPhone);
-    _additionalPhoneController = TextEditingController(text: widget.initialAdditionalPhone);
-    _emailController = TextEditingController(text: widget.initialEmail);
   }
 
   @override
@@ -44,8 +41,6 @@ class _AddCardFormSheetState extends State<AddCardFormSheet> {
     _nameController.dispose();
     _cityController.dispose();
     _phoneController.dispose();
-    _additionalPhoneController.dispose();
-    _emailController.dispose();
     super.dispose();
   }
 
@@ -53,17 +48,43 @@ class _AddCardFormSheetState extends State<AddCardFormSheet> {
     return widget.initialName?.isNotEmpty == true ? 'Update' : 'Submit';
   }
 
-  void _handleSubmit() {
-    if (widget.onSubmit != null) {
-      widget.onSubmit!(
-        _nameController.text.trim(),
-        _cityController.text.trim(),
-        _phoneController.text.trim(),
-        _additionalPhoneController.text.trim().isNotEmpty ? _additionalPhoneController.text.trim() : null,
-        _emailController.text.trim().isNotEmpty ? _emailController.text.trim() : null,
+  Future<void> _handleSubmit() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      final towTruckService = serviceLocator.towTruckService;
+      
+      await towTruckService.createOrUpdateTowTruckProfile(
+        businessName: _nameController.text.trim(),
+        driverName: _nameController.text.trim(), // Using same name for driver
+        mobile: _phoneController.text.trim(),
+        city: _cityController.text.trim(),
       );
+
+      if (mounted) {
+        Navigator.pop(context);
+        if (widget.onSuccess != null) {
+          widget.onSuccess!();
+        }
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Tow truck profile created successfully')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: ${e.toString()}')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
-    Navigator.pop(context);
   }
   @override
   Widget build(BuildContext context) {
@@ -83,69 +104,100 @@ class _AddCardFormSheetState extends State<AddCardFormSheet> {
               const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
         );
 
-    return Padding(
-      padding: EdgeInsets.only(
-        left: 16,
-        right: 16,
-        top: 24,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-      ),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              widget.initialName?.isNotEmpty == true ? 'Edit Card Details' : 'Add Card Details',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
+    return Form(
+      key: _formKey,
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: 16,
+          right: 16,
+          top: 24,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                widget.initialName?.isNotEmpty == true ? 'Edit Tow Truck Profile' : 'Add Tow Truck Profile',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
                 color: primaryGreen,
               ),
             ),
             const SizedBox(height: 16),
-            TextField(
+            // Business Name Field
+            TextFormField(
               controller: _nameController,
-              decoration: inputDecoration(Icons.person, 'Your Name'),
+              decoration: inputDecoration(Icons.business, 'Business Name'),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter business name';
+                }
+                return null;
+              },
             ),
             const SizedBox(height: 12),
-            TextField(
+            
+            // City Field
+            TextFormField(
               controller: _cityController,
               decoration: inputDecoration(Icons.location_city, 'City'),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter city';
+                }
+                return null;
+              },
             ),
             const SizedBox(height: 12),
-            TextField(
+            
+            // Mobile Number Field
+            TextFormField(
               controller: _phoneController,
               decoration: inputDecoration(Icons.phone_android, 'Mobile Number'),
               keyboardType: TextInputType.phone,
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _additionalPhoneController,
-              decoration: inputDecoration(Icons.phone, 'Additional Phone Number (optional)'),
-              keyboardType: TextInputType.phone,
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _emailController,
-              decoration: inputDecoration(Icons.email, 'Email Address (optional)'),
-              keyboardType: TextInputType.emailAddress,
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter mobile number';
+                }
+                // Add more phone number validation if needed
+                return null;
+              },
             ),
             const SizedBox(height: 20),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: primaryGreen,
-                minimumSize: const Size.fromHeight(50),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: primaryGreen,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
-              ),
-              onPressed: _handleSubmit,
-              child: Text(
-                _getButtonText(),
-                style: const TextStyle(color: Colors.white),
+                onPressed: _isLoading ? null : _handleSubmit,
+                child: _isLoading
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : Text(
+                        _getButtonText(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
               ),
             ),
-          ],
+            ],
+          ),
         ),
       ),
     );

@@ -117,25 +117,26 @@ class _MechanicProfileScreenState
     String name,
     String city,
     String phone,
-    String? additionalPhone,
-    String? email,
   ) async {
-    if (mounted) {
-      setState(() {
-        _currentService = _currentService.copyWith(
-          businessName: name,
-          phoneNumber: phone,
-          email: email ?? _currentService.email,
-          location: city,
-        );
-      });
-    }
+    setState(() {
+      _currentService = _currentService.copyWith(
+        businessName: name,
+        phoneNumber: phone,
+        location: city,
+      );
+    });
+
+    // Save to shared preferences
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('towTruckService', jsonEncode({
+      'businessName': name,
+      'phoneNumber': phone,
+      'location': city,
+      'isFavorite': _currentService.isFavorite,
+    }));
   }
 
   void _showEditForm() {
-    final locationParts = _currentService.location.split(',');
-    final city = locationParts.isNotEmpty ? locationParts[0].trim() : '';
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -144,13 +145,37 @@ class _MechanicProfileScreenState
       ),
       builder: (context) => AddCardFormSheet(
         initialName: _currentService.businessName,
-        initialCity: city,
+        initialCity: _currentService.location,
         initialPhone: _currentService.phoneNumber,
-        initialEmail: _currentService.email,
         onSubmit: _handleUpdateService,
+        onSuccess: () {
+          // Refresh the profile data after successful update
+          _loadProfileData();
+        },
       ),
     );
   }
+
+  void _showAddCardForm() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => AddCardFormSheet(
+        initialName: '',
+        initialCity: '',
+        initialPhone: '',
+        onSubmit: _handleUpdateService,
+        onSuccess: () {
+          // Refresh the profile data after successful addition
+          _loadProfileData();
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // Watch for changes to the profile data
@@ -188,17 +213,7 @@ class _MechanicProfileScreenState
               ),
               const SizedBox(height: 24), // spacing between cards
 GestureDetector(
- onTap: () {
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-    ),
-    builder: (context) => const AddCardFormSheet(),
-  );
-},
-
+  onTap: _showAddCardForm,
   child: Container(
     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
     decoration: BoxDecoration(
@@ -209,7 +224,7 @@ GestureDetector(
     child: Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(Icons.add, color: Colors.blueAccent),
+        const Icon(Icons.add, color: Colors.blueAccent),
         const SizedBox(width: 8),
         Text(
           'add_second_card'.tr(),
