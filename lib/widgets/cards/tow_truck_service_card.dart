@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:icar_instagram_ui/models/tow_truck_service.dart';
+import 'package:icar_instagram_ui/providers/tow_truck_wishlist_provider.dart';
 
 class TowTruckServiceCard extends StatelessWidget {
   final TowTruckService service;
@@ -138,13 +140,24 @@ class TowTruckServiceCard extends StatelessWidget {
                 Positioned(
                   top: 12,
                   right: 12,
-                  child: GestureDetector(
-                    onTap: onFavoritePressed,
-                    child: Icon(
-                      service.isFavorite ? Icons.favorite : Icons.favorite_border,
-                      color: Colors.white,
-                      size: 28,
-                    ),
+                  child: Consumer(
+                    builder: (context, ref, _) {
+                      final isInWishlist = ref.watch(towTruckWishlistProvider).contains(service.id);
+                      return IconButton(
+                        icon: Icon(
+                          isInWishlist ? Icons.favorite : Icons.favorite_border,
+                          color: isInWishlist ? Colors.red : Colors.white,
+                          size: 28,
+                        ),
+                        onPressed: () {
+                          if (onFavoritePressed != null) {
+                            onFavoritePressed!();
+                          } else {
+                            ref.read(towTruckWishlistProvider.notifier).toggleWishlist(service.id);
+                          }
+                        },
+                      );
+                    },
                   ),
                 ),
               ],

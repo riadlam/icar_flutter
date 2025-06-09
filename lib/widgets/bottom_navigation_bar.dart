@@ -3,6 +3,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/wishlist_provider.dart';
+import '../../providers/tow_truck_wishlist_provider.dart';
 
 class BottomNavigationBarWidget extends StatelessWidget {
   final int currentIndex;
@@ -48,7 +49,9 @@ class BottomNavigationBarWidget extends StatelessWidget {
             // Favorite/Wishlist icon
             Consumer(
               builder: (context, ref, _) {
-                final wishlistCount = ref.watch(wishlistCountProvider);
+                final garageWishlistCount = ref.watch(wishlistCountProvider);
+                final towTruckWishlistCount = ref.watch(towTruckWishlistCountProvider);
+                final totalWishlistCount = garageWishlistCount + towTruckWishlistCount;
                 return Tooltip(
                   message: 'wishlist'.tr(),
                   child: Stack(
@@ -65,7 +68,7 @@ class BottomNavigationBarWidget extends StatelessWidget {
                           context.go('/wishlist');
                         },
                       ),
-                      if (wishlistCount > 0)
+                      if (totalWishlistCount > 0)
                         Positioned(
                           right: 8,
                           top: 4,
@@ -80,7 +83,7 @@ class BottomNavigationBarWidget extends StatelessWidget {
                               minHeight: 16,
                             ),
                             child: Text(
-                              wishlistCount > 9 ? '9+' : '$wishlistCount',
+                              totalWishlistCount > 9 ? '9+' : '$totalWishlistCount',
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 10,

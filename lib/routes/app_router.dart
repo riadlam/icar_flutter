@@ -19,6 +19,7 @@ import '../models/car_post.dart';
 import '../screens/car_search_results_screen.dart';
 import '../screens/car_notification_screen.dart';
 import '../screens/wishlist_screen.dart';
+import '../screens/tow_truck_wishlist_screen.dart';
 import '../providers/car_detail_provider.dart';
 import '../services/auth_service.dart';
 
@@ -170,6 +171,12 @@ class AppRouter {
             path: '/wishlist',
             pageBuilder: (context, state) => const NoTransitionPage(
               child: WishlistScreen(),
+            ),
+          ),
+          GoRoute(
+            path: '/tow-truck-wishlist',
+            pageBuilder: (context, state) => const NoTransitionPage(
+              child: TowTruckWishlistScreen(),
             ),
           ),
           GoRoute(

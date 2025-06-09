@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:icar_instagram_ui/models/tow_truck_service.dart' as model;
 import 'package:icar_instagram_ui/widgets/cards/tow_truck_service_card.dart';
 import 'package:icar_instagram_ui/services/api/service_locator.dart';
@@ -57,19 +58,24 @@ class _TowTruckContentState extends State<TowTruckContent> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading && _services.isEmpty) {
+    if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
 
     if (_error != null) {
       return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Text(
-            _error!,
-            style: const TextStyle(color: Colors.red),
-            textAlign: TextAlign.center,
-          ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, color: Colors.red, size: 48),
+            const SizedBox(height: 16),
+            Text('Error: $_error'),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _loadTowTruckProfiles,
+              child: const Text('Retry'),
+            ),
+          ],
         ),
       );
     }
@@ -80,32 +86,28 @@ class _TowTruckContentState extends State<TowTruckContent> {
       );
     }
 
-    return RefreshIndicator(
-      onRefresh: _loadTowTruckProfiles,
-      child: ListView.builder(
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-        itemCount: _services.length,
-        itemBuilder: (context, index) {
-          final service = _services[index];
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: TowTruckServiceCard(
-              service: service,
-              onTap: () {
-                // TODO: Handle service tap
-              },
-              onFavoritePressed: () {
-                // TODO: Handle favorite toggle
-                setState(() {
-                  _services[index] = service.copyWith(
-                    isFavorite: !service.isFavorite,
-                  );
-                });
-              },
-            ),
-          );
-        },
-      ),
+    return Consumer(
+      builder: (context, ref, _) {
+        return RefreshIndicator(
+          onRefresh: _loadTowTruckProfiles,
+          child: ListView.builder(
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+            itemCount: _services.length,
+            itemBuilder: (context, index) {
+              final service = _services[index];
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: TowTruckServiceCard(
+                  service: service,
+                  onTap: () {
+                    // Handle service tap
+                  },
+                ),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 }
