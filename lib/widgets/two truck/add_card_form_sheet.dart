@@ -8,6 +8,7 @@ class AddCardFormSheet extends StatefulWidget {
   final String? initialPhone;
   final FutureOr<void> Function(String name, String city, String phone) onSubmit;
   final VoidCallback? onDelete;
+  final bool isLastItem;
 
   const AddCardFormSheet({
     super.key,
@@ -16,6 +17,7 @@ class AddCardFormSheet extends StatefulWidget {
     this.initialPhone = '',
     required this.onSubmit,
     this.onDelete,
+    this.isLastItem = false,
   });
 
   @override
@@ -172,8 +174,8 @@ class _AddCardFormSheetState extends State<AddCardFormSheet> {
             const SizedBox(height: 20),
             Row(
               children: [
-                // Delete button (only shown in edit mode)
-                if (widget.onDelete != null) ...[
+                // Delete button (only shown in edit mode and not the last item)
+                if (widget.onDelete != null && !widget.isLastItem) ...[
                   Expanded(
                     child: SizedBox(
                       height: 50,

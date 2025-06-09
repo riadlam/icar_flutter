@@ -202,6 +202,10 @@ class _MechanicProfileScreenState
   }
 
   void _showEditForm(TowTruckService service) {
+    // Check if this is the last profile by comparing IDs
+    final isLastItem = _towTruckProfiles.length == 1 || 
+                      _towTruckProfiles.last.id == service.id;
+    
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -226,6 +230,7 @@ class _MechanicProfileScreenState
           // Call the delete function
           await _deleteProfile(service.id);
         },
+        isLastItem: isLastItem,
       ),
     );
   }
