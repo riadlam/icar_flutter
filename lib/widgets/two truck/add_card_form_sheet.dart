@@ -1,20 +1,21 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
-import 'package:icar_instagram_ui/services/api/service_locator.dart';
 
 class AddCardFormSheet extends StatefulWidget {
   final String? initialName;
   final String? initialCity;
   final String? initialPhone;
-  final Function(String, String, String)? onSubmit;
-  final Function()? onSuccess;
+  final FutureOr<void> Function(String name, String city, String phone) onSubmit;
+  final VoidCallback? onDelete;
 
   const AddCardFormSheet({
     super.key,
     this.initialName = '',
     this.initialCity = '',
     this.initialPhone = '',
-    this.onSubmit,
-    this.onSuccess,
+    required this.onSubmit,
+    this.onDelete,
   });
 
   @override
@@ -51,41 +52,44 @@ class _AddCardFormSheetState extends State<AddCardFormSheet> {
   Future<void> _handleSubmit() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+    });
 
     try {
-      final towTruckService = serviceLocator.towTruckService;
-      
-      await towTruckService.createOrUpdateTowTruckProfile(
-        businessName: _nameController.text.trim(),
-        driverName: _nameController.text.trim(), // Using same name for driver
-        mobile: _phoneController.text.trim(),
-        city: _cityController.text.trim(),
+      await widget.onSubmit(
+        _nameController.text.trim(),
+        _cityController.text.trim(),
+        _phoneController.text.trim(),
       );
 
       if (mounted) {
-        Navigator.pop(context);
-        if (widget.onSuccess != null) {
-          widget.onSuccess!();
-        }
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Tow truck profile created successfully')),
-          );
-        }
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Operation completed successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${e.toString()}')),
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } finally {
       if (mounted) {
-        setState(() => _isLoading = false);
+        setState(() {
+          _isLoading = false;
+        });
       }
     }
   }
+
   @override
   Widget build(BuildContext context) {
     const Color primaryGreen = Color(0xFF4CAF50); // Material green 500
@@ -166,35 +170,67 @@ class _AddCardFormSheetState extends State<AddCardFormSheet> {
               },
             ),
             const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: primaryGreen,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                onPressed: _isLoading ? null : _handleSubmit,
-                child: _isLoading
-                    ? const SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2,
+            Row(
+              children: [
+                // Delete button (only shown in edit mode)
+                if (widget.onDelete != null) ...[
+                  Expanded(
+                    child: SizedBox(
+                      height: 50,
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Colors.red),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
-                      )
-                    : Text(
-                        _getButtonText(),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
+                        onPressed: _isLoading ? null : widget.onDelete,
+                        child: const Text(
+                          'Delete',
+                          style: TextStyle(
+                            color: Colors.red,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
-              ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                ],
+                // Submit/Update button
+                Expanded(
+                  child: SizedBox(
+                    height: 50,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primaryGreen,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: _isLoading ? null : _handleSubmit,
+                      child: _isLoading
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : Text(
+                              _getButtonText(),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                    ),
+                  ),
+                ),
+              ],
             ),
             ],
           ),

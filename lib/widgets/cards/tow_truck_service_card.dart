@@ -52,8 +52,6 @@ class TowTruckServiceCard extends StatelessWidget {
                     const SizedBox(height: 20),
                     _buildInfoRow(Icons.phone, service.phoneNumber),
                     const SizedBox(height: 8),
-                    _buildInfoRow(Icons.email, service.email),
-                    const SizedBox(height: 8),
                     _buildInfoRow(Icons.location_on, service.location),
                   ],
                 ),

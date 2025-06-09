@@ -1,31 +1,28 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:icar_instagram_ui/models/tow_truck_service.dart';
 import 'package:icar_instagram_ui/screens/profiles/seller_profile_screen.dart';
 import 'package:icar_instagram_ui/widgets/cards/tow_truck_service_card.dart';
 import 'package:icar_instagram_ui/widgets/two%20truck/add_card_form_sheet.dart';
 import 'package:icar_instagram_ui/widgets/two%20truck/menu_navbar/tow_truck_navbar.dart';
+import 'package:icar_instagram_ui/services/api/service_locator.dart';
 
-// Extension to make it easier to create a copy of the service with updated fields
 extension TowTruckServiceX on TowTruckService {
   TowTruckService copyWith({
     String? businessName,
     String? phoneNumber,
-    String? email,
     String? location,
     bool? isFavorite,
   }) {
     return TowTruckService(
       businessName: businessName ?? this.businessName,
       phoneNumber: phoneNumber ?? this.phoneNumber,
-      email: email ?? this.email,
       location: location ?? this.location,
       isFavorite: isFavorite ?? this.isFavorite,
       imageUrl: imageUrl,
       id: id,
+      driverName: driverName,
     );
   }
 }
@@ -41,102 +38,170 @@ class MechanicProfileScreen extends ConsumerStatefulWidget {
 class _MechanicProfileScreenState
     extends ConsumerState<MechanicProfileScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  
-  late TowTruckService _currentService;
+
+  List<TowTruckService> _towTruckProfiles = [];
+  bool _isLoading = true;
+  String _error = '';
 
   @override
   void initState() {
     super.initState();
-    // Initialize with default values that will be overridden by the provider
-    _currentService = TowTruckService(
-      businessName: 'loading'.tr(),
-      phoneNumber: '',
-      email: '',
-      location: '',
-      isFavorite: false,
-      imageUrl: 'https://images.unsplash.com/photo-1570129477492-45c003edd2be',
-      id: '1',
-    );
-
-    // Load profile data if available
-    _loadProfileData();
+    _loadTowTruckProfiles();
   }
 
-  Future<void> _loadProfileData() async {
+  Future<void> _loadTowTruckProfiles() async {
+    print('Loading tow truck profiles...');
+    
+    if (!mounted) {
+      print('Widget not mounted, aborting profile load');
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _error = '';
+    });
+
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final data = prefs.getString('user_profile_data_mechanic');
+      print('Fetching profiles from API...');
+      final profiles = await serviceLocator.towTruckService.getTowTruckProfiles();
+      print('Received ${profiles.length} profiles from API');
+
+      if (!mounted) return;
+
+      setState(() {
+        _towTruckProfiles = profiles.map((profile) {
+          print('Processing profile: ${profile['id']} - ${profile['business_name']}');
+          return TowTruckService(
+            id: profile['id']?.toString() ?? 'unknown',
+            businessName: profile['business_name']?.toString() ?? 'Unnamed Business',
+            driverName: profile['driver_name']?.toString() ?? 'No Name',
+            phoneNumber: profile['mobile']?.toString() ?? 'No Phone',
+            location: profile['city']?.toString() ?? 'No Location',
+            imageUrl: 'https://images.unsplash.com/photo-1570129477492-45c003edd2be',
+            isFavorite: false,
+          );
+        }).toList();
+        print('Successfully loaded ${_towTruckProfiles.length} profiles');
+      });
+    } catch (e, stackTrace) {
+      print('Error loading profiles: $e');
+      print('Stack trace: $stackTrace');
       
-      // Get email from Google login if available
-      final googleEmail = prefs.getString('user_email') ?? '';
+      if (!mounted) return;
       
-      if (data != null && data.isNotEmpty) {
-        final decodedData = jsonDecode(data) as Map<String, dynamic>;
-        if (mounted) {
-          setState(() {
-            _currentService = _currentService.copyWith(
-              businessName: decodedData['driver_name']?.toString() ?? 'Mechanic',
-              phoneNumber: decodedData['mobile']?.toString() ?? '',
-              location: decodedData['city']?.toString() ?? 'Location not set',
-              email: googleEmail.isNotEmpty ? googleEmail : (decodedData['email']?.toString() ?? ''),
-            );
-          });
-        }
-      } else {
-        // Fallback to buyer data if mechanic data not found (for testing)
-        final buyerData = prefs.getString('user_profile_data_buyer');
-        if (buyerData != null && buyerData.isNotEmpty) {
-          final decodedData = jsonDecode(buyerData) as Map<String, dynamic>;
-          if (mounted) {
-            setState(() {
-              _currentService = _currentService.copyWith(
-                businessName: decodedData['fullName']?.toString() ?? 'Mechanic',
-                phoneNumber: decodedData['mobile']?.toString() ?? '',
-                location: decodedData['city']?.toString() ?? 'Location not set',
-                email: decodedData['email']?.toString() ?? '',
-              );
-            });
-          }
-        }
-      }
-    } catch (e) {
+      setState(() {
+        _error = 'Failed to load tow truck profiles. Please try again later.';
+      });
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error loading profiles: ${e.toString()}'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 5),
+        ),
+      );
+    } finally {
       if (mounted) {
         setState(() {
-          _currentService = _currentService.copyWith(
-            businessName: 'error_loading_profile'.tr(),
-            phoneNumber: 'not_available'.tr(),
-            location: 'try_again_later'.tr(),
-          );
+          _isLoading = false;
         });
       }
-      debugPrint('Error loading profile data: $e');
     }
+  }
+
+  void _refreshProfiles() {
+    _loadTowTruckProfiles();
   }
 
   Future<void> _handleUpdateService(
     String name,
     String city,
-    String phone,
-  ) async {
-    setState(() {
-      _currentService = _currentService.copyWith(
-        businessName: name,
-        phoneNumber: phone,
-        location: city,
-      );
-    });
+    String phone, {
+    String? id,
+  }) async {
+    print('_handleUpdateService called with name: $name, city: $city, phone: $phone, id: $id');
+    
+    if (!mounted) {
+      print('Widget not mounted, aborting');
+      return;
+    }
 
-    // Save to shared preferences
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('towTruckService', jsonEncode({
-      'businessName': name,
-      'phoneNumber': phone,
-      'location': city,
-      'isFavorite': _currentService.isFavorite,
-    }));
+    try {
+      setState(() {
+        _isLoading = true;
+        _error = '';
+      });
+
+      dynamic response;
+      if (id == null) {
+        print('Creating new profile');
+        // Create new profile
+        response = await serviceLocator.towTruckService.createOrUpdateTowTruckProfile(
+          businessName: name,
+          driverName: name, // Using business name as driver name if not provided
+          mobile: phone,
+          city: city,
+        );
+        print('Create profile response: $response');
+      } else {
+        print('Updating profile with ID: $id');
+        // Update existing profile
+        response = await serviceLocator.towTruckService.updateTowTruckProfile(
+          id: id,
+          businessName: name,
+          city: city,
+          mobile: phone,
+        );
+        print('Update profile response: $response');
+      }
+      
+      // Close the bottom sheet before refreshing
+      if (mounted && Navigator.canPop(context)) {
+        Navigator.of(context).pop();
+      }
+
+      // Show success message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(id == null ? 'Profile created successfully' : 'Profile updated successfully'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+      
+      // Refresh the list after successful update
+      await _loadTowTruckProfiles();
+      
+    } catch (e, stackTrace) {
+      print('Error in _handleUpdateService: $e');
+      print('Stack trace: $stackTrace');
+      
+      if (!mounted) return;
+      
+      setState(() {
+        _error = 'Failed to update profile: ${e.toString()}';
+      });
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${e.toString()}'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 5),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
-  void _showEditForm() {
+  void _showEditForm(TowTruckService service) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -144,13 +209,22 @@ class _MechanicProfileScreenState
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) => AddCardFormSheet(
-        initialName: _currentService.businessName,
-        initialCity: _currentService.location,
-        initialPhone: _currentService.phoneNumber,
-        onSubmit: _handleUpdateService,
-        onSuccess: () {
-          // Refresh the profile data after successful update
-          _loadProfileData();
+        initialName: service.businessName,
+        initialCity: service.location,
+        initialPhone: service.phoneNumber,
+        onSubmit: (name, city, phone) => _handleUpdateService(
+          name,
+          city,
+          phone,
+          id: service.id,
+        ),
+        onDelete: () async {
+          // Close the bottom sheet
+          if (Navigator.canPop(context)) {
+            Navigator.of(context).pop();
+          }
+          // Call the delete function
+          await _deleteProfile(service.id);
         },
       ),
     );
@@ -167,20 +241,83 @@ class _MechanicProfileScreenState
         initialName: '',
         initialCity: '',
         initialPhone: '',
-        onSubmit: _handleUpdateService,
-        onSuccess: () {
-          // Refresh the profile data after successful addition
-          _loadProfileData();
-        },
+        onSubmit: (name, city, phone) => _handleUpdateService(name, city, phone),
       ),
     );
   }
 
+  Future<void> _deleteProfile(String id) async {
+    try {
+      setState(() {
+        _isLoading = true;
+        _error = '';
+      });
+
+      // Show confirmation dialog
+      final shouldDelete = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Delete Profile'),
+          content: const Text('Are you sure you want to delete this profile? This action cannot be undone.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: const Text('Delete'),
+            ),
+          ],
+        ),
+      );
+
+      if (shouldDelete != true) {
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      // Call the delete API
+      await serviceLocator.towTruckService.deleteTowTruckProfile(id);
+      
+      // Show success message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Profile deleted successfully'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+      
+      // Refresh the list
+      await _loadTowTruckProfiles();
+    } catch (e) {
+      print('Error deleting profile: $e');
+      if (mounted) {
+        setState(() {
+          _error = 'Failed to delete profile: $e';
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Watch for changes to the profile data
     ref.watch(sellerProfileProvider);
-    final screenWidth = MediaQuery.of(context).size.width;
 
     return SafeArea(
       child: Scaffold(
@@ -194,57 +331,85 @@ class _MechanicProfileScreenState
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
-            children: [             
+            children: [
+              if (_isLoading && _towTruckProfiles.isEmpty)
+                const Center(child: CircularProgressIndicator())
+              else if (_error.isNotEmpty)
+                Center(child: Text(_error, style: const TextStyle(color: Colors.red)))
+              else if (_towTruckProfiles.isEmpty)
+                const Center(child: Text('No tow truck profiles found'))
+              else ...[
+                // Show LAST card first
+                TowTruckServiceCard(
+                  service: _towTruckProfiles.last,
+                  onTap: () {},
+                  onFavoritePressed: () {
+                    setState(() {
+                      final lastIndex = _towTruckProfiles.length - 1;
+                      _towTruckProfiles[lastIndex] = _towTruckProfiles[lastIndex].copyWith(
+                        isFavorite: !_towTruckProfiles[lastIndex].isFavorite,
+                      );
+                    });
+                  },
+                  onEditPressed: () => _showEditForm(_towTruckProfiles.last),
+                ),
+                const SizedBox(height: 16),
 
-              // Tow Truck Service Card
-              TowTruckServiceCard(
-                service: _currentService,
-                onTap: () {
-                  // Action
-                },
-                onFavoritePressed: () {
-                  setState(() {
-                    _currentService = _currentService.copyWith(
-                      isFavorite: !_currentService.isFavorite,
-                    );
-                  });
-                },
-                onEditPressed: _showEditForm,
-              ),
-              const SizedBox(height: 24), // spacing between cards
-GestureDetector(
-  onTap: _showAddCardForm,
-  child: Container(
-    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-    decoration: BoxDecoration(
-      color: Colors.grey[100],
-      borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: Colors.grey.shade300),
-    ),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        const Icon(Icons.add, color: Colors.blueAccent),
-        const SizedBox(width: 8),
-        Text(
-          'add_second_card'.tr(),
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-            color: Colors.blueAccent,
-          ),
-        ),
-      ],
-    ),
-  ),
-),
+                // Add Card Button
+                GestureDetector(
+                  onTap: _showAddCardForm,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.shade300),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.add, color: Colors.blueAccent),
+                        const SizedBox(width: 8),
+                        Text(
+                          'add_second_card'.tr(),
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.blueAccent,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
 
+                const SizedBox(height: 16),
 
+                // Show all EXCEPT last card after button
+                ..._towTruckProfiles.take(_towTruckProfiles.length - 1).map((service) => Column(
+                  children: [
+                    TowTruckServiceCard(
+                      service: service,
+                      onTap: () {},
+                      onFavoritePressed: () {
+                        setState(() {
+                          final index = _towTruckProfiles.indexWhere((s) => s.id == service.id);
+                          if (index != -1) {
+                            _towTruckProfiles[index] = _towTruckProfiles[index].copyWith(
+                              isFavorite: !_towTruckProfiles[index].isFavorite,
+                            );
+                          }
+                        });
+                      },
+                      onEditPressed: () => _showEditForm(service),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                )).toList(),
+              ]
             ],
           ),
         ),
-
-       
       ),
     );
   }

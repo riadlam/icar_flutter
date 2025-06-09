@@ -49,7 +49,110 @@ class TowTruckService {
         throw Exception('Failed to create tow truck profile: ${response.statusCode} - ${response.body}');
       }
     } catch (e) {
+      throw Exception('Error creating tow truck profile: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>> updateTowTruckProfile({
+    required String id,
+    String? businessName,
+    String? driverName,
+    String? mobile,
+    String? city,
+  }) async {
+    try {
+      print('Updating tow truck profile with ID: $id');
+      final headers = await _getAuthHeaders();
+      final uri = Uri.parse('${ApiEndpoints.baseUrl}/api/tow-truck-profiles/$id');
+      
+      final Map<String, dynamic> body = {};
+      if (businessName != null) body['business_name'] = businessName;
+      if (driverName != null) body['driver_name'] = driverName;
+      if (mobile != null) body['mobile'] = mobile;
+      if (city != null) body['city'] = city;
+      
+      print('Request body: $body');
+      print('Headers: $headers');
+      
+      final response = await _client.put(
+        uri,
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode(body),
+      );
+
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body);
+        print('Update successful: $responseData');
+        return responseData;
+      } else {
+        final error = 'Failed to update tow truck profile: ${response.statusCode} - ${response.body}';
+        print(error);
+        throw Exception(error);
+      }
+    } catch (e) {
       throw Exception('Error updating tow truck profile: $e');
+    }
+  }
+  
+  Future<List<Map<String, dynamic>>> getTowTruckProfiles() async {
+    try {
+      final headers = await _getAuthHeaders();
+      final uri = Uri.parse('${ApiEndpoints.baseUrl}/api/tow-truck-profiles');
+      
+      final response = await _client.get(
+        uri,
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true) {
+          return List<Map<String, dynamic>>.from(data['data']);
+        } else {
+          throw Exception(data['message'] ?? 'Failed to fetch tow truck profiles');
+        }
+      } else {
+        throw Exception('Failed to fetch tow truck profiles: ${response.statusCode} - ${response.body}');
+      }
+    } catch (e) {
+      throw Exception('Error fetching tow truck profiles: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>> deleteTowTruckProfile(String id) async {
+    try {
+      print('Deleting tow truck profile with ID: $id');
+      final headers = await _getAuthHeaders();
+      final uri = Uri.parse('${ApiEndpoints.baseUrl}/api/tow-truck-profiles/$id');
+      
+      print('DELETE Request to: $uri');
+      print('Headers: $headers');
+      
+      final response = await _client.delete(
+        uri,
+        headers: headers,
+      );
+
+      print('Delete response status: ${response.statusCode}');
+      print('Delete response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body);
+        print('Delete successful: $responseData');
+        return responseData;
+      } else {
+        final error = 'Failed to delete tow truck profile: ${response.statusCode} - ${response.body}';
+        print(error);
+        throw Exception(error);
+      }
+    } catch (e) {
+      throw Exception('Error deleting tow truck profile: $e');
     }
   }
 }
