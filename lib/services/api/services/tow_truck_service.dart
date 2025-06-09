@@ -125,6 +125,31 @@ class TowTruckService {
     }
   }
 
+  Future<List<Map<String, dynamic>>> getAllTowTruckProfiles() async {
+    try {
+      final headers = await _getAuthHeaders();
+      final uri = Uri.parse('${ApiEndpoints.baseUrl}/api/tow-truck-profiles/all');
+      
+      final response = await _client.get(
+        uri,
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true) {
+          return List<Map<String, dynamic>>.from(data['data']);
+        } else {
+          throw Exception(data['message'] ?? 'Failed to fetch all tow truck profiles');
+        }
+      } else {
+        throw Exception('Failed to fetch all tow truck profiles: ${response.statusCode} - ${response.body}');
+      }
+    } catch (e) {
+      throw Exception('Error fetching all tow truck profiles: $e');
+    }
+  }
+
   Future<Map<String, dynamic>> deleteTowTruckProfile(String id) async {
     try {
       print('Deleting tow truck profile with ID: $id');
