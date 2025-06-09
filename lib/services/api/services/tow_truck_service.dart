@@ -125,10 +125,11 @@ class TowTruckService {
     }
   }
 
-  Future<List<Map<String, dynamic>>> getAllTowTruckProfiles() async {
+  Future<List<Map<String, dynamic>>> getAllTowTruckProfiles({String? city}) async {
     try {
       final headers = await _getAuthHeaders();
-      final uri = Uri.parse('${ApiEndpoints.baseUrl}/api/tow-truck-profiles/all');
+      final uri = Uri.parse('${ApiEndpoints.baseUrl}/api/tow-truck-profiles/all')
+          .replace(queryParameters: city != null ? {'city': city} : null);
       
       final response = await _client.get(
         uri,
