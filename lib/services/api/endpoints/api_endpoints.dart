@@ -9,6 +9,8 @@ class ApiEndpoints {
   
   // User endpoints
   static const String updateRole = '$apiPrefix/update-role';
+  static const String userRole = '$apiPrefix/user/role';
+  static const String sellerProfile = '$apiPrefix/my-car-profile';
   static const String profile = '$apiPrefix/profile';
   static String userSubscription(int userId) => '$apiPrefix/users/$userId/subscribe';
   static String userSubscriptionStatus(int sellerId) => '/api/users/$sellerId/subscription-status';

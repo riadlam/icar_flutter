@@ -203,7 +203,7 @@ class _SellerProfileScreenState extends ConsumerState<SellerProfileScreen> {
                   _buildInfoRow(
                     Icons.phone,
                     profileAsync.when(
-                      data: (data) => data['mobile']?.toString() ?? 'No phone number',
+                      data: (data) => data['phoneNumber']?.toString() ?? 'No phone number',
                       loading: () => 'Loading...',
                       error: (error, stack) => 'Error loading phone',
                     ),

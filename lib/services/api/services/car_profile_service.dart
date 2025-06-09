@@ -167,8 +167,18 @@ class CarProfileService {
         throw Exception('No authentication token found');
       }
 
+      // Get current user ID from SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getString('user_id');
+      
+      if (userId == null) {
+        throw Exception('No user ID found in shared preferences');
+      }
+
+      _logger.fine('Deleting phone number for user ID: $userId');
+      
       final response = await client.delete(
-        Uri.parse('$baseUrl/api/users/1/additional-phones/$phoneId'),
+        Uri.parse('$baseUrl/api/users/$userId/additional-phones/$phoneId'),
         headers: {
           'Authorization': 'Bearer $token',
           'Accept': 'application/json',
@@ -177,6 +187,7 @@ class CarProfileService {
       
       final responseBody = utf8.decode(response.bodyBytes);
       _logger.fine('Response status: ${response.statusCode}');
+      _logger.fine('Response headers: ${response.headers}');
       _logger.fine('Response body: $responseBody');
       
       final responseData = jsonDecode(responseBody);

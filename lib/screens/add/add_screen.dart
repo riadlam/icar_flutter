@@ -13,28 +13,50 @@ class AddScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final role = ref.watch(roleProvider);
+    final roleAsync = ref.watch(roleProvider);
     
-    // Return the appropriate add screen based on the selected role
-    switch (role) {
-      case UserRole.buyer:
-        return const BuyerAddScreen();
-      case UserRole.seller:
-        return const SellerAddScreen();
-      case UserRole.mechanic:
-        return const MechanicAddScreen();
-      case UserRole.other:
-        return const GarageAddScreen();
-      case null:
-        // If no role is selected, show a message to select a role first
-        return Scaffold(
-          appBar: AppBar(
-            title: Text('add_new'.tr()),
-          ),
-          body: Center(
-            child: Text('select_role_first'.tr()),
-          ),
-        );
-    }
+    return roleAsync.when(
+      data: (role) {
+        // If no role is set, show message to select role first
+        if (role == null) {
+          return Scaffold(
+            appBar: AppBar(
+              title: Text('add_new'.tr()),
+            ),
+            body: Center(
+              child: Text('select_role_first'.tr()),
+            ),
+          );
+        }
+        
+        // Otherwise show the appropriate add screen based on role
+        switch (role) {
+          case UserRole.buyer:
+            return const BuyerAddScreen();
+          case UserRole.seller:
+            return const BuyerAddScreen();
+          case UserRole.mechanic:
+            return const MechanicAddScreen();
+          case UserRole.other:
+            return const GarageAddScreen();
+        }
+      },
+      loading: () => Scaffold(
+        appBar: AppBar(
+          title: Text('add_new'.tr()),
+        ),
+        body: const Center(
+          child: CircularProgressIndicator(),
+        ),
+      ),
+      error: (error, stack) => Scaffold(
+        appBar: AppBar(
+          title: Text('add_new'.tr()),
+        ),
+        body: Center(
+          child: Text('Error loading role: $error'.tr()),
+        ),
+      ),
+    );
   }
 }

@@ -3,6 +3,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/material.dart';
 import 'api/service_locator.dart';
 
 class AuthService {
@@ -32,21 +33,153 @@ class AuthService {
   // Google Sign In
   Future<Map<String, dynamic>> signInWithGoogle() async {
     try {
+      if (kDebugMode) {
+        print('🔵 Starting Google sign in flow in main AuthService');
+      }
+      
       final authService = serviceLocator.authService;
-      return await authService.signInWithGoogle();
+      final response = await authService.signInWithGoogle();
+      
+      if (kDebugMode) {
+        print('🔵 Google sign in response received');
+        print('   Response keys: ${response.keys}');
+      }
+      
+      // The token is already stored in FlutterSecureStorage by the API's AuthService
+      // Verify we can retrieve it
+      final token = await getToken();
+      if (kDebugMode) {
+        if (token == null) {
+          print('⚠️ WARNING: Token not found in secure storage after Google sign in');
+        } else {
+          print('✅ Token verified in secure storage');
+        }
+      }
+      
+      // If the response includes a role, save it to SharedPreferences
+      if (response.containsKey('role') && response['role'] != null) {
+        final role = response['role'].toString();
+        await _prefs.setString('user_role', role);
+        if (kDebugMode) {
+          print('💾 Saved user role to SharedPreferences: $role');
+        }
+      } else if (kDebugMode) {
+        print('ℹ️ No role found in Google sign in response');
+      }
+      
+      // Store user email and name if available
+      if (response.containsKey('user')) {
+        final user = response['user'] as Map<String, dynamic>;
+        final email = user['email'] ?? '';
+        final name = user['name'] ?? '';
+        final photoUrl = user['photoUrl'] ?? user['picture'] ?? '';
+        
+        if (kDebugMode) {
+          print('👤 User info:');
+          print('   Email: $email');
+          print('   Name: $name');
+          print('   Photo URL: ${photoUrl.isNotEmpty ? '${photoUrl.substring(0, photoUrl.length > 30 ? 30 : photoUrl.length)}...' : 'N/A'}');
+        }
+        
+        await _saveUserInfo(
+          email: email,
+          name: name,
+          photoUrl: photoUrl,
+        );
+      } else if (kDebugMode) {
+        print('ℹ️ No user data found in Google sign in response');
+      }
+      
+      return response;
     } catch (e) {
-      debugPrint('Google sign in error: $e');
+      if (kDebugMode) {
+        print('❌ Google sign in error: $e');
+      }
       rethrow;
     }
   }
 
-  // Get auth token
+  // Get auth token - checks both possible storage locations for backward compatibility
   Future<String?> getToken() async {
+    if (kDebugMode) {
+      print('\n🔍 [AUTH] ===== TOKEN RETRIEVAL STARTED =====');
+    }
+    
     try {
-      final authService = serviceLocator.authService;
-      return await authService.getToken();
-    } catch (e) {
-      debugPrint('Error getting auth token: $e');
+      // Try to get token from secure storage (current method)
+      if (kDebugMode) {
+        print('  1. Checking main secure storage...');
+      }
+      
+      Stopwatch stopwatch = Stopwatch()..start();
+      String? token = await _storage.read(key: _tokenKey);
+      stopwatch.stop();
+      
+      if (kDebugMode) {
+        if (token != null) {
+          print('  ✅ Found token in main storage (${stopwatch.elapsedMilliseconds}ms)');
+          print('     🔑 Token length: ${token.length}');
+          print('     🔒 First 10 chars: ${token.length > 10 ? token.substring(0, 10) + '...' : token}');
+        } else {
+          print('  ℹ️ Token not found in main storage, checking API service...');
+        }
+      }
+      
+      // Fall back to API service if not found in secure storage
+      if (token == null) {
+        try {
+          if (kDebugMode) {
+            print('  2. Falling back to API service token...');
+          }
+          
+          final apiAuthService = serviceLocator.authService;
+          token = await apiAuthService.getToken();
+          
+          // If found via API service, store it in the main storage for next time
+          if (token != null) {
+            if (kDebugMode) {
+              print('  🔄 Migrating token to main storage...');
+            }
+            
+            await _storage.write(key: _tokenKey, value: token);
+            
+            if (kDebugMode) {
+              print('  ✅ Token migrated to main storage successfully');
+              print('     🔑 Token length: ${token.length}');
+              print('     🔒 First 10 chars: ${token.length > 10 ? token.substring(0, 10) + '...' : token}');
+            }
+          } else if (kDebugMode) {
+            print('  ⚠️ API service returned null token');
+          }
+        } catch (e, stackTrace) {
+          if (kDebugMode) {
+            print('  ❌ Error getting token from API service: $e');
+            print('     Stack trace: $stackTrace');
+          }
+        }
+      }
+      
+      if (kDebugMode) {
+        print('\n📋 [AUTH] ===== TOKEN RETRIEVAL SUMMARY =====');
+        if (token == null) {
+          print('  ❌ No auth token available in any storage location');
+        } else {
+          print('  ✅ Auth token retrieved successfully');
+          print('     📏 Length: ${token.length} characters');
+          print('     🔑 Starts with: ${token.length > 10 ? token.substring(0, 10) + '...' : token}');
+          print('     🔒 Ends with: ${token.length > 10 ? '...' + token.substring(token.length - 4) : token}');
+        }
+        print('=======================================\n');
+      }
+      
+      return token;
+    } catch (e, stackTrace) {
+      if (kDebugMode) {
+        print('\n❌ [AUTH] ===== TOKEN RETRIEVAL FAILED =====');
+        print('  Error: $e');
+        print('  Stack trace: $stackTrace');
+        print('====================================\n');
+      }
       return null;
     }
   }

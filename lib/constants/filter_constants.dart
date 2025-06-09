@@ -5,10 +5,11 @@ class FilterConstants {
   static const double minPrice = 0.0;
   static const double maxPrice = 100000.0;
   
-  // Year range (last 30 years from current year)
+  // Year range from 1960 to 2025
   static List<String> get years {
-    final currentYear = DateTime.now().year;
-    return List.generate(36, (index) => (currentYear - index).toString());
+    return List.generate(66, (index) => (2025 - index).toString())
+        .where((year) => int.parse(year) >= 1960)
+        .toList();
   }
   
   // Mileage ranges

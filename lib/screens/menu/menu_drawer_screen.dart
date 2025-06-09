@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:go_router/go_router.dart';
 import '../../models/favorite_seller.dart';
 import '../../services/api/services/favorite_seller_list_service.dart';
+import '../../services/auth_service.dart';
 
 class MenuDrawerScreen extends StatefulWidget {
   const MenuDrawerScreen({super.key});
@@ -409,7 +411,7 @@ class _MenuDrawerScreenState extends State<MenuDrawerScreen> {
     );
   }
 
-  void _showLogoutDialog() {
+  Future<void> _showLogoutDialog() async {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -421,9 +423,39 @@ class _MenuDrawerScreenState extends State<MenuDrawerScreen> {
             child: Text('cancel'.tr().toUpperCase()),
           ),
           TextButton(
-            onPressed: () {
-              Navigator.pop(context); // dialog
-              Navigator.pop(context); // drawer
+            onPressed: () async {
+              try {
+                // Show loading indicator
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (BuildContext context) {
+                    return const Center(
+                      child: CircularProgressIndicator(),
+                    );
+                  },
+                );
+                
+                // Sign out from auth service
+                await authService.signOut();
+                
+                // Close all dialogs and pop the drawer
+                if (mounted) {
+                  Navigator.popUntil(context, (route) => route.isFirst);
+                  // Navigate to login screen
+                  if (context.mounted) {
+                    context.go('/welcome');
+                  }
+                }
+              } catch (e) {
+                if (mounted) {
+                  Navigator.pop(context); // Close loading dialog
+                  // Show error message
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('logout_error'.tr())),
+                  );
+                }
+              }
             },
             child: Text('logout'.tr().toUpperCase(), style: const TextStyle(color: Colors.red)),
           ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:logging/logging.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../screens/language_selection_screen.dart';
 import '../screens/welcome_screen.dart';
 import '../screens/google_login_screen.dart';
@@ -16,10 +17,10 @@ import '../screens/add/add_screen.dart';
 import '../models/user_role.dart' as models;
 import '../models/car_post.dart';
 import '../screens/car_search_results_screen.dart';
-import '../screens/car_notification_screen.dart'; // Added for notifications
+import '../screens/car_notification_screen.dart';
 import '../screens/wishlist_screen.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/car_detail_provider.dart';
+import '../services/auth_service.dart';
 
 final _log = Logger('AppRouter');
 
@@ -31,6 +32,32 @@ class AppRouter {
     navigatorKey: _rootNavigatorKey,
     initialLocation: '/language-selection',
     debugLogDiagnostics: true,
+    redirect: (BuildContext context, GoRouterState state) async {
+      // Check if user is logged in
+      final isLoggedIn = await authService.isLoggedIn();
+      
+      // Define public routes that don't require authentication
+      final isPublicRoute = [
+        '/language-selection',
+        '/welcome',
+        '/google-login',
+        '/role-selection',
+        '/form',
+      ].contains(state.matchedLocation);
+      
+      // If user is not logged in and trying to access a protected route
+      if (!isLoggedIn && !isPublicRoute) {
+        return '/welcome';
+      }
+      
+      // If user is logged in and trying to access a public route
+      if (isLoggedIn && isPublicRoute) {
+        return '/home';
+      }
+      
+      // No redirect needed
+      return null;
+    },
     observers: [
       _RouteLogger(),
     ],

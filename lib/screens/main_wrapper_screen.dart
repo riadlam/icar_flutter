@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../widgets/bottom_navigation_bar.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../providers/role_provider.dart';
 
 class MainWrapperScreen extends StatefulWidget {
   final Widget child;
@@ -49,7 +48,8 @@ class _MainWrapperScreenState extends State<MainWrapperScreen> {
   Widget build(BuildContext context) {
     return Consumer(
       builder: (context, ref, child) {
-        final role = ref.watch(roleProvider);
+        // Role is now handled by the provider and fetched from the backend
+        // We always want to show the profile icon regardless of role
         
         return Scaffold(
           body: SafeArea(
@@ -58,7 +58,7 @@ class _MainWrapperScreenState extends State<MainWrapperScreen> {
           bottomNavigationBar: BottomNavigationBarWidget(
             currentIndex: _selectedNavIndex,
             onTap: _onItemTapped,
-            showProfile: role != null, // Only show profile if role is selected
+            showProfile: true, // Always show profile icon
           ),
         );
       },

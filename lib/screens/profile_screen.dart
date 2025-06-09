@@ -13,28 +13,50 @@ class ProfileScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final role = ref.watch(roleProvider);
+    final roleAsync = ref.watch(roleProvider);
     
-    // Return the appropriate profile screen based on the selected role
-    switch (role) {
-      case UserRole.buyer:
-        return const SellerProfileScreen();
-      case UserRole.seller:
-        return const BuyerProfileScreen();
-      case UserRole.mechanic:
-        return const MechanicProfileScreen();
-      case UserRole.other:
-        return const GarageProfileScreen();
-      case null:
-        // If no role is selected, show a message to select a role first
-        return Scaffold(
-          appBar: AppBar(
-            title: Text('profile'.tr()),
-          ),
-          body: Center(
-            child: Text('select_role_first'.tr()),
-          ),
-        );
-    }
+    return roleAsync.when(
+      data: (role) {
+        // If no role is set, show role selection screen
+        if (role == null) {
+          return Scaffold(
+            appBar: AppBar(
+              title: Text('profile'.tr()),
+            ),
+            body: Center(
+              child: Text('select_role_first'.tr()),
+            ),
+          );
+        }
+        
+        // Otherwise show the appropriate profile based on role
+        switch (role) {
+          case UserRole.buyer:
+            return const BuyerProfileScreen();
+          case UserRole.seller:
+            return const SellerProfileScreen();
+          case UserRole.mechanic:
+            return const MechanicProfileScreen();
+          case UserRole.other:
+            return const GarageProfileScreen();
+        }
+      },
+      loading: () => Scaffold(
+        appBar: AppBar(
+          title: Text('profile'.tr()),
+        ),
+        body: const Center(
+          child: CircularProgressIndicator(),
+        ),
+      ),
+      error: (error, stack) => Scaffold(
+        appBar: AppBar(
+          title: Text('profile'.tr()),
+        ),
+        body: Center(
+          child: Text('Error loading role: $error'.tr()),
+        ),
+      ),
+    );
   }
 }

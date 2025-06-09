@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:icar_instagram_ui/models/car_post.dart';
 import 'package:icar_instagram_ui/services/api/service_locator.dart';
 import 'package:icar_instagram_ui/services/api/services/car_service.dart';
+import 'package:icar_instagram_ui/constants/filter_constants.dart' as filter_constants;
 
 class CarFormSheet extends StatefulWidget {
   final CarPost? car;
@@ -52,9 +53,27 @@ class CarFormSheet extends StatefulWidget {
 
 class _CarFormSheetState extends State<CarFormSheet> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
   final _brandController = TextEditingController();
   final _modelController = TextEditingController();
+  
+  // Dropdown state
+  String? _selectedBrand;
+  String? _selectedModel;
+  String? _selectedYear;
+  List<String> _availableModels = [];
+  final List<String> _availableBrands = filter_constants.FilterConstants.brands;
+  final List<String> _availableYears = filter_constants.FilterConstants.years;
+  
+  void _updateModelsForBrand(String? brand) {
+    setState(() {
+      _selectedBrand = brand;
+      _availableModels = brand != null 
+          ? filter_constants.FilterConstants.getModelsForBrand(brand)
+          : [];
+      _selectedModel = null; // Reset model when brand changes
+    });
+  }
+  
   final _priceController = TextEditingController();
   final _yearController = TextEditingController();
   final _mileageController = TextEditingController();
@@ -75,9 +94,14 @@ class _CarFormSheetState extends State<CarFormSheet> {
   void initState() {
     super.initState();
     if (widget.car != null) {
-      _nameController.text = widget.car!.name;
+      _selectedBrand = widget.car!.brand;
+      _selectedModel = widget.car!.model;
       _brandController.text = widget.car!.brand;
       _modelController.text = widget.car!.model;
+      _selectedYear = widget.car!.year.toString();
+      if (widget.car!.brand.isNotEmpty) {
+        _updateModelsForBrand(widget.car!.brand);
+      }
       _priceController.text = widget.car!.price.toString();
       _yearController.text = widget.car!.year.toString();
       _mileageController.text = widget.car!.mileage.toString();
@@ -129,8 +153,8 @@ class _CarFormSheetState extends State<CarFormSheet> {
   Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate()) return;
     
-    final brand = _brandController.text.trim();
-    final model = _modelController.text.trim();
+    final brand = _selectedBrand ?? '';
+    final model = _selectedModel ?? '';
     final price = double.tryParse(_priceController.text) ?? 0;
     final year = int.tryParse(_yearController.text) ?? DateTime.now().year;
     final mileage = int.tryParse(_mileageController.text) ?? 0;
@@ -226,13 +250,23 @@ class _CarFormSheetState extends State<CarFormSheet> {
 
   @override
   void dispose() {
-    _nameController.dispose();
+    // Dispose all controllers
     _brandController.dispose();
     _modelController.dispose();
     _priceController.dispose();
     _yearController.dispose();
     _mileageController.dispose();
     _descriptionController.dispose();
+    
+    // Clear state variables
+    _selectedBrand = null;
+    _selectedModel = null;
+    _selectedYear = null;
+    _availableModels = [];
+    _images.clear();
+    _existingImageUrls.clear();
+    _removedImageUrls.clear();
+    
     super.dispose();
   }
 
@@ -400,35 +434,90 @@ class _CarFormSheetState extends State<CarFormSheet> {
               const SizedBox(height: 16),
 
               // Form Fields
-              _buildTextField(
-                controller: _nameController, 
-                label: 'Car Name', 
-                keyboardType: TextInputType.text,
-              ),
+
+              Wrap(
+  spacing: 16, // Space between the dropdowns horizontally
+  runSpacing: 16, // Space when wrapping to a new line
+  children: [
+    SizedBox(
+      width: MediaQuery.of(context).size.width >= 600
+          ? (MediaQuery.of(context).size.width - 48) / 2 // For larger screens
+          : double.infinity, // Full width on small screens
+      child: DropdownButtonFormField<String>(
+        value: _selectedBrand,
+        decoration: const InputDecoration(
+          labelText: 'Brand',
+          border: OutlineInputBorder(),
+          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        ),
+        hint: const Text('Select Brand'),
+        items: _availableBrands.map((String brand) {
+          return DropdownMenuItem<String>(
+            value: brand,
+            child: Text(brand),
+          );
+        }).toList(),
+        onChanged: (String? newValue) {
+          _updateModelsForBrand(newValue);
+          _brandController.text = newValue ?? '';
+        },
+        validator: (value) {
+          if (value == null || value.isEmpty) {
+            return 'Please select a brand';
+          }
+          return null;
+        },
+      ),
+    ),
+    SizedBox(
+      width: MediaQuery.of(context).size.width >= 600
+          ? (MediaQuery.of(context).size.width - 48) / 2
+          : double.infinity,
+      child: DropdownButtonFormField<String>(
+        value: _selectedModel,
+        decoration: const InputDecoration(
+          labelText: 'Model',
+          border: OutlineInputBorder(),
+          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        ),
+        hint: const Text('Select Model'),
+        items: _availableModels.map((String model) {
+          return DropdownMenuItem<String>(
+            value: model,
+            child: Text(model),
+          );
+        }).toList(),
+        onChanged: (String? newValue) {
+          setState(() {
+            _selectedModel = newValue;
+            _modelController.text = newValue ?? '';
+          });
+        },
+        validator: (value) {
+          if (value == null || value.isEmpty) {
+            return 'Please select a model';
+          }
+          return null;
+        },
+        isExpanded: true,
+        disabledHint: _selectedBrand == null 
+            ? const Text('Select a brand first')
+            : null,
+      ),
+    ),
+  ],
+),
+
               const SizedBox(height: 12),
-              Row(
+              Wrap(
+                spacing: 16,
+                runSpacing: 16,
                 children: [
-                  Expanded(
-                    child: _buildTextField(
-                      controller: _brandController,
-                      label: 'Brand',
-                      keyboardType: TextInputType.text,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildTextField(
-                      controller: _modelController,
-                      label: 'Model',
-                      keyboardType: TextInputType.text,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
+                  // Price Field
+                  SizedBox(
+                    width: MediaQuery.of(context).size.width >= 600
+                        ? (MediaQuery.of(context).size.width - 64) / 3
+                        : (MediaQuery.of(context).size.width - 32) / 2,
                     child: _buildTextField(
                       controller: _priceController,
                       label: 'Price',
@@ -436,16 +525,47 @@ class _CarFormSheetState extends State<CarFormSheet> {
                       prefix: '\$',
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildTextField(
-                      controller: _yearController,
-                      label: 'Year',
-                      keyboardType: TextInputType.number,
+                  
+                  // Year Dropdown
+                  SizedBox(
+                    width: MediaQuery.of(context).size.width >= 600
+                        ? (MediaQuery.of(context).size.width - 64) / 3
+                        : (MediaQuery.of(context).size.width - 32) / 2,
+                    child: DropdownButtonFormField<String>(
+                      value: _selectedYear,
+                      decoration: const InputDecoration(
+                        labelText: 'Year',
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                      ),
+                      hint: const Text('Select Year'),
+                      items: _availableYears.map((String year) {
+                        return DropdownMenuItem<String>(
+                          value: year,
+                          child: Text(year),
+                        );
+                      }).toList(),
+                      onChanged: (String? newValue) {
+                        setState(() {
+                          _selectedYear = newValue;
+                          _yearController.text = newValue ?? '';
+                        });
+                      },
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please select a year';
+                        }
+                        return null;
+                      },
+                      isExpanded: true,
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
+                  
+                  // Mileage Field
+                  SizedBox(
+                    width: MediaQuery.of(context).size.width >= 600
+                        ? (MediaQuery.of(context).size.width - 64) / 3
+                        : double.infinity,
                     child: _buildTextField(
                       controller: _mileageController,
                       label: 'Mileage',
@@ -587,38 +707,31 @@ class _CarFormSheetState extends State<CarFormSheet> {
     String? prefix,
     String? suffix,
   }) {
+    // Skip year field as we'll handle it with a dropdown
+    if (label.toLowerCase() == 'year') {
+      return const SizedBox.shrink();
+    }
+    
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
       decoration: InputDecoration(
         labelText: label,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Colors.grey),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade300),
-        ),
+        border: const OutlineInputBorder(),
         prefixText: prefix,
         suffixText: suffix,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 14,
-        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
       ),
       validator: (value) {
         if (value == null || value.isEmpty) {
           return 'Please enter $label';
         }
-        
         if (keyboardType == TextInputType.number) {
           // Check if it's a valid number
           final number = double.tryParse(value);
           if (number == null || number <= 0) {
             return 'Please enter a valid $label';
           }
-          
           // Special validation for year field
           if (label.toLowerCase().contains('year')) {
             final currentYear = DateTime.now().year;

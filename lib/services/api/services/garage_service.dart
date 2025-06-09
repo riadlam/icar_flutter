@@ -205,76 +205,106 @@ class GarageService extends BaseApiService {
   }) async {
     try {
       if (kDebugMode) {
-        debugPrint('🔍 Fetching public garage profiles from API...');
+        debugPrint('🔍 [GarageService] Fetching public garage profiles from API...');
       }
       
       // Build query parameters
       final params = <String, String>{};
       if (city != null && city.isNotEmpty) {
         // Convert city to lowercase to match API expectations
-        params['city'] = city.toLowerCase();
+        params['city'] = city.trim().toLowerCase();
       }
       if (service != null && service.isNotEmpty) {
-        params['service'] = service;
+        params['service'] = service.trim();
       }
       
       // Build the URL with query parameters using ApiEndpoints
-      final uri = Uri.parse('${ApiEndpoints.baseUrl}/api/garage-profiles/all').replace(
+      final endpoint = '${ApiEndpoints.baseUrl}/api/garage-profiles/all';
+      final uri = Uri.parse(endpoint).replace(
         queryParameters: params.isNotEmpty ? params : null,
       );
       
       if (kDebugMode) {
-        debugPrint('🌐 Request URL: $uri');
-        debugPrint('Query parameters: $params');
+        debugPrint('🌐 [GarageService] Request URL: $uri');
+        debugPrint('🔧 [GarageService] Query parameters: $params');
+        debugPrint('🔑 [GarageService] Using base URL: ${ApiEndpoints.baseUrl}');
       }
       
-      final response = await client.get(
-        uri,
-        headers: {
-          'Accept': 'application/json',
-        },
-      );
+      // Add error handling for the request
+      http.Response response;
+      try {
+        response = await client.get(
+          uri,
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+          },
+        ).timeout(const Duration(seconds: 30));
+      } catch (e) {
+        debugPrint('❌ [GarageService] Network error: $e');
+        rethrow;
+      }
       
       if (kDebugMode) {
-        debugPrint('✅ Public profiles API Response received');
-        debugPrint('Status code: ${response.statusCode}');
+        debugPrint('✅ [GarageService] API Response received');
+        debugPrint('📊 [GarageService] Status code: ${response.statusCode}');
+        debugPrint('📝 [GarageService] Response headers: ${response.headers}');
+        debugPrint('📦 [GarageService] Response body: ${response.body}');
       }
       
       if (response.statusCode == 200) {
-        final responseData = jsonDecode(response.body) as Map<String, dynamic>;
-        
-        if (responseData['success'] == true) {
-          final List<dynamic> data = responseData['data'] is List ? responseData['data'] : [];
+        try {
+          final responseData = jsonDecode(response.body) as Map<String, dynamic>;
           
-          if (kDebugMode) {
-            debugPrint('📊 Found ${data.length} public garage profiles');
-          }
-          
-          try {
-            final profiles = data.map<GarageProfile>((json) {
-              if (json is Map<String, dynamic>) {
-                return GarageProfile.fromJson(json);
-              }
-              throw const FormatException('Invalid profile data format');
-            }).toList();
+          if (responseData['success'] == true) {
+            final List<dynamic> data = responseData['data'] is List ? responseData['data'] : [];
             
             if (kDebugMode) {
-              debugPrint('✅ Successfully parsed ${profiles.length} public garage profiles');
+              debugPrint('📊 [GarageService] Found ${data.length} public garage profiles');
             }
             
-            return profiles;
-          } catch (e, stackTrace) {
-            debugPrint('❌ Error parsing public garage profiles: $e');
-            debugPrint('Stack trace: $stackTrace');
-            rethrow;
+            try {
+              final profiles = data.map<GarageProfile>((json) {
+                if (json is Map<String, dynamic>) {
+                  return GarageProfile.fromJson(json);
+                }
+                throw FormatException('Invalid profile data format: $json');
+              }).toList();
+              
+              if (kDebugMode) {
+                debugPrint('✅ [GarageService] Successfully parsed ${profiles.length} profiles');
+              }
+              
+              return profiles;
+            } catch (e, stackTrace) {
+              debugPrint('❌ [GarageService] Error parsing profiles: $e');
+              debugPrint('Stack trace: $stackTrace');
+              debugPrint('Problematic data: $data');
+              rethrow;
+            }
+          } else {
+            final errorMsg = responseData['message']?.toString() ?? 'Unknown error';
+            debugPrint('❌ [GarageService] API Error: $errorMsg');
+            debugPrint('Response data: $responseData');
+            throw Exception('Failed to load garage profiles: $errorMsg');
           }
-        } else {
-          final errorMsg = responseData['message']?.toString() ?? 'Unknown error';
-          debugPrint('❌ API Error: $errorMsg');
-          throw Exception('Failed to load public garage profiles: $errorMsg');
+        } catch (e, stackTrace) {
+          debugPrint('❌ [GarageService] Error parsing response: $e');
+          debugPrint('Response body: ${response.body}');
+          debugPrint('Stack trace: $stackTrace');
+          throw Exception('Failed to parse garage profiles response: $e');
         }
       } else {
-        throw Exception('Failed to load public garage profiles. Status code: ${response.statusCode}');
+        String errorBody = 'No response body';
+        try {
+          errorBody = response.body;
+        } catch (e) {
+          debugPrint('Failed to read error response body: $e');
+        }
+        
+        debugPrint('❌ [GarageService] Server error: ${response.statusCode}');
+        debugPrint('Error response: $errorBody');
+        throw Exception('Server error: ${response.statusCode}\n$errorBody');
       }
     } catch (e, stackTrace) {
       debugPrint('❌ Error in getPublicGarageProfiles: $e');

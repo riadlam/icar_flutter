@@ -20,7 +20,11 @@ class AuthService extends BaseApiService {
         ),
         super(storage: storage);
 
-  /// Signs in with Google and returns user data
+  /// Signs in with Google and returns user data including is_new_user flag
+  /// Returns a Map containing:
+  /// - token: String
+  /// - user: Map<String, dynamic>
+  /// - is_new_user: bool
   Future<Map<String, dynamic>> signInWithGoogle() async {
     try {
       if (kDebugMode) {
@@ -63,22 +67,70 @@ class AuthService extends BaseApiService {
       }
       
       // Store the token
-      await _storage.write(
-        key: 'auth_token',
-        value: response['token'],
-      );
+      final token = response['token'] as String?;
+      if (token == null || token.isEmpty) {
+        if (kDebugMode) {
+          print('⚠️ No token received in the response');
+        }
+        throw Exception('No auth token received from server');
+      }
+      
+      if (kDebugMode) {
+        print('🔑 [AUTH] Storing auth token in secure storage');
+        print('   🔒 Token key: auth_token');
+        print('   📏 Token length: ${token.length}');
+        print('   🔑 First 10 chars: ${token.length > 10 ? token.substring(0, 10) + '...' : token}');
+      }
+      
+      try {
+        // Use the same token key as the main AuthService
+        await _storage.write(
+          key: 'auth_token',
+          value: token,
+        );
+        
+        // Verify the token was stored correctly
+        final storedToken = await _storage.read(key: 'auth_token');
+        
+        if (kDebugMode) {
+          if (storedToken == token) {
+            print('✅ [AUTH] Auth token verified in secure storage');
+            print('   🔄 Token matches the one we tried to store');
+          } else if (storedToken != null) {
+            print('⚠️ [AUTH] Token stored but verification failed - token mismatch');
+            print('   🔄 Stored token length: ${storedToken.length}');
+          } else {
+            print('❌ [AUTH] Failed to store token - verification returned null');
+          }
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          print('❌ [AUTH] Error storing token: $e');
+        }
+        rethrow;
+      }
       
       // Store user data
+      final userData = response['user'] as Map<String, dynamic>;
       await _storage.write(
         key: 'user_data',
-        value: json.encode(response['user']),
+        value: json.encode(userData),
       );
+      
+      // Ensure the response includes the role if available in user data
+      final Map<String, dynamic> responseWithRole = Map.from(response);
+      if (userData['role'] != null) {
+        responseWithRole['role'] = userData['role'];
+      }
       
       if (kDebugMode) {
         print('6. User data stored successfully');
+        if (userData['role'] != null) {
+          print('Role from backend: ${userData['role']}');
+        }
       }
       
-      return response;
+      return responseWithRole;
     } catch (e) {
       if (kDebugMode) {
         print('Google sign in error: $e');
@@ -123,10 +175,26 @@ class AuthService extends BaseApiService {
   /// Gets the current auth token
   Future<String?> getToken() async {
     try {
-      return await _storage.read(key: 'auth_token');
+      if (kDebugMode) {
+        print('🔍 Retrieving auth token from secure storage');
+      }
+      
+      final token = await _storage.read(key: 'auth_token');
+      
+      if (kDebugMode) {
+        if (token == null) {
+          print('⚠️ No auth token found in secure storage');
+        } else {
+          print('✅ Retrieved auth token');
+          print('   Token length: ${token.length}');
+          print('   First 10 chars: ${token.substring(0, token.length > 10 ? 10 : token.length)}...');
+        }
+      }
+      
+      return token;
     } catch (e) {
       if (kDebugMode) {
-        // developer.log('Error getting auth token: $e');
+        print('❌ Error retrieving auth token: $e');
       }
       return null;
     }
