@@ -1,6 +1,6 @@
 enum UserRole {
-  buyer,
   seller,
+  buyer,
   mechanic,
   other,
 }

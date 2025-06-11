@@ -4,10 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:icar_instagram_ui/models/garage_service.dart';
+import 'package:icar_instagram_ui/models/garage_profile.dart';
 import 'package:icar_instagram_ui/widgets/cards/garage_service_card.dart';
 import 'package:icar_instagram_ui/widgets/garage/add_garage_form_sheet.dart';
 import 'package:icar_instagram_ui/widgets/two%20truck/menu_navbar/tow_truck_navbar.dart';
-import 'package:icar_instagram_ui/widgets/garage/garage_profiles_list.dart';
+import 'package:icar_instagram_ui/providers/garage_profiles_provider.dart';
 
 // Extension to make it easier to create a copy of the service with updated fields
 extension GarageServiceX on GarageService {
@@ -68,77 +69,105 @@ class _GarageProfileScreenState extends ConsumerState<GarageProfileScreen> {
     _loadProfileData();
   }
 
-  Future<void> _loadProfileData() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      
-      // Try to load garage profile data first
-      var data = prefs.getString('user_profile_data_garage');
-      
-      // If not found, try loading from 'other' role data
-      if ((data == null || data.isEmpty) && prefs.containsKey('user_profile_data_other')) {
-        data = prefs.getString('user_profile_data_other');
+Future<void> _loadProfileData() async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+
+    // Check if garage owner profile exists and is not empty
+    String? data = prefs.getString('user_profile_data_garage_owner');
+    if (data != null && data.isNotEmpty) {
+      debugPrint('📦 Loaded from user_profile_data_garage_owner: $data');
+
+      final decodedData = jsonDecode(data) as Map<String, dynamic>;
+      final googleEmail = prefs.getString('user_email') ?? '';
+
+      if (mounted) {
+        setState(() {
+          final services = decodedData['services'] is List
+              ? List<String>.from(decodedData['services'])
+              : <String>[];
+
+          _currentService = _currentService.copyWith(
+            businessName: decodedData['mechanic_name']?.toString() ?? '',
+            ownerName: decodedData['mechanic_name']?.toString() ?? '',
+            phoneNumber: decodedData['mobile']?.toString() ?? '',
+            location: decodedData['city']?.toString() ?? 'location_not_set'.tr(),
+            email: googleEmail.isNotEmpty ? googleEmail : (decodedData['email']?.toString() ?? ''),
+            services: services,
+          );
+        });
       }
-      
-      // Get email from Google login if available
-      final googleEmail = await SharedPreferences.getInstance()
-          .then((prefs) => prefs.getString('user_email') ?? '');
-          
-      if (data != null && data.isNotEmpty) {
-        final decodedData = jsonDecode(data) as Map<String, dynamic>;
+      return; // Exit early since data was found
+    }
+
+    // Fallback to garage
+    data = prefs.getString('user_profile_data_garage');
+    if ((data == null || data.isEmpty) && prefs.containsKey('user_profile_data_other')) {
+      data = prefs.getString('user_profile_data_other');
+    }
+
+    final googleEmail = prefs.getString('user_email') ?? '';
+
+    if (data != null && data.isNotEmpty) {
+      debugPrint('📦 Loaded from garage/other fallback: $data');
+
+      final decodedData = jsonDecode(data) as Map<String, dynamic>;
+      if (mounted) {
+        setState(() {
+          final services = decodedData['services'] is List
+              ? List<String>.from(decodedData['services'])
+              : <String>[];
+
+          _currentService = _currentService.copyWith(
+            businessName: decodedData['mechanic_name']?.toString() ?? '',
+            ownerName: decodedData['mechanic_name']?.toString() ?? '',
+            phoneNumber: decodedData['mobile']?.toString() ?? '',
+            location: decodedData['city']?.toString() ?? 'location_not_set'.tr(),
+            email: googleEmail.isNotEmpty ? googleEmail : (decodedData['email']?.toString() ?? ''),
+            services: services,
+          );
+        });
+      }
+    } else {
+      // Fallback to buyer
+      final buyerData = prefs.getString('user_profile_data_buyer');
+      if (buyerData != null && buyerData.isNotEmpty) {
+        debugPrint('📦 Loaded from buyer fallback: $buyerData');
+
+        final decodedData = jsonDecode(buyerData) as Map<String, dynamic>;
         if (mounted) {
           setState(() {
             final services = decodedData['services'] is List
                 ? List<String>.from(decodedData['services'])
                 : <String>[];
-                
+
             _currentService = _currentService.copyWith(
-              businessName: decodedData['driverName']?.toString() ?? '',
-              ownerName: decodedData['driverName']?.toString() ?? '', // Note: using driver_name as owner_name
+              businessName: decodedData['showroomName']?.toString() ?? 'garage'.tr(),
+              ownerName: decodedData['fullName']?.toString() ?? '',
               phoneNumber: decodedData['mobile']?.toString() ?? '',
               location: decodedData['city']?.toString() ?? 'location_not_set'.tr(),
-              email: googleEmail.isNotEmpty ? googleEmail : (decodedData['email']?.toString() ?? ''),
+              email: decodedData['email']?.toString() ?? '',
               services: services,
             );
           });
         }
-      } else {
-        // Fallback to buyer data if no garage or other data found (for testing)
-        final buyerData = prefs.getString('user_profile_data_buyer');
-        if (buyerData != null && buyerData.isNotEmpty) {
-          final decodedData = jsonDecode(buyerData) as Map<String, dynamic>;
-          if (mounted) {
-            setState(() {
-              final services = decodedData['services'] is List
-                  ? List<String>.from(decodedData['services'])
-                  : <String>[];
-                  
-              _currentService = _currentService.copyWith(
-                businessName: decodedData['showroomName']?.toString() ?? 'garage'.tr(),
-                ownerName: decodedData['fullName']?.toString() ?? '',
-                phoneNumber: decodedData['mobile']?.toString() ?? '',
-                location: decodedData['city']?.toString() ?? 'location_not_set'.tr(),
-                email: decodedData['email']?.toString() ?? '',
-                services: services,
-              );
-            });
-          }
-        }
       }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _currentService = _currentService.copyWith(
-            businessName: 'error_loading_profile'.tr(),
-            ownerName: 'n/a'.tr(),
-            phoneNumber: 'n/a'.tr(),
-            location: 'please_try_again_later'.tr(),
-          );
-        });
-      }
-      debugPrint('Error loading garage profile data: $e');
     }
+  } catch (e) {
+    if (mounted) {
+      setState(() {
+        _currentService = _currentService.copyWith(
+          businessName: 'error_loading_profile'.tr(),
+          ownerName: 'n/a'.tr(),
+          phoneNumber: 'n/a'.tr(),
+          location: 'please_try_again_later'.tr(),
+        );
+      });
+    }
+    debugPrint('❌ Error loading garage profile data: $e');
   }
+}
+
 
   Future<void> _handleUpdateService(
     String name,
@@ -159,9 +188,45 @@ class _GarageProfileScreenState extends ConsumerState<GarageProfileScreen> {
     }
   }
 
-  void _showEditForm() {
-    final locationParts = _currentService.location.split(',');
-    final city = locationParts.isNotEmpty ? locationParts[0].trim() : '';
+  // Convert GarageProfile to GarageService for editing
+  GarageService _profileToService(GarageProfile profile) {
+    return GarageService(
+      id: profile.id.toString(),
+      businessName: profile.businessName,
+      ownerName: profile.mechanicName,
+      phoneNumber: profile.mobile,
+      location: profile.city,
+      imageUrl: 'https://example.com/garage_placeholder.jpg',
+      services: profile.services ?? [],
+    );
+  }
+
+  /// Converts a [GarageService] back to a [GarageProfile] after editing
+  GarageProfile _serviceToProfile(GarageService service, GarageProfile originalProfile) {
+    // Ensure we have valid values for all required fields
+    final now = DateTime.now();
+    final businessName = service.businessName.isEmpty ? 'No Business Name' : service.businessName;
+    final mechanicName = service.ownerName.isEmpty ? 'No Name' : service.ownerName;
+    final phoneNumber = service.phoneNumber.isEmpty ? 'N/A' : service.phoneNumber;
+    final location = service.location.isEmpty ? 'No City' : service.location;
+    
+    return GarageProfile(
+      id: int.tryParse(service.id) ?? 0,
+      userId: originalProfile.userId,
+      businessName: businessName,
+      mechanicName: mechanicName,
+      mobile: phoneNumber,
+      city: location,
+      services: service.services,
+      createdAt: originalProfile.createdAt,
+      updatedAt: now,
+    );
+  }
+
+  void _showEditForm(GarageProfile profile) {
+    final service = _profileToService(profile);
+    // Get the first part of the location (city) or empty string if location is empty
+    final city = service.location.split(',').firstOrNull?.trim() ?? '';
 
     showModalBottomSheet(
       context: context,
@@ -170,10 +235,10 @@ class _GarageProfileScreenState extends ConsumerState<GarageProfileScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) => AddGarageFormSheet(
-        initialName: _currentService.businessName,
+        initialName: service.businessName,
         initialCity: city,
-        initialPhone: _currentService.phoneNumber,
-        initialServices: _currentService.services,
+        initialPhone: service.phoneNumber,
+        initialServices: service.services ?? [],
         onSubmit: (name, city, phone, services) {
           _handleUpdateService(name, city, phone, services);
         },
@@ -191,107 +256,104 @@ class _GarageProfileScreenState extends ConsumerState<GarageProfileScreen> {
       ),
       endDrawer: TowTruckNavBar.buildDrawer(context),
       body: SafeArea(
-        child: Column(
-          children: [
-            // Main content with SingleChildScrollView
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Garage Service Card
-                    GarageServiceCard(
-                      service: _currentService,
-                      onTap: () {
-                        // Action when card is tapped
-                      },
-                      onFavoritePressed: () {
-                        setState(() {
-                          _currentService = _currentService.copyWith(
-                            isFavorite: !_currentService.isFavorite,
-                          );
-                        });
-                      },
-                      onEditPressed: _showEditForm,
-                    ),
-                    
-                    const SizedBox(height: 24),
-                    
-                    // Add Garage Button
-                    GestureDetector(
-                      onTap: () {
-                        showModalBottomSheet(
-                          context: context,
-                          isScrollControlled: true,
-                          shape: const RoundedRectangleBorder(
-                            borderRadius: BorderRadius.vertical(
-                              top: Radius.circular(20),
-                            ),
-                          ),
-                          builder: (context) => AddGarageFormSheet(
-                            onSubmit: _handleUpdateService,
-                          ),
-                        );
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
+        child: Consumer(
+          builder: (context, ref, _) {
+            final profilesAsync = ref.watch(garageProfilesProvider);
+            
+            return profilesAsync.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (error, _) => Center(child: Text('Error: $error')),
+              data: (profiles) {
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      if (profiles.isEmpty)
+                        const Center(child: Text('No garage profiles found'))
+                      else ...[
+                        // Show LAST card first
+                        GarageServiceCard(
+                          service: _profileToService(profiles.last),
+                          onTap: () {},
+                          onFavoritePressed: () {
+                            // Handle favorite
+                          },
+                          onEditPressed: () => _showEditForm(profiles.last),
                         ),
-                        decoration: BoxDecoration(
-                          color: Colors.grey[100],
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: Colors.grey.shade300,
-                          ),
-                        ),
-                        child: const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.add,
-                              color: Colors.blueAccent,
+                        const SizedBox(height: 16),
+                        
+                        // Add Garage Button
+                        GestureDetector(
+                          onTap: () {
+                            showModalBottomSheet(
+                              context: context,
+                              isScrollControlled: true,
+                              shape: const RoundedRectangleBorder(
+                                borderRadius: BorderRadius.vertical(
+                                  top: Radius.circular(20),
+                                ),
+                              ),
+                              builder: (context) => AddGarageFormSheet(
+                                onSubmit: _handleUpdateService,
+                              ),
+                            );
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
                             ),
-                            SizedBox(width: 8),
-                            Text(
-                              'Add Garage Profile',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                                color: Colors.blueAccent,
+                            decoration: BoxDecoration(
+                              color: Colors.grey[100],
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: Colors.grey.shade300,
                               ),
                             ),
-                          ],
+                            child: const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.add,
+                                  color: Colors.blueAccent,
+                                ),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Add Garage Profile',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.blueAccent,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 24),
-                    
-                    // Garage Profiles List Section
-                    Padding(
-                      padding: const EdgeInsets.only(left: 15),
-                      child: const Text(
-                        'My Cards',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    
-                    // Garage Profiles List
-                    const SizedBox(
-                      height: 400, // Fixed height to prevent overflow
-                      child: GarageProfilesList(),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
+                        const SizedBox(height: 24),
+                        
+                        // Show all EXCEPT last card after button
+                        ...profiles.take(profiles.length - 1).map((profile) => 
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: GarageServiceCard(
+                              service: _profileToService(profile),
+                              onTap: () {},
+                              onFavoritePressed: () {
+                                // Handle favorite
+                              },
+                              onEditPressed: () => _showEditForm(profile),
+                            ),
+                          ),
+                        ).toList(),
+                      ],
+                    ],
+                  ),
+                );
+              },
+            );
+          },
         ),
       ),
     );

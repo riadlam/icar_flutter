@@ -412,56 +412,73 @@ class _MenuDrawerScreenState extends State<MenuDrawerScreen> {
   }
 
   Future<void> _showLogoutDialog() async {
-    showDialog(
+    if (!mounted) return;
+    
+    final shouldLogout = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text('logout'.tr()),
         content: Text('confirm_logout'.tr()),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(context, false),
             child: Text('cancel'.tr().toUpperCase()),
           ),
           TextButton(
-            onPressed: () async {
-              try {
-                // Show loading indicator
-                showDialog(
-                  context: context,
-                  barrierDismissible: false,
-                  builder: (BuildContext context) {
-                    return const Center(
-                      child: CircularProgressIndicator(),
-                    );
-                  },
-                );
-                
-                // Sign out from auth service
-                await authService.signOut();
-                
-                // Close all dialogs and pop the drawer
-                if (mounted) {
-                  Navigator.popUntil(context, (route) => route.isFirst);
-                  // Navigate to login screen
-                  if (context.mounted) {
-                    context.go('/welcome');
-                  }
-                }
-              } catch (e) {
-                if (mounted) {
-                  Navigator.pop(context); // Close loading dialog
-                  // Show error message
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('logout_error'.tr())),
-                  );
-                }
-              }
-            },
-            child: Text('logout'.tr().toUpperCase(), style: const TextStyle(color: Colors.red)),
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(
+              'logout'.tr().toUpperCase(),
+              style: const TextStyle(color: Colors.red),
+            ),
           ),
         ],
       ),
     );
+
+    if (shouldLogout != true) return;
+
+    if (!mounted) return;
+    
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) => const PopScope(
+        canPop: false,
+        child: Center(
+          child: CircularProgressIndicator(),
+        ),
+      ),
+    );
+
+    try {
+      // Sign out from auth service
+      await authService.signOut();
+      
+      if (!mounted) return;
+      
+      // Close all dialogs and pop the drawer
+      Navigator.popUntil(context, (route) => route.isFirst);
+      
+      // Navigate to welcome screen
+      if (mounted) {
+        // Clear all routes and go to welcome
+        context.go('/welcome');
+      }
+    } catch (e) {
+      if (mounted) {
+        // Close loading dialog
+        Navigator.pop(context);
+        
+        // Show error message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('logout_error'.tr()),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   void _showDeleteAccountDialog() {

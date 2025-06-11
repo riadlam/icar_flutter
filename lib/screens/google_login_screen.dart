@@ -5,10 +5,8 @@ import 'package:sign_in_button/sign_in_button.dart';
 import 'package:go_router/go_router.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
-import 'dart:developer' as developer;
 import '../services/auth_service.dart';
 import '../services/api/service_locator.dart';
 import '../models/user_role.dart' as models;
@@ -22,50 +20,105 @@ class GoogleLoginScreen extends ConsumerStatefulWidget {
 }
 
 class _GoogleLoginScreenState extends ConsumerState<GoogleLoginScreen> {
+  // Handle authentication token storage and logging
+  Future<void> _handleAuthToken(FlutterSecureStorage storage, Map<String, dynamic> response, SharedPreferences prefs) async {
+    final token = await storage.read(key: 'auth_token');
+    
+    // Check if we need to save the auth token
+    if (token == null) {
+      // If token is not in secure storage, try to get it from the response
+      final authToken = response['token'] as String?;
+      if (authToken != null && authToken.isNotEmpty) {
+        await storage.write(key: 'auth_token', value: authToken);
+        if (kDebugMode) {
+          print('🔑 Saved auth token to secure storage');
+          // Log the first 10 characters and last 5 characters of the token for verification
+          final tokenPreview = '${authToken.substring(0, 10 < authToken.length ? 10 : authToken.length)}...${authToken.length > 15 ? authToken.substring(authToken.length - 5) : ''}';
+          print('   Token preview: $tokenPreview (${authToken.length} chars)');
+        }
+      } else if (kDebugMode) {
+        print('⚠️ No auth token found in response');
+      }
+    }
+  }
+
+  // Handle user ID storage and logging
+  Future<void> _handleUserId(Map<String, dynamic> response, SharedPreferences prefs) async {
+    final userId = prefs.getString('user_id');
+    if (userId == null || userId.isEmpty) {
+      // Try to get user ID from the response
+      if (response['user'] is Map) {
+        final newUserId = response['user']['id'].toString();
+        await prefs.setString('user_id', newUserId);
+        if (kDebugMode) {
+          print('👤 Saved user ID to SharedPreferences: $newUserId');
+        }
+      } else if (kDebugMode) {
+        print('⚠️ No user ID found in response');
+      }
+    }
+  }
   bool _isLoading = false;
 
-  // Helper method to map backend role string to UserRole enum
-  models.UserRole? _mapRoleStringToEnum(String role) {
-    developer.log('Mapping role string to enum: $role', name: 'GoogleLoginScreen');
+  /// Maps the backend role string to the app's UserRole enum
+  /// 
+  /// Role mappings:
+  /// - car_seller → UserRole.seller
+  /// - tow_truck → UserRole.mechanic
+  /// - garage_owner → UserRole.other
+  /// 
+  /// Returns UserRole.other if no match is found
+  models.UserRole _mapRoleStringToEnum(String role) {
+    if (kDebugMode) {
+      print('🔍 Mapping role string to enum: $role');
+    }
     
     // Convert to lowercase for case-insensitive comparison
     final lowerRole = role.toLowerCase().trim();
     
-    // Map all possible role strings to our UserRole enum
+    // Map role strings to UserRole enum
     switch (lowerRole) {
-      case 'seller':
       case 'car_seller':
       case 'spare_parts_seller':
-        developer.log('Mapped $role to UserRole.seller', name: 'GoogleLoginScreen');
+        if (kDebugMode) {
+          print('✅ Mapped $role to UserRole.seller');
+        }
         return models.UserRole.seller;
         
-      case 'mechanic':
       case 'tow_truck':
-        developer.log('Mapped $role to UserRole.mechanic', name: 'GoogleLoginScreen');
+      case 'mechanic':
+        if (kDebugMode) {
+          print('🔧 Mapped $role to UserRole.mechanic');
+        }
         return models.UserRole.mechanic;
         
-      case 'garage':
       case 'garage_owner':
-        developer.log('Mapped $role to UserRole.other (garage)', name: 'GoogleLoginScreen');
+      case 'garage':
+        if (kDebugMode) {
+          print('🏢 Mapped $role to UserRole.other (garage)');
+        }
         return models.UserRole.other;
         
-      case 'buyer':
-        developer.log('Mapped $role to UserRole.buyer', name: 'GoogleLoginScreen');
-        return models.UserRole.buyer;
-        
+      // Handle any other cases or unknown roles
       default:
-        developer.log('Unknown role string: $role', name: 'GoogleLoginScreen');
+        if (kDebugMode) {
+          print('⚠️ Unknown role string: $role');
+        }
         // Try to find a matching role by name in the enum values as a fallback
         try {
           final enumValue = models.UserRole.values.firstWhere(
             (e) => e.toString().split('.').last.toLowerCase() == lowerRole,
-            orElse: () => throw Exception('No matching role'),
+            orElse: () => models.UserRole.other,
           );
-          developer.log('Matched $role to $enumValue using fallback', name: 'GoogleLoginScreen');
+          if (kDebugMode) {
+            print('ℹ️ Mapped $role to $enumValue using fallback');
+          }
           return enumValue;
         } catch (e) {
-          developer.log('Error mapping role: $e', name: 'GoogleLoginScreen');
-          return null;
+          if (kDebugMode) {
+            print('⚠️ Error mapping role, defaulting to UserRole.other: $e');
+          }
+          return models.UserRole.other;
         }
     }
   }
@@ -129,6 +182,8 @@ class _GoogleLoginScreenState extends ConsumerState<GoogleLoginScreen> {
       final isNewUser = response['is_new_user'] as bool? ?? true;
       final userData = response['user'] as Map<String, dynamic>?;
       
+      if (!mounted) return;
+      
       if (isNewUser) {
         // New user - go to role selection
         if (kDebugMode) {
@@ -139,36 +194,100 @@ class _GoogleLoginScreenState extends ConsumerState<GoogleLoginScreen> {
         }
         return;
       } else if (userData != null) {
-        // Existing user - store profile data locally
+        // Existing user - fetch profile data and then go to home
+        if (kDebugMode) {
+          print('👤 Existing user detected, fetching profile data...');
+        }
+        
+        try {
+          // Get user service and auth service from the service locator
+          final userService = serviceLocator.userService;
+          final storage = FlutterSecureStorage();
+          
+          // Get the user's role
+          final role = await userService.getUserRole();
+          if (kDebugMode) {
+            print('🔍 Fetched user role: $role');
+          }
+          
+          // Initialize SharedPreferences once
+          final prefs = await SharedPreferences.getInstance();
+          
+          // Handle authentication token
+          await _handleAuthToken(storage, response, prefs);
+          
+          // Handle user ID
+          await _handleUserId(response, prefs);
+          
+          // Fetch profile data based on role
+          await userService.getUserProfileByRole(role);
+          
+          if (kDebugMode) {
+            print('✅ Successfully fetched and stored profile data');
+          }
+          
+          // Map the role string to UserRole enum and save it
+          final userRole = _mapRoleStringToEnum(role);
+          if (kDebugMode) {
+            print('🔀 Mapped role "$role" to UserRole: $userRole');
+          }
+          
+          // Save the mapped role to SharedPreferences
+          await prefs.setString('user_role', userRole.toString());
+          
+          // Also update the role provider
+          if (mounted) {
+            ref.read(roleProvider.notifier).setRole(userRole);
+          }
+          
+          if (kDebugMode) {
+            print('✅ Saved user role: ${userRole.toString()}');
+            print('🏠 Redirecting to home screen');
+          }
+          
+          if (mounted) {
+            context.go('/home');
+          }
+        } catch (e, stackTrace) {
+          if (kDebugMode) {
+            print('❌ Error during login process: $e');
+            print('Stack trace: $stackTrace');
+          }
+          
+          if (mounted) {
+            // Still go to home even if there's an error
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('An error occurred during login'),
+                backgroundColor: Colors.red,
+              ),
+            );
+            context.go('/home');
+          }
+        }
+        return;
+      }
+      
+      if (userData != null) {
         try {
           final prefs = await SharedPreferences.getInstance();
           final role = _mapRoleStringToEnum(userData['role']?.toString() ?? '');
           
           if (role != null) {
-            // Match the exact key format used in conditional form
             final storageKey = 'user_profile_data_${role.name}';
             final userDataJson = jsonEncode(userData);
             
-            // Store user data with role-specific key (matching conditional form format)
             await prefs.setString(storageKey, userDataJson);
             
-            // Store user ID for quick access
             if (userData['id'] != null) {
               await prefs.setString('user_id', userData['id'].toString());
             }
             
-            // Log the storage operation
             if (kDebugMode) {
               print('💾 STORED USER PROFILE DATA');
               print('   Storage Key: $storageKey');
               print('   User ID: ${userData['id']}');
               print('   User Role: ${role.name}');
-              print('   Data Length: ${userDataJson.length} characters');
-              print('   Sample Data: ${userDataJson.length > 100 ? userDataJson.substring(0, 100) + '...' : userDataJson}');
-              print('   All Stored Keys:');
-              final allKeys = prefs.getKeys();
-              allKeys.where((k) => k.startsWith('user_profile_data_') || k == 'user_id')
-                     .forEach((k) => print('     - $k'));
             }
           }
         } catch (e) {
@@ -179,123 +298,16 @@ class _GoogleLoginScreenState extends ConsumerState<GoogleLoginScreen> {
       }
       
       if (kDebugMode) {
-        print('🔍 Existing user, fetching user role...');
-      }
-      
-      // Existing user - fetch and store role
-      try {
-        final userService = serviceLocator.userService;
-        
-        if (kDebugMode) {
-          print('🔍 Step 2: Fetching user role from backend...');
-        }
-        
-        final roleString = await userService.getUserRole();
-        
-        if (kDebugMode) {
-          print('✅ Received role from backend: $roleString');
-        }
-        
-        if (roleString.isEmpty) {
-          final errorMsg = 'Empty role string received from backend';
-          if (kDebugMode) {
-            print('❌ $errorMsg');
-          }
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Failed to get user role')),
-            );
-          }
-          return;
-        }
-        
-        // Map the backend role string to our UserRole enum
-        final role = _mapRoleStringToEnum(roleString);
-        if (role == null) {
-          final errorMsg = 'Failed to map role string to enum: $roleString';
-          if (kDebugMode) {
-            print('❌ $errorMsg');
-          }
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Invalid user role')),
-            );
-          }
-          return;
-        }
-        
-        if (kDebugMode) {
-          print('🔑 Step 3: Setting role in provider: $role');
-        }
-        
-        // Set the role in the provider and SharedPreferences
-        final container = ProviderScope.containerOf(context, listen: false);
-        await container.read(roleProvider.notifier).setRole(role);
-        
-        if (kDebugMode) {
-          print('✅ Role set in provider successfully');
-        }
-        
-        // If user is a seller, fetch and save their profile data
-        if (role == models.UserRole.seller) {
-          try {
-            if (kDebugMode) {
-              print('🔄 Step 4: Fetching seller profile data...');
-            }
-            
-            await userService.getSellerProfile();
-            
-            if (kDebugMode) {
-              print('✅ Successfully fetched and saved seller profile data');
-            }
-          } catch (e, stackTrace) {
-            final errorMsg = 'Error fetching seller profile: $e';
-            if (kDebugMode) {
-              print('⚠️ $errorMsg');
-              print('Stack trace: $stackTrace');
-            }
-            // Continue to home even if profile fetch fails
-          }
-        }
-        
-        // Navigate to home screen after role is set
-        if (mounted) {
-          if (kDebugMode) {
-            print('🏠 Navigation to home screen');
-          }
-          context.go('/home');
-        }
-      } catch (e, stackTrace) {
-        final errorMsg = 'Error during login: $e';
-        if (kDebugMode) {
-          print('❌ $errorMsg');
-          print('Stack trace: $stackTrace');
-        }
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error during login: ${e.toString()}')),
-          );
-        }
-      }
-    } on GoogleSignInAccount catch (e) {
-      final errorMsg = 'Google sign in cancelled: $e';
-      if (kDebugMode) {
-        print('⚠️ $errorMsg');
-      }
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('google_sign_in_cancelled'.tr())),
-        );
+        print('✅ Existing user login complete');
       }
     } catch (e, stackTrace) {
-      final errorMsg = 'Unexpected error during Google sign in: $e';
       if (kDebugMode) {
-        print('❌ $errorMsg');
+        print('❌ Error during login: $e');
         print('Stack trace: $stackTrace');
       }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error signing in: ${e.toString()}')),
+          SnackBar(content: Text('Error during login: ${e.toString()}')),
         );
       }
     } finally {

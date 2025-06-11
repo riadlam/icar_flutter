@@ -10,8 +10,11 @@ class ApiEndpoints {
   // User endpoints
   static const String updateRole = '$apiPrefix/update-role';
   static const String userRole = '$apiPrefix/user/role';
+  // Profile endpoints by role
   static const String sellerProfile = '$apiPrefix/my-car-profile';
-  static const String profile = '$apiPrefix/profile';
+  static const String mechanicProfile = '$apiPrefix/mechanic-profile';
+  static const String garageProfile = '$apiPrefix/garage-profiles'; // Updated to match backend API
+  static const String profile = '$apiPrefix/profile'; // General profile endpoint
   static String userSubscription(int userId) => '$apiPrefix/users/$userId/subscribe';
   static String userSubscriptionStatus(int sellerId) => '/api/users/$sellerId/subscription-status';
 

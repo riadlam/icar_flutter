@@ -41,8 +41,8 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    _roleTile('rent_sell_car'.tr(), Icons.directions_car, models.UserRole.buyer),
-                    _roleTile('spare_parts_store'.tr(), Icons.shopping_cart, models.UserRole.seller),
+                    _roleTile('rent_sell_car'.tr(), Icons.directions_car, models.UserRole.seller),
+                    _roleTile('spare_parts_store'.tr(), Icons.shopping_cart, models.UserRole.buyer),
                     _roleTile('list_tow_truck'.tr(), Icons.local_shipping, models.UserRole.mechanic),
                     _roleTile('garage'.tr(), Icons.build, models.UserRole.other),
                   ],

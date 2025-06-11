@@ -21,7 +21,6 @@ import '../screens/car_notification_screen.dart';
 import '../screens/wishlist_screen.dart';
 import '../screens/tow_truck_wishlist_screen.dart';
 import '../providers/car_detail_provider.dart';
-import '../services/auth_service.dart';
 
 final _log = Logger('AppRouter');
 
@@ -34,29 +33,7 @@ class AppRouter {
     initialLocation: '/language-selection',
     debugLogDiagnostics: true,
     redirect: (BuildContext context, GoRouterState state) async {
-      // Check if user is logged in
-      final isLoggedIn = await authService.isLoggedIn();
-      
-      // Define public routes that don't require authentication
-      final isPublicRoute = [
-        '/language-selection',
-        '/welcome',
-        '/google-login',
-        '/role-selection',
-        '/form',
-      ].contains(state.matchedLocation);
-      
-      // If user is not logged in and trying to access a protected route
-      if (!isLoggedIn && !isPublicRoute) {
-        return '/welcome';
-      }
-      
-      // If user is logged in and trying to access a public route
-      if (isLoggedIn && isPublicRoute) {
-        return '/home';
-      }
-      
-      // No redirect needed
+      // No automatic redirections
       return null;
     },
     observers: [

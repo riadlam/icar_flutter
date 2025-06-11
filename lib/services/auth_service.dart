@@ -222,18 +222,108 @@ class AuthService {
   
   // Sign out
   Future<void> signOut() async {
+    if (kDebugMode) {
+      print('🔄 Starting sign out process...');
+    }
+    
     try {
-      final authService = serviceLocator.authService;
-      await authService.signOut();
+      // 1. Sign out from Google
+      try {
+        await _googleSignIn.signOut();
+        if (kDebugMode) {
+          print('✅ Successfully signed out from Google');
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          print('⚠️ Error signing out from Google: $e');
+        }
+      }
       
-      // Clear local storage
-      await _storage.delete(key: _tokenKey);
-      await _storage.delete(key: _userDataKey);
-      await _prefs.remove(_userEmailKey);
-      await _prefs.remove(_userNameKey);
-      await _prefs.remove(_userPhotoKey);
-    } catch (e) {
-      debugPrint('Error during sign out: $e');
+      // 2. Clear secure storage
+      try {
+        await Future.wait([
+          _storage.delete(key: _tokenKey),
+          _storage.delete(key: _userDataKey),
+          _storage.delete(key: 'auth_token'),  // Ensure auth token is deleted
+        ]);
+        if (kDebugMode) {
+          print('✅ Cleared secure storage (tokens and auth data)');
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          print('⚠️ Error clearing secure storage: $e');
+        }
+      }
+      
+      // 3. Clear all user-related data from SharedPreferences
+      try {
+        // Get all keys
+        final allKeys = _prefs.getKeys();
+        
+        // Filter keys to remove (all user-related data)
+        final keysToRemove = allKeys.where((key) => 
+          key.startsWith('user_') || 
+          key == 'selected_services' ||
+          key == 'favorites' ||
+          key == 'recent_searches' ||
+          key == 'notifications_enabled' ||
+          key == 'dark_mode_enabled' ||
+          key == 'language_code' ||
+          key == 'first_launch'
+        ).toList();
+        
+        // Add specific profile data keys
+        keysToRemove.addAll([
+          _userEmailKey,
+          _userNameKey,
+          _userPhotoKey,
+          'user_role',
+          'user_id',
+          'user_profile_data_buyer',
+          'user_profile_data_seller',
+          'user_profile_data_mechanic',
+          'user_profile_data_other',
+          'user_profile_data_garage',
+          'user_profile_data_tow_truck',
+          'selected_services',
+          'fcm_token',
+          'notification_settings',
+        ]);
+        
+        // Remove all keys
+        await Future.wait(keysToRemove.map((key) => _prefs.remove(key)));
+        
+        // Clear all SharedPreferences (alternative approach if needed)
+        // await _prefs.clear();
+        
+        if (kDebugMode) {
+          print('✅ Cleared all user data from SharedPreferences');
+          print('   Removed keys: $keysToRemove');
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          print('⚠️ Error clearing SharedPreferences: $e');
+        }
+      }
+      
+      // 4. Clear any cached data from services
+      try {
+        // Clear any cached data in services
+        // Example: await someService.clearCache();
+      } catch (e) {
+        if (kDebugMode) {
+          print('⚠️ Error clearing service caches: $e');
+        }
+      }
+      
+      if (kDebugMode) {
+        print('✅ Sign out completed successfully');
+      }
+    } catch (e, stackTrace) {
+      if (kDebugMode) {
+        print('❌ Error during sign out: $e');
+        print('Stack trace: $stackTrace');
+      }
       rethrow;
     }
   }

@@ -158,7 +158,9 @@ class _SellerProfileScreenState extends ConsumerState<SellerProfileScreen> {
                 children: [
                   ref.watch(sellerProfileProvider).when(
                     data: (data) => Text(
-                      data['fullName'] ?? '',
+                      (data != null && data['data']?['full_name']?.isNotEmpty == true)
+                          ? data['data']['full_name']
+                          : (data?['full_name'] ?? ''),
                       style: const TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
@@ -166,6 +168,7 @@ class _SellerProfileScreenState extends ConsumerState<SellerProfileScreen> {
                         letterSpacing: 0.5,
                       ),
                     ),
+
                     loading: () => const SizedBox(
                       height: 40,
                       child: Center(
@@ -193,20 +196,37 @@ class _SellerProfileScreenState extends ConsumerState<SellerProfileScreen> {
                   const SizedBox(height: 16),
                   _buildInfoRow(
                     Icons.location_on,
-                    profileAsync.when(
-                      data: (data) => data['city']?.toString() ?? 'Unknown location',
-                      loading: () => 'Loading...',
-                      error: (error, stack) => 'Error',
-                    ),
+                  profileAsync.when(
+                  data: (data) {
+                    final city = data?['data']?['city']?.toString();
+                    final fallback = data?['city']?.toString();
+
+                    return (city?.isNotEmpty == true)
+                        ? city!
+                        : (fallback?.isNotEmpty == true ? fallback! : 'Unknown location');
+                  },
+                  loading: () => 'Loading...',
+                  error: (error, stack) => 'Error',
+                ),
+
+
                   ),
                   const SizedBox(height: 30),
                   _buildInfoRow(
                     Icons.phone,
-                    profileAsync.when(
-                      data: (data) => data['phoneNumber']?.toString() ?? 'No phone number',
-                      loading: () => 'Loading...',
-                      error: (error, stack) => 'Error loading phone',
-                    ),
+                   profileAsync.when(
+                    data: (data) {
+                      final mobile = data?['data']?['mobile']?.toString();
+                      final fallback = data?['mobile']?.toString();
+
+                      return (mobile?.isNotEmpty == true)
+                          ? mobile!
+                          : (fallback ?? 'No phone number');
+                    },
+                    loading: () => 'Loading...',
+                    error: (error, stack) => 'Error loading phone',
+                  ),
+
                   ),
                   const SizedBox(height: 20),
                   const PhoneNumberCard(),

@@ -169,6 +169,7 @@ class CarService extends BaseApiService {
     }
   }
 
+
   /// Fetches all cars listed by the authenticated user
   Future<List<CarPost>> getUserCars() async {
     try {

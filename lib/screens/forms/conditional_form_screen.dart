@@ -1,26 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:icar_instagram_ui/services/navigation_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logging/logging.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:icar_instagram_ui/models/user_role.dart' as models;
+import 'package:icar_instagram_ui/providers/role_provider.dart';
 import 'package:icar_instagram_ui/services/api/services/user_service.dart';
 import 'package:icar_instagram_ui/services/api/service_locator.dart';
-import 'package:flutter/services.dart';
 import 'dart:convert'; // For JSON encoding
 
 final _log = Logger('ConditionalFormScreen');
 
-class ConditionalFormScreen extends StatefulWidget {
+class ConditionalFormScreen extends ConsumerStatefulWidget {
   final models.UserRole role;
   const ConditionalFormScreen({super.key, required this.role});
 
   @override
-  State<ConditionalFormScreen> createState() => _ConditionalFormScreenState();
+  ConsumerState<ConditionalFormScreen> createState() => _ConditionalFormScreenState();
 }
 
-class _ConditionalFormScreenState extends State<ConditionalFormScreen> {
+class _ConditionalFormScreenState extends ConsumerState<ConditionalFormScreen> {
   final _formKey = GlobalKey<FormState>();
   bool _privacyChecked = false;
 
@@ -118,21 +118,53 @@ class _ConditionalFormScreenState extends State<ConditionalFormScreen> {
                                       setState(() => _isSubmitting = true);
 
                                       try {
-                                        // Save form data to SharedPreferences
+                                        // Prepare clean form data based on role
+                                        final Map<String, dynamic> cleanFormData = {};
+                                        
+                                        // Common fields for all roles
+                                        cleanFormData['mobile'] = formData['mobile']?.toString() ?? '';
+                                        cleanFormData['city'] = formData['city']?.toString() ?? '';
+                                        
+                                        // Role-specific fields
+                                        switch (widget.role) {
+                                          case models.UserRole.seller:
+                                            cleanFormData['full_name'] = formData['fullName']?.toString() ?? '';
+                                            cleanFormData['showroom_name'] = formData['showroom_name']?.toString() ?? 
+                                                (formData['fullName']?.isNotEmpty == true 
+                                                    ? '${formData['fullName']}\'s Showroom' 
+                                                    : 'My Showroom');
+                                            break;
+                                          case models.UserRole.buyer:
+                                            cleanFormData['store_name'] = formData['storeName']?.toString() ?? '';
+                                            break;
+                                          case models.UserRole.mechanic:
+                                          case models.UserRole.other:
+                                            cleanFormData['driver_name'] = formData['driverName']?.toString() ?? '';
+                                            if (formData['services'] != null) {
+                                              cleanFormData['services'] = formData['services'];
+                                            }
+                                            break;
+                                        }
+                                        
+                                        // Save clean form data to SharedPreferences
                                         final prefs = await SharedPreferences.getInstance();
-                                        final formDataJson = jsonEncode(formData);
+                                        final formDataJson = jsonEncode(cleanFormData);
                                         await prefs.setString('user_profile_data_${widget.role.name}', formDataJson);
+                                        
+                                        // Save the selected role to the role provider
+                                        final roleNotifier = ref.read(roleProvider.notifier);
+                                        await roleNotifier.setRole(widget.role);
                                         
                                         // Log form data to terminal
                                         _log.info('=== FORM DATA TO BE SUBMITTED ===');
-                                        formData.forEach((key, value) {
+                                        cleanFormData.forEach((key, value) {
                                           _log.info('$key: $value');
                                         });
                                         _log.info('Role: ${widget.role}');
                                         _log.info('==============================');
 
-                                        // Submit the form data using the service
-                                        await _userService.submitProfileData(widget.role, formData);
+                                        // Submit the clean form data using the service
+                                        await _userService.submitProfileData(widget.role, cleanFormData);
                                         
                                         // Log successful submission
                                         _log.info('=== PROFILE SAVED SUCCESSFULLY ===');
@@ -237,15 +269,31 @@ class _ConditionalFormScreenState extends State<ConditionalFormScreen> {
     );
   }
 
+
   List<Widget> _buildFields(models.UserRole role) {
     switch (role) {
-      case models.UserRole.buyer:
-        return [
-          _textField('full_name'.tr(), (v) => formData['fullName'] = v),
-          _textField('mobile_number'.tr(), (v) => formData['mobile'] = v, keyboardType: TextInputType.phone),
-          _textField('city'.tr(), (v) => formData['city'] = v),
-        ];
       case models.UserRole.seller:
+        // Initialize form fields with empty strings if not set
+        formData['fullName'] ??= '';
+        formData['mobile'] ??= '';
+        formData['city'] ??= '';
+        // Set default showroom name based on full name
+        if (formData['fullName']?.isNotEmpty == true) {
+          formData['showroom_name'] = '${formData['fullName']}\'s Showroom';
+        } else {
+          formData['showroom_name'] = 'My Showroom';
+        }
+        
+        return [
+          _textField('full_name'.tr(), (v) => formData['fullName'] = v ?? '', 
+              initialValue: formData['fullName']?.toString() ?? ''),
+          _textField('mobile_number'.tr(), (v) => formData['mobile'] = v ?? '', 
+              keyboardType: TextInputType.phone,
+              initialValue: formData['mobile']?.toString() ?? ''),
+          _textField('city'.tr(), (v) => formData['city'] = v ?? '',
+              initialValue: formData['city']?.toString() ?? ''),
+        ];
+      case models.UserRole.buyer:
         return [
           _textField('store_name'.tr(), (v) => formData['storeName'] = v),
           _textField('mobile_number'.tr(), (v) => formData['mobile'] = v, keyboardType: TextInputType.phone),
@@ -267,10 +315,12 @@ class _ConditionalFormScreenState extends State<ConditionalFormScreen> {
     }
   }
 
-  Widget _textField(String label, Function(String) onSaved, {TextInputType? keyboardType}) {
+  Widget _textField(String label, void Function(String) onSaved, 
+      {TextInputType? keyboardType, String initialValue = ''}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
       child: TextFormField(
+        initialValue: initialValue,
         decoration: InputDecoration(
           labelText: label,
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
@@ -358,12 +408,19 @@ class _ConditionalFormScreenState extends State<ConditionalFormScreen> {
     bool canFinish = false;
 
     switch (widget.role) {
-      case models.UserRole.buyer:
+      case models.UserRole.seller:
+        // Set default showroom name if not set
+        if (formData['showroom_name']?.isEmpty ?? true) {
+          formData['showroom_name'] = formData['fullName']?.isNotEmpty == true 
+              ? '${formData['fullName']}\'s Showroom' 
+              : 'My Showroom';
+        }
+        
         canFinish = (formData['fullName']?.toString().isNotEmpty ?? false) &&
             (formData['mobile']?.toString().isNotEmpty ?? false) &&
             (formData['city']?.toString().isNotEmpty ?? false);
         break;
-      case models.UserRole.seller:
+      case models.UserRole.buyer:
         canFinish = (formData['storeName']?.toString().isNotEmpty ?? false) &&
             (formData['mobile']?.toString().isNotEmpty ?? false) &&
             (formData['city']?.toString().isNotEmpty ?? false);
