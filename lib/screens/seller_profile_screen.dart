@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/car_post.dart';
 import 'car_detail_screen.dart';
+import '../providers/car_wishlist_provider.dart';
 
 class SellerProfileScreen extends StatelessWidget {
   final String sellerName;
@@ -351,22 +353,34 @@ class SellerProfileScreen extends StatelessWidget {
                 Positioned(
                   bottom: 10,
                   right: 10,
-                  child: StatefulBuilder(
-                    builder: (context, setState) {
+                  child: Consumer(
+                    builder: (context, ref, _) {
+                      final isWishlisted = ref.watch(carWishlistProvider).contains(car.id);
+                      
                       return Container(
                         decoration: BoxDecoration(
                           color: Colors.black26,
                           shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.3),
+                              blurRadius: 6,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
                         ),
                         child: IconButton(
                           icon: Icon(
-                           false ? Icons.favorite : Icons.favorite_border,
-                            color: false ? Colors.red : Colors.white,
-                            size: 28,
+                            isWishlisted ? Icons.favorite : Icons.favorite_border,
+                            color: isWishlisted ? Colors.red : Colors.white,
+                            size: 24,
                           ),
                           onPressed: () {
-                            
+                            final notifier = ref.read(carWishlistProvider.notifier);
+                            notifier.toggleWishlist(car.id);
                           },
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
                         ),
                       );
                     },

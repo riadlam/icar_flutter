@@ -11,6 +11,7 @@ import 'package:icar_instagram_ui/screens/seller_profile_screen.dart';
 import 'package:icar_instagram_ui/services/api/service_locator.dart';
 import 'package:icar_instagram_ui/services/api/services/car_service.dart';
 import 'package:icar_instagram_ui/services/api/services/user_service.dart';
+import 'package:icar_instagram_ui/providers/car_wishlist_provider.dart';
 
 // Using the existing StringCasingExtension instead of defining a new one
 // This avoids the duplicate extension member conflict
@@ -244,40 +245,42 @@ class CarDetailScreen extends StatelessWidget {
                 Positioned(
                   bottom: 16,
                   right: 16,
-                  child: StatefulBuilder(
-                    builder: (context, setState) {
+                  child: Consumer(
+                    builder: (context, ref, _) {
+                      final isWishlisted = ref.watch(carWishlistProvider).contains(post.id);
+                      
                       return Container(
                         decoration: BoxDecoration(
                           color: Colors.black26,
                           shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.3),
+                              blurRadius: 6,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
                         ),
                         child: IconButton(
                           icon: Icon(
-                            post.isWishlisted ? Icons.favorite : Icons.favorite_border,
-                            color: post.isWishlisted ? Colors.red : Colors.white,
+                            isWishlisted ? Icons.favorite : Icons.favorite_border,
+                            color: isWishlisted ? Colors.red : Colors.white,
                             size: 28,
                           ),
                           onPressed: () {
-                            setState(() {
-                              // Toggle wishlist status
-                              final updatedPost = post.copyWith(
-                                isWishlisted: !post.isWishlisted,
-                              );
-                              // In a real app, you would update the state here
-                              // For now, we'll just show a snackbar
-                              // In a real app, you would update the state here
-                              // For now, we'll just show a snackbar
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    updatedPost.isWishlisted
-                                        ? 'added_to_wishlist'.tr()
-                                        : 'removed_from_wishlist'.tr(),
-                                  ),
-                                  duration: const Duration(seconds: 1),
+                            final notifier = ref.read(carWishlistProvider.notifier);
+                            notifier.toggleWishlist(post.id);
+                            
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  !isWishlisted
+                                      ? 'added_to_wishlist'.tr()
+                                      : 'removed_from_wishlist'.tr(),
                                 ),
-                              );
-                            });
+                                duration: const Duration(seconds: 1),
+                              ),
+                            );
                           },
                         ),
                       );

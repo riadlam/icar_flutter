@@ -197,15 +197,11 @@ class TowTruckServiceCard extends StatelessWidget {
                       ),
                     ),
                   ),
-              ],
-            ),
-          ),
-
-          // Edit button - Positioned over the entire container (top right corner)
+                    // Edit button - Positioned over the entire container (top right corner)
           if (onEditPressed != null)
             Positioned(
               top: 8,
-              right: 8,
+              left: 30,
               child: GestureDetector(
                 onTap: onEditPressed,
                 child: Container(
@@ -229,6 +225,11 @@ class TowTruckServiceCard extends StatelessWidget {
                 ),
               ),
             ),
+              ],
+            ),
+          ),
+
+        
         ],
       ),
     );

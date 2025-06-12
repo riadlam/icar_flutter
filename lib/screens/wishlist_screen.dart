@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:icar_instagram_ui/models/garage_service.dart';
+import 'package:icar_instagram_ui/models/car_post.dart';
 import 'package:icar_instagram_ui/providers/wishlist_provider.dart';
 import 'package:icar_instagram_ui/providers/tow_truck_wishlist_provider.dart';
+import 'package:icar_instagram_ui/providers/car_wishlist_provider.dart';
 import 'package:icar_instagram_ui/widgets/cards/garage_service_card.dart';
 import 'package:icar_instagram_ui/widgets/cards/tow_truck_service_card.dart';
+import 'package:icar_instagram_ui/widgets/car_post_card.dart';
 import '../models/tow_truck_service.dart' as tow_truck_model;
 import '../services/api/service_locator.dart' as service_locator;
 
@@ -15,24 +18,32 @@ class WishlistScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final garageWishlist = ref.watch(wishlistProvider);
     final towTruckWishlist = ref.watch(towTruckWishlistProvider);
+    final carWishlist = ref.watch(carWishlistProvider);
     
     return Scaffold(
       appBar: AppBar(
         title: const Text('My Wishlist'),
       ),
-      body: _buildCombinedWishlist(garageWishlist, towTruckWishlist, ref),
+      body: _buildCombinedWishlist(
+        garageWishlist, 
+        towTruckWishlist, 
+        carWishlist,
+        ref,
+      ),
     );
   }
 
   Widget _buildCombinedWishlist(
     List<GarageService> garageWishlist,
     Set<String> towTruckWishlist,
+    Set<String> carWishlist,
     WidgetRef ref,
   ) {
     final hasGarageItems = garageWishlist.isNotEmpty;
     final hasTowTruckItems = towTruckWishlist.isNotEmpty;
+    final hasCarItems = carWishlist.isNotEmpty;
 
-    if (!hasGarageItems && !hasTowTruckItems) {
+    if (!hasGarageItems && !hasTowTruckItems && !hasCarItems) {
       return const Center(
         child: Text('Your wishlist is empty'),
       );
@@ -63,33 +74,73 @@ class WishlistScreen extends ConsumerWidget {
                 ))
             .toList();
 
-        return SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (hasGarageItems) ...[
-              
-                ...garageWishlist.map((service) => GarageServiceCard(
+        // Fetch car posts for wishlisted cars
+        return FutureBuilder<List<CarPost>>(
+          future: _fetchWishlistedCars(carWishlist, ref),
+          builder: (context, carSnapshot) {
+            final isLoadingCars = carSnapshot.connectionState == ConnectionState.waiting;
+
+            if (isLoadingCars && !hasGarageItems && !hasTowTruckItems) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            final carPosts = carSnapshot.data ?? [];
+
+            return SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (hasCarItems) ...[
+                   
+                    ...carPosts.map((car) => Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                      child: CarPostCard(
+                        post: car,
+                        onWishlistPressed: null,
+                      ),
+                    )).toList(),
+                  ],
+                  
+                  if (hasGarageItems) ...[
+                    
+                    ...garageWishlist.map((service) => GarageServiceCard(
                       service: service,
                       onTap: () {
                         // Handle tap on garage service
                       },
                     )),
-                const SizedBox(height: 16),
-              ],
-              if (hasTowTruckItems) ...[
-                
-                ...towTruckServices.map((service) => TowTruckServiceCard(
+                  ],
+                  
+                  if (hasTowTruckItems) ...[
+                   
+                    ...towTruckServices.map((service) => TowTruckServiceCard(
                       service: service,
                       onTap: () {
                         // Handle tap on tow truck service
                       },
                     )),
-              ],
-            ],
-          ),
+                  ],
+                ],
+              ),
+            );
+          },
         );
       },
     );
+  }
+
+  Future<List<CarPost>> _fetchWishlistedCars(Set<String> carWishlist, WidgetRef ref) async {
+    if (carWishlist.isEmpty) return [];
+    
+    try {
+      final carService = service_locator.serviceLocator.carService;
+      final allCars = await carService.getAllCars();
+      
+      // Filter cars that are in the wishlist
+      return allCars.where((car) => carWishlist.contains(car.id)).toList();
+    } catch (e) {
+      debugPrint('Error fetching wishlisted cars: $e');
+      return [];
+    }
   }
 }

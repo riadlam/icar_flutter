@@ -3,12 +3,14 @@ import 'package:flutter_image_slideshow/flutter_image_slideshow.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/car_post.dart';
 import '../services/share_service.dart' as share_service;
 import '../services/api/services/favorite_seller_service.dart';
 import '../services/api/services/subscription_service.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../providers/car_wishlist_provider.dart';
 
 class CarPostCard extends StatefulWidget {
   final CarPost post;
@@ -245,7 +247,10 @@ class _CarPostCardState extends State<CarPostCard> {
     final screenWidth = MediaQuery.of(context).size.width;
     final cardWidth = screenWidth * 0.96;
     
-    return Center(
+    return Consumer(
+      builder: (context, ref, _) {
+        final isWishlisted = ref.watch(carWishlistProvider).contains(widget.post.id);
+        return Center(
       child: SizedBox(
         width: cardWidth,
         child: GestureDetector(
@@ -296,6 +301,7 @@ class _CarPostCardState extends State<CarPostCard> {
                                       ))
                                   .toList(),
                             ),
+                      
                       
                       // Gradient overlay at bottom for text readability
                       Positioned(
@@ -349,29 +355,25 @@ class _CarPostCardState extends State<CarPostCard> {
                       ),
                       
                       // Wishlist button
+                     
+                      // Wishlist button
                       Positioned(
-                        bottom: 16,
+                        bottom: 10,
                         right: 16,
-                        child: GestureDetector(
-                          onTap: () {
-                            if (widget.onWishlistPressed != null) {
-                              widget.onWishlistPressed!(!widget.post.isWishlisted);
-                            }
-                          },
-                          child: Container(
-                            decoration: BoxDecoration(
-                              
-                              shape: BoxShape.circle,
-                             
+                        child: Container(
+                          
+                          child: IconButton(
+                            icon: Icon(
+                              isWishlisted ? Icons.favorite : Icons.favorite_border,
+                              color: isWishlisted ? Colors.red : Colors.white,
+                              size: 25,
                             ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: Icon(
-                                widget.post.isWishlisted ? Icons.favorite : Icons.favorite_border,
-                                color: widget.post.isWishlisted ? Colors.red : Colors.white,
-                                size: 24,
-                              ),
-                            ),
+                            onPressed: () {
+                              final notifier = ref.read(carWishlistProvider.notifier);
+                              notifier.toggleWishlist(widget.post.id);
+                            },
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
                           ),
                         ),
                       ),
@@ -535,6 +537,8 @@ class _CarPostCardState extends State<CarPostCard> {
           ),
         ),
       ),
+    );
+      },
     );
   }
 }
