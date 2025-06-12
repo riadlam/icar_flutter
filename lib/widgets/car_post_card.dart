@@ -360,15 +360,9 @@ class _CarPostCardState extends State<CarPostCard> {
                           },
                           child: Container(
                             decoration: BoxDecoration(
-                              color: Colors.black54,
+                              
                               shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black26,
-                                  blurRadius: 4,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
+                             
                             ),
                             child: Padding(
                               padding: const EdgeInsets.all(8.0),
@@ -481,54 +475,58 @@ class _CarPostCardState extends State<CarPostCard> {
                 ),
                 
                 // Car details section - more compact
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Car title
-                          Text(
-                            '${widget.post.brand} ${widget.post.model} ${widget.post.year}',
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              height: 1.2,
+                Container(
+                  color: Colors.white,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Car title
+                            Text(
+                              '${widget.post.brand} ${widget.post.model} ${widget.post.year}',
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                height: 1.2,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            _formatPrice(widget.post.price),
-                            style: const TextStyle(
-                              color: Colors.black,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              letterSpacing: 0.5,
+                            const SizedBox(height: 4),
+                            Text(
+                              _formatPrice(widget.post.price),
+                              style: const TextStyle(
+                                color: Colors.black,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                letterSpacing: 0.5,
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                      // Share button
-                      GestureDetector(
-                        onTap: () => share_service.ShareService.shareCarPost(context, widget.post),
-                        child: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.grey[200],
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.share,
-                            size: 20,
-                            color: Colors.black87,
+                          ],
+                        ),
+                        // Share button
+                        GestureDetector(
+                          onTap: () => share_service.ShareService.shareCarPost(context, widget.post),
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                            ),
+                            child:  Image.asset(
+                              'assets/images/sharebutton.webp',
+                              width: 24,
+                              height: 24,
+                             
+                            )
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
                 

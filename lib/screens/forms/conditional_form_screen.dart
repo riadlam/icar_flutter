@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logging/logging.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:icar_instagram_ui/models/user_role.dart' as models;
+import 'package:icar_instagram_ui/constants/filter_constants.dart';
 import 'package:icar_instagram_ui/providers/role_provider.dart';
 import 'package:icar_instagram_ui/services/api/services/user_service.dart';
 import 'package:icar_instagram_ui/services/api/service_locator.dart';
@@ -292,29 +293,95 @@ class _ConditionalFormScreenState extends ConsumerState<ConditionalFormScreen> {
           _textField('mobile_number'.tr(), (v) => formData['mobile'] = v ?? '', 
               keyboardType: TextInputType.phone,
               initialValue: formData['mobile']?.toString() ?? ''),
-          _textField('city'.tr(), (v) => formData['city'] = v ?? '',
-              initialValue: formData['city']?.toString() ?? ''),
+          _cityDropdown(
+            label: 'city'.tr(),
+            onChanged: (v) => formData['city'] = v ?? '',
+            initialValue: formData['city']?.toString(),
+          ),
         ];
       case models.UserRole.buyer:
+        formData['city'] ??= '';
         return [
           _textField('store_name'.tr(), (v) => formData['storeName'] = v),
           _textField('mobile_number'.tr(), (v) => formData['mobile'] = v, keyboardType: TextInputType.phone),
-          _textField('city'.tr(), (v) => formData['city'] = v),
+          _cityDropdown(
+            label: 'city'.tr(),
+            onChanged: (v) => formData['city'] = v ?? '',
+            initialValue: formData['city']?.toString(),
+          ),
         ];
       case models.UserRole.mechanic:
+        formData['city'] ??= '';
         return [
           _textField('business_driver_name'.tr(), (v) => formData['driverName'] = v),
           _textField('mobile_number'.tr(), (v) => formData['mobile'] = v, keyboardType: TextInputType.phone),
-          _textField('city'.tr(), (v) => formData['city'] = v),
+          _cityDropdown(
+            label: 'city'.tr(),
+            onChanged: (v) => formData['city'] = v ?? '',
+            initialValue: formData['city']?.toString(),
+          ),
         ];
       case models.UserRole.other:
+        formData['city'] ??= '';
         return [
           _textField('mechanic_name'.tr(), (v) => formData['driverName'] = v),
           _textField('mobile_number'.tr(), (v) => formData['mobile'] = v, keyboardType: TextInputType.phone),
-          _textField('city'.tr(), (v) => formData['city'] = v),
+          _cityDropdown(
+            label: 'city'.tr(),
+            onChanged: (v) => formData['city'] = v ?? '',
+            initialValue: formData['city']?.toString(),
+          ),
           _buildServiceDropdown(),
         ];
     }
+  }
+
+  Widget _cityDropdown({
+    required String label,
+    required void Function(String?) onChanged,
+    String? initialValue,
+  }) {
+    // Ensure the initial value is in the list of valid cities or set to null
+    final validInitialValue = initialValue != null && 
+        FilterConstants.garageCities.any((city) => city.trim() == initialValue.trim())
+        ? initialValue 
+        : null;
+
+    // Create a list of DropdownMenuItem with unique values
+    final cityItems = [
+      const DropdownMenuItem<String>(
+        value: null,
+        child: Text('Select a city'),
+      ),
+      ...FilterConstants.garageCities.map((city) => DropdownMenuItem<String>(
+            value: city,
+            child: Text(city),
+          )).toList(),
+    ];
+        
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16.0),
+      child: DropdownButtonFormField<String>(
+        value: validInitialValue,
+        decoration: InputDecoration(
+          labelText: label,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+        ),
+        items: cityItems,
+        validator: (value) => value == null ? 'required_field'.tr() : null,
+        onChanged: (value) {
+          onChanged(value);
+          if (mounted) {
+            setState(() {
+              formData['city'] = value ?? '';
+            });
+          }
+        },
+        isExpanded: true,
+        icon: const Icon(Icons.arrow_drop_down),
+      ),
+    );
   }
 
   Widget _textField(String label, void Function(String) onSaved, 

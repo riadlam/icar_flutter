@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:icar_instagram_ui/constants/app_colors.dart';
 import '../providers/notification_provider.dart';
 import '../widgets/notification_badge.dart';
 
@@ -37,7 +38,7 @@ class _AnimatedSearchAppBarState extends State<AnimatedSearchAppBar> {
               },
             )
           : null,
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.loginbg,
       elevation: 2,
       title: Padding(
         padding: EdgeInsets.symmetric(horizontal: widget.showCustomBackButton ? 0.0 : 16.0),
@@ -66,7 +67,7 @@ class _AnimatedSearchAppBarState extends State<AnimatedSearchAppBar> {
           child: _isSearching
               ? Row(
                   children: [
-                    const Icon(Icons.search, color: Colors.grey),
+                    const Icon(Icons.search, color: AppColors.iconsappbar),
                     const SizedBox(width: 8),
                     Expanded(
                       child: TextField(
@@ -100,7 +101,7 @@ class _AnimatedSearchAppBarState extends State<AnimatedSearchAppBar> {
         IconButton(
           icon: Icon(
             _isSearching ? Icons.close : Icons.search,
-            color: Colors.black,
+            color: AppColors.iconsappbar,
           ),
           onPressed: () {
             setState(() {
@@ -118,7 +119,7 @@ class _AnimatedSearchAppBarState extends State<AnimatedSearchAppBar> {
               data: (count) => IconButton(
                 icon: NotificationBadge(
                   count: count,
-                  child: const Icon(Icons.notifications_none, color: Colors.black),
+                  child: const Icon(Icons.notifications_none, color: AppColors.iconsappbar),
                 ),
                 onPressed: () {
                   ref.read(unreadCountProvider.notifier).refresh();
@@ -126,11 +127,11 @@ class _AnimatedSearchAppBarState extends State<AnimatedSearchAppBar> {
                 },
               ),
               loading: () => const IconButton(
-                icon: Icon(Icons.notifications_none, color: Colors.black),
+                icon: Icon(Icons.notifications_none, color: AppColors.iconsappbar),
                 onPressed: null,
               ),
               error: (_, __) => IconButton(
-                icon: const Icon(Icons.notifications_none, color: Colors.black),
+                icon: const Icon(Icons.notifications_none, color: AppColors.iconsappbar),
                 onPressed: () {
                   ref.read(unreadCountProvider.notifier).refresh();
                   context.goNamed('notifications');

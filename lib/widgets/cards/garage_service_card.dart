@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:icar_instagram_ui/models/garage_service.dart';
 import 'package:icar_instagram_ui/providers/wishlist_provider.dart';
+import 'package:icar_instagram_ui/services/share_service.dart' as share_service;
 
 class GarageServiceCard extends StatelessWidget {
   final GarageService service;
@@ -9,9 +10,10 @@ class GarageServiceCard extends StatelessWidget {
   final VoidCallback? onFavoritePressed;
   final VoidCallback? onEditPressed;
   final bool showFavoriteButton;
-
+  final bool isProfileView;
 
   const GarageServiceCard({
+    this.isProfileView = false,
     Key? key,
     required this.service,
     this.onTap,
@@ -61,6 +63,30 @@ class GarageServiceCard extends StatelessWidget {
                     const SizedBox(height: 8),
                     const SizedBox(height: 8),
                     _buildInfoRow(Icons.location_on, service.location),
+                    if (isProfileView && service.services.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 4,
+                        runSpacing: 2,
+                        children: service.services.map((service) => Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF245124).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            service,
+                            style: const TextStyle(
+                              fontSize: 10,
+                              color: Color(0xFF245124),
+                              height: 1.2,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        )).toList(),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -141,20 +167,7 @@ class GarageServiceCard extends StatelessWidget {
                     ),
                   ),
 
-                  // Favorite button
-                  if (onFavoritePressed != null)
-                    Positioned(
-                      top: 8,
-                      right: 8,
-                      child: GestureDetector(
-                        onTap: onFavoritePressed,
-                        child: Icon(
-                          service.isFavorite ? Icons.favorite : Icons.favorite_border,
-                          color: Colors.white,
-                          size: 24,
-                        ),
-                      ),
-                    ),
+                  
 
                   // Edit button
                   if (onEditPressed != null)
@@ -177,6 +190,7 @@ class GarageServiceCard extends StatelessWidget {
                         ),
                       ),
                     ),
+
                   if (showFavoriteButton)
                     Positioned(
                       top: 8,
@@ -201,6 +215,33 @@ class GarageServiceCard extends StatelessWidget {
                         },
                       ),
                     ),
+                    // Share button
+                  if (showFavoriteButton) // Only show share button if favorite button is shown
+                  Positioned(
+                    bottom: 5,
+                    left: 70,
+                    right: 5,
+                    child: GestureDetector(
+                      onTap: () => share_service.ShareService.shareGarageProfile(context, service),
+                      child: Container(
+                        width: 30,
+                        height: 30,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                         
+                        ),
+                        child: Center(
+                          child: Image.asset(
+                            'assets/images/sharebutton.webp',
+                            width: 20,
+                            height: 20,
+                           
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),

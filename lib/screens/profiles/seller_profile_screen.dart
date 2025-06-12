@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:icar_instagram_ui/constants/app_colors.dart';
 import 'package:icar_instagram_ui/widgets/two%20truck/menu_navbar/tow_truck_navbar.dart';
 import 'package:icar_instagram_ui/models/car_post.dart';
 import 'package:icar_instagram_ui/widgets/car/car_form_sheet.dart';
@@ -456,7 +457,7 @@ class _SellerProfileScreenState extends ConsumerState<SellerProfileScreen> {
                         car.price.toStringAsFixed(0),
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: Colors.green,
+                          color: AppColors.loginbg,
                           fontSize: 14,
                           height: 1.2,
                         ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:icar_instagram_ui/constants/app_colors.dart';
 import 'package:icar_instagram_ui/providers/additional_phones_provider.dart';
 import 'package:icar_instagram_ui/providers/phone_number_provider.dart';
 
@@ -235,16 +236,19 @@ class _PhoneNumberCardState extends ConsumerState<PhoneNumberCard> {
         SizedBox(
           width: double.infinity,
           child: FilledButton.icon(
-            onPressed: () => _showAddPhoneDialog(context, ref),
-            icon: const Icon(Icons.add, size: 20),
-            label: const Text('Add Another Number'),
-            style: FilledButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
+          onPressed: () => _showAddPhoneDialog(context, ref),
+          icon: const Icon(Icons.add, size: 20),
+          label: const Text('Add Another Number'),
+          style: FilledButton.styleFrom(
+            backgroundColor: AppColors.loginbg, // ✅ Green background
+            foregroundColor: Colors.white, // Optional: white text/icon
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
             ),
           ),
+        ),
+
         ),
       ],
     );

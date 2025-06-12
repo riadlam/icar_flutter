@@ -199,5 +199,12 @@
   "cant_subscribe_to_self": "You cannot subscribe to your own posts.",
   "notifications_screen_title": "Notifications",
   "no_notifications_found": "No notifications found.",
-  "received_on": "Received on: {0}"
+  "received_on": "Received on: {0}",
+  "select_brand":"brand",
+  "select_year":"year",
+  "select_model":"model",
+  "select_transmission":"transmission",
+  "select_fuel_type":"fuel type",
+  "select_purchase_type":"Purchase type"
+
 }

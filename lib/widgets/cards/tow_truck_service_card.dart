@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:icar_instagram_ui/models/tow_truck_service.dart';
 import 'package:icar_instagram_ui/providers/tow_truck_wishlist_provider.dart';
+import 'package:icar_instagram_ui/services/share_service.dart' as share_service;
 
 class TowTruckServiceCard extends StatelessWidget {
   final TowTruckService service;
   final VoidCallback? onTap;
   final VoidCallback? onFavoritePressed;
   final VoidCallback? onEditPressed;
+  final bool showFavoriteButton;
 
   const TowTruckServiceCard({
     Key? key,
@@ -15,6 +17,7 @@ class TowTruckServiceCard extends StatelessWidget {
     this.onTap,
     this.onFavoritePressed,
     this.onEditPressed,
+    this.showFavoriteButton = true,
   }) : super(key: key);
 
   @override
@@ -136,30 +139,64 @@ class TowTruckServiceCard extends StatelessWidget {
                   ),
                 ),
 
-                // Favorite button - top right corner inside yellow area
-                Positioned(
-                  top: 12,
-                  right: 12,
-                  child: Consumer(
-                    builder: (context, ref, _) {
-                      final isInWishlist = ref.watch(towTruckWishlistProvider).contains(service.id);
-                      return IconButton(
-                        icon: Icon(
-                          isInWishlist ? Icons.favorite : Icons.favorite_border,
-                          color: isInWishlist ? Colors.red : Colors.white,
-                          size: 28,
-                        ),
-                        onPressed: () {
-                          if (onFavoritePressed != null) {
-                            onFavoritePressed!();
-                          } else {
-                            ref.read(towTruckWishlistProvider.notifier).toggleWishlist(service.id);
-                          }
-                        },
-                      );
-                    },
+                // Favorite button - top right corner
+                if (showFavoriteButton)
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: Consumer(
+                      builder: (context, ref, _) {
+                        final isInWishlist = ref.watch(towTruckWishlistProvider).contains(service.id);
+                        return IconButton(
+                          icon: Icon(
+                            isInWishlist ? Icons.favorite : Icons.favorite_border,
+                            color: isInWishlist ? Colors.red : Colors.white,
+                            size: 30,
+                          ),
+                          onPressed: () {
+                            if (onFavoritePressed != null) {
+                              onFavoritePressed!();
+                            } else {
+                              ref.read(towTruckWishlistProvider.notifier).toggleWishlist(service.id);
+                            }
+                          },
+                        );
+                      },
+                    ),
                   ),
-                ),
+
+                // Share button - below favorite button
+                if (showFavoriteButton)
+                  Positioned(
+                   bottom: 5,
+                    left: 70,
+                    right: 5,
+                    child: GestureDetector(
+                      onTap: () => share_service.ShareService.shareTowTruckService(context, service),
+                      child: Container(
+                        width: 30,
+                        height: 30,
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black12,
+                              blurRadius: 4,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Center(
+                          child: Image.asset(
+                            'assets/images/sharebutton.webp',
+                            width: 20,
+                            height: 20,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),

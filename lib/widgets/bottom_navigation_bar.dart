@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icar_instagram_ui/constants/app_colors.dart';
 import '../../providers/wishlist_provider.dart';
 import '../../providers/tow_truck_wishlist_provider.dart';
 
@@ -39,7 +40,7 @@ class BottomNavigationBarWidget extends StatelessWidget {
               child: IconButton(
                 icon: Icon(
                   currentIndex == 0 ? Icons.home : Icons.home_outlined,
-                  color: currentIndex == 0 ? Colors.pinkAccent : Colors.grey,
+                  color: currentIndex == 0 ? AppColors.loginbg : Colors.grey,
                   size: 28,
                 ),
                 onPressed: () => onTap(0),
@@ -60,7 +61,7 @@ class BottomNavigationBarWidget extends StatelessWidget {
                       IconButton(
                         icon: Icon(
                           currentIndex == 1 ? Icons.favorite : Icons.favorite_border,
-                          color: currentIndex == 1 ? Colors.pinkAccent : Colors.grey,
+                          color: currentIndex == 1 ? AppColors.loginbg : Colors.grey,
                           size: 28,
                         ),
                         onPressed: () {
@@ -75,7 +76,7 @@ class BottomNavigationBarWidget extends StatelessWidget {
                           child: Container(
                             padding: const EdgeInsets.all(2),
                             decoration: const BoxDecoration(
-                              color: Colors.red,
+                              color: AppColors.loginbg,
                               shape: BoxShape.circle,
                             ),
                             constraints: const BoxConstraints(
@@ -103,23 +104,17 @@ class BottomNavigationBarWidget extends StatelessWidget {
               message: 'add'.tr(),
               child: GestureDetector(
                 onTap: () => onTap(2),
-                child: Container(
-                  width: 48,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Colors.pinkAccent, Colors.orangeAccent],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(
-                    Icons.add,
-                    color: Colors.white,
+                child: 
+                IconButton(
+                  icon: Icon(
+                    currentIndex == 2 ? Icons.add : Icons.add,
+                    color: currentIndex == 2 ? AppColors.loginbg : Colors.grey,
                     size: 28,
                   ),
+                  onPressed: () => onTap(2),
                 ),
+                
+                
               ),
             ),
 
@@ -130,7 +125,7 @@ class BottomNavigationBarWidget extends StatelessWidget {
                 child: IconButton(
                   icon: Icon(
                     currentIndex == 3 ? Icons.person : Icons.person_outline,
-                    color: currentIndex == 3 ? Colors.pinkAccent : Colors.grey,
+                    color: currentIndex == 3 ? AppColors.loginbg : Colors.grey,
                     size: 28,
                   ),
                   onPressed: () => onTap(3),

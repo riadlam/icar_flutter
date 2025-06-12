@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:icar_instagram_ui/constants/app_colors.dart';
 import 'package:icar_instagram_ui/constants/filter_constants.dart';
 
 class CarFilterModal extends StatefulWidget {
@@ -198,7 +199,7 @@ class _CarFilterModalState extends State<CarFilterModal> {
           child: Text(
             label,
             style: TextStyle(
-              fontSize: 14,
+              fontSize: 0,
               fontWeight: FontWeight.w500,
               color: _colorScheme.onSurface.withOpacity(0.8),
             ),
@@ -248,7 +249,7 @@ class _CarFilterModalState extends State<CarFilterModal> {
       children: [
         _buildSectionHeader('price_range'.tr()),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          padding: const EdgeInsets.symmetric( vertical: 8.0),
           child: Row(
             children: [
               Expanded(
@@ -442,7 +443,7 @@ class _CarFilterModalState extends State<CarFilterModal> {
               child: ElevatedButton(
                 onPressed: _applyFilters,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: _colorScheme.primary,
+                  backgroundColor: AppColors.loginbg,
                   foregroundColor: _colorScheme.onPrimary,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),

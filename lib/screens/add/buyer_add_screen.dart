@@ -1,6 +1,7 @@
 import 'dart:developer';
 
 import 'package:flutter/material.dart';
+import 'package:icar_instagram_ui/constants/app_colors.dart';
 import 'package:icar_instagram_ui/widgets/car/car_form_sheet.dart';
 import 'package:icar_instagram_ui/models/car_post.dart';
 import 'package:icar_instagram_ui/widgets/two%20truck/menu_navbar/tow_truck_navbar.dart';
@@ -90,13 +91,7 @@ class _BuyerAddScreenState extends State<BuyerAddScreen> {
       return;
     }
     
-    final messenger = ScaffoldMessenger.of(context);
-    messenger.showSnackBar(
-      const SnackBar(
-        content: Text('Loading your cars...'),
-        duration: Duration(seconds: 2),
-      ),
-    );
+
     
     try {
       final carsData = await _carService.getSellerCars();
@@ -146,40 +141,40 @@ class _BuyerAddScreenState extends State<BuyerAddScreen> {
       });
       
       // Show error message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to load cars: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
+
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      key: _scaffoldKey,
-      appBar: TowTruckNavBar(
-        scaffoldKey: _scaffoldKey,
-        title: 'iCar',
-      ),
-      endDrawer: TowTruckNavBar.buildDrawer(context),
-      body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.lightGreen),
+  key: _scaffoldKey,
+  appBar: TowTruckNavBar(
+    scaffoldKey: _scaffoldKey,
+    title: 'iCar',
+  ),
+  endDrawer: TowTruckNavBar.buildDrawer(context),
+  body: _isLoading
+      ? const Center(
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(Colors.lightGreen),
+          ),
+        )
+      : Center( // Wrap the whole scrollable content in Center
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16.0),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: 500, // Optional: limit width on wider screens
               ),
-            )
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Add Car Button
                   ElevatedButton(
                     onPressed: _showAddCarForm,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.lightGreen,
+                      backgroundColor: AppColors.loginbg,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
@@ -192,12 +187,14 @@ class _BuyerAddScreenState extends State<BuyerAddScreen> {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  // Show message if no cars are listed
-                 
+                  // Add other widgets here if needed
                 ],
               ),
             ),
-    );
+          ),
+        ),
+);
+
   }
 
   Widget _buildCarCard(CarPost car) {

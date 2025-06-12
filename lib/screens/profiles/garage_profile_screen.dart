@@ -280,6 +280,7 @@ Future<void> _loadProfileData() async {
                             // Handle favorite
                           },
                           onEditPressed: () => _showEditForm(profiles.last),
+                          isProfileView: true,
                         ),
                         const SizedBox(height: 16),
                         
@@ -344,6 +345,7 @@ Future<void> _loadProfileData() async {
                                 // Handle favorite
                               },
                               onEditPressed: () => _showEditForm(profile),
+                              isProfileView: true,
                             ),
                           ),
                         ).toList(),

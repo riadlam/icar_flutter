@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:icar_instagram_ui/constants/app_colors.dart';
 import 'package:logging/logging.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -158,8 +159,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                             margin: const EdgeInsets.only(right: 12),
                             decoration: BoxDecoration(
                               color: _selectedRoleIndex == index
-                                  ? Colors.blue
-                                  : Colors.grey[200],
+                                  ? AppColors.loginbg
+                                  : Colors.grey[199],
                               borderRadius: BorderRadius.circular(25),
                             ),
                             child: Row(
