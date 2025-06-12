@@ -211,10 +211,18 @@ class UserService extends BaseApiService {
           };
           break;
         case UserRole.mechanic:
+          requestData = {
+            'business_name': formData['driver_name'] ?? 'Mechanic Business',
+            'driver_name': formData['driver_name'],
+            'mobile': formData['mobile'],
+            'city': formData['city'],
+            // No services for mechanics
+          };
+          break;
         case UserRole.other:
           requestData = {
-            'business_name': formData['businessName'] ?? 'Mechanic Business',
-            'mechanic_name': formData['driverName'],
+            'business_name': formData['driver_name'] ?? 'Garage Business',
+            'driver_name': formData['driver_name'],
             'mobile': formData['mobile'],
             'city': formData['city'],
             'services': formData['services'] ?? [],

@@ -6,6 +6,7 @@ import '../screens/language_selection_screen.dart';
 import '../screens/welcome_screen.dart';
 import '../screens/google_login_screen.dart';
 import '../screens/role_selection_screen.dart';
+import '../screens/splash_screen.dart';
 import '../screens/forms/conditional_form_screen.dart';
 import '../screens/home_screen.dart';
 import '../screens/main_wrapper_screen.dart';
@@ -14,32 +15,72 @@ import '../screens/seller_profile_screen.dart';
 import '../screens/car_detail_screen.dart';
 import '../widgets/bottom_navigation_bar.dart';
 import '../screens/add/add_screen.dart';
+import '../screens/tow_truck_wishlist_screen.dart';
+import '../screens/wishlist_screen.dart';
+import '../screens/car_notification_screen.dart';
+import '../screens/car_search_results_screen.dart';
 import '../models/user_role.dart' as models;
 import '../models/car_post.dart';
-import '../screens/car_search_results_screen.dart';
-import '../screens/car_notification_screen.dart';
-import '../screens/wishlist_screen.dart';
-import '../screens/tow_truck_wishlist_screen.dart';
 import '../providers/car_detail_provider.dart';
+import '../services/auth_service.dart';
 
 final _log = Logger('AppRouter');
 
 class AppRouter {
+  static final AuthService _authService = AuthService()..init();
   static final _rootNavigatorKey = GlobalKey<NavigatorState>();
   static final _shellNavigatorKey = GlobalKey<NavigatorState>();
 
+  static bool _isAuthScreen(String path) {
+    final authPaths = [
+      '/language-selection',
+      '/google-login',
+      '/welcome',
+      '/splash',
+    ];
+    return authPaths.contains(path);
+  }
+
   static final router = GoRouter(
     navigatorKey: _rootNavigatorKey,
-    initialLocation: '/language-selection',
+    initialLocation: '/splash',
     debugLogDiagnostics: true,
     redirect: (BuildContext context, GoRouterState state) async {
-      // No automatic redirections
+      // Skip redirection for these paths
+      final isSplash = state.uri.path == '/splash';
+      final isLanguageSelection = state.uri.path == '/language-selection';
+      final isGoogleLogin = state.uri.path == '/google-login';
+      final isWelcome = state.uri.path == '/welcome';
+      
+      if (isSplash || isLanguageSelection || isGoogleLogin || isWelcome) {
+        return null;
+      }
+      
+      // Check auth state
+      final isLoggedIn = await _authService.isLoggedIn();
+      
+      if (!isLoggedIn) {
+        // If not logged in, redirect to language selection
+        return '/language-selection';
+      }
+      
+      // If user is logged in but trying to access auth screens, redirect to home
+      if (_isAuthScreen(state.uri.path)) {
+        return '/home';
+      }
+      
       return null;
     },
     observers: [
       _RouteLogger(),
     ],
     routes: [
+      // Splash screen (initial route)
+      GoRoute(
+        path: '/splash',
+        builder: (context, state) => const SplashScreen(),
+      ),
+      
       // Public routes
       GoRoute(
         path: '/language-selection',
@@ -111,10 +152,9 @@ class AppRouter {
       ),
       GoRoute(
         path: '/search-results/:query',
-        name: 'searchResults', // Optional: for named navigation
+        name: 'searchResults',
         builder: (context, state) {
           final query = state.pathParameters['query'] ?? '';
-          // It's good practice to decode the query parameter in case it contains special characters
           final decodedQuery = Uri.decodeComponent(query);
           if (decodedQuery.isEmpty) {
             _log.warning('Search results route called with empty query.');
@@ -168,76 +208,8 @@ class AppRouter {
               child: AddScreen(),
             ),
           ),
-          // Seller profile route with parameters
-          GoRoute(
-            name: 'seller-profile',
-            path: '/seller-profile/:sellerName/:sellerPhone',
-            pageBuilder: (context, state) {
-              try {
-                // Get parameters from path
-                final sellerName = Uri.decodeComponent(state.pathParameters['sellerName'] ?? 'Unknown Seller');
-                final sellerPhone = Uri.decodeComponent(state.pathParameters['sellerPhone'] ?? '');
-                
-                // Get cars from extra data
-                List<CarPost> sellerCars = [];
-                if (state.extra != null) {
-                  try {
-                    final extra = state.extra as Map<String, dynamic>? ?? {};
-                    final carsData = extra['sellerCars'] as List<dynamic>? ?? [];
-                    sellerCars = carsData.map((e) => CarPost.fromJson(e)).toList();
-                  } catch (e) {
-                    _log.severe('Error parsing seller cars data: $e');
-                  }
-                }
-                
-                return NoTransitionPage(
-                  key: ValueKey('seller-profile-$sellerName-${DateTime.now().millisecondsSinceEpoch}'),
-                  child: Scaffold(
-                    body: SellerProfileScreen(
-                      sellerName: sellerName,
-                      sellerPhone: sellerPhone,
-                      sellerCars: sellerCars,
-                    ),
-                    bottomNavigationBar: BottomNavigationBarWidget(
-                      currentIndex: 3, // Profile tab is active
-                      onTap: (index) {
-                        // Use the context from the builder
-                        switch (index) {
-                          case 0:
-                            context.go('/home');
-                            break;
-                          case 1:
-                            context.go('/wishlist');
-                            break;
-                          case 2:
-                            context.go('/add');
-                            break;
-                          case 3:
-                            // Already on profile, do nothing
-                            break;
-                        }
-                      },
-                      showProfile: true,
-                    ),
-                  ),
-                );
-              } catch (e, stackTrace) {
-                _log.severe('Error in seller profile route', e, stackTrace);
-                return NoTransitionPage(
-                  key: ValueKey('error-${DateTime.now().millisecondsSinceEpoch}'),
-                  child: Scaffold(
-                    body: Center(
-                      child: Text('Error loading profile. Please try again.'),
-                    ),
-                  ),
-                );
-              }
-            },
-          ),
         ],
       ),
-      
-      // Add more routes here as needed
     ],
     errorBuilder: (context, state) => Scaffold(
       body: Center(

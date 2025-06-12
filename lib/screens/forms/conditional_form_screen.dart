@@ -46,7 +46,7 @@ class _ConditionalFormScreenState extends ConsumerState<ConditionalFormScreen> {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () => context.go('/role-selection'),
         ),
         title: Text('confirm_details'.tr()),
         centerTitle: true,
@@ -138,10 +138,12 @@ class _ConditionalFormScreenState extends ConsumerState<ConditionalFormScreen> {
                                             cleanFormData['store_name'] = formData['storeName']?.toString() ?? '';
                                             break;
                                           case models.UserRole.mechanic:
+                                            cleanFormData['driver_name'] = formData['driverName']?.toString() ?? '';
+                                            break;
                                           case models.UserRole.other:
                                             cleanFormData['driver_name'] = formData['driverName']?.toString() ?? '';
-                                            if (formData['services'] != null) {
-                                              cleanFormData['services'] = formData['services'];
+                                            if (_selectedServices.isNotEmpty) {  // Only include services for garage owners
+                                              cleanFormData['services'] = _selectedServices;
                                             }
                                             break;
                                         }
@@ -426,11 +428,15 @@ class _ConditionalFormScreenState extends ConsumerState<ConditionalFormScreen> {
             (formData['city']?.toString().isNotEmpty ?? false);
         break;
       case models.UserRole.mechanic:
+      canFinish = (formData['driverName']?.toString().isNotEmpty ?? false) &&
+          (formData['mobile']?.toString().isNotEmpty ?? false) &&
+          (formData['city']?.toString().isNotEmpty ?? false);
+       break;
       case models.UserRole.other:
         canFinish = (formData['driverName']?.toString().isNotEmpty ?? false) &&
             (formData['mobile']?.toString().isNotEmpty ?? false) &&
             (formData['city']?.toString().isNotEmpty ?? false) &&
-            (_selectedServices.isNotEmpty); // Validate at least one service is selected
+            (_selectedServices.isNotEmpty);
         break;
     }
     
