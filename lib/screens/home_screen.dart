@@ -1,20 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../widgets/home_content/home_content.dart';
 import '../outils/appbar_custom.dart' show AnimatedSearchAppBar;
+import '../providers/notification_provider.dart';
 
 final _log = Logger('HomeScreen');
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObserver, RouteAware {
   int _selectedRoleIndex = 0;
+  RouteObserver<PageRoute>? _routeObserver;
+  PageRoute? _currentRoute;
 
   List<Map<String, dynamic>> get _roles => [
     {'icon': Icons.directions_car, 'label': 'rent_sell_car'.tr()},
@@ -35,6 +39,96 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _selectedRoleIndex = index;
     });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedRoleIndex = 0;
+    WidgetsBinding.instance.addObserver(this);
+    _refreshNotifications(); // Initial refresh
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    
+    // Get the current route
+    final newRoute = ModalRoute.of(context);
+    if (newRoute is! PageRoute) return;
+    
+    // If the route hasn't changed, do nothing
+    if (newRoute == _currentRoute) return;
+    
+    // Unsubscribe from the old route if it exists
+    if (_routeObserver != null && _currentRoute != null) {
+      _routeObserver!.unsubscribe(this);
+    }
+    
+    // Subscribe to the new route
+    _currentRoute = newRoute;
+    _routeObserver = _currentRoute!.navigator?.widget.observers.firstWhere(
+      (observer) => observer is RouteObserver<PageRoute>,
+      orElse: () => RouteObserver<PageRoute>(),
+    ) as RouteObserver<PageRoute>;
+    
+    _routeObserver?.subscribe(this, _currentRoute!);
+  }
+
+  @override
+  void dispose() {
+    // Unsubscribe from route observer if we have one
+    if (_routeObserver != null && _currentRoute != null) {
+      _routeObserver!.unsubscribe(this);
+    }
+    
+    // Clean up
+    _routeObserver = null;
+    _currentRoute = null;
+    
+    // Remove other observers
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didPushNext() {
+    // Called when a new route is pushed on top
+  }
+
+  @override
+  void didPopNext() {
+    // Called when the current route is popped and this route becomes visible again
+    _refreshNotifications();
+  }
+
+  void _refreshNotifications() {
+    if (!mounted) return;
+    
+    // Schedule the refresh for after the current build phase
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ref.read(unreadCountProvider.notifier).refresh();
+      }
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _refreshNotifications();
+    }
+  }
+
+  @override
+  void didPush() {
+    // Called when this route is pushed
+    _refreshNotifications();
+  }
+  
+  @override
+  void didPop() {
+    // Called when this route is popped
   }
 
   @override
