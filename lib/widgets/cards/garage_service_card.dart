@@ -173,7 +173,7 @@ class GarageServiceCard extends StatelessWidget {
                   if (onEditPressed != null)
                     Positioned(
                       top: 8,
-                      right: 8,
+                      left: 30,
                       child: GestureDetector(
                         onTap: onEditPressed,
                         child: Container(

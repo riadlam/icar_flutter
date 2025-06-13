@@ -45,7 +45,7 @@ class _AnimatedSearchAppBarState extends State<AnimatedSearchAppBar> {
         child: Text(
           'app_title'.tr(),
           style: const TextStyle(
-            color: Colors.black,
+            color: AppColors.iconsappbar,
             fontSize: 30,
             fontWeight: FontWeight.bold,
           ),

@@ -184,13 +184,7 @@ class SellerProfileScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    "${sellerName.split(' ')[0]}'s ${'cars'.tr()}",
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                
                   const SizedBox(height: 12),
                   sellerCars.isEmpty 
                     ? Center(
@@ -359,15 +353,8 @@ class SellerProfileScreen extends StatelessWidget {
                       
                       return Container(
                         decoration: BoxDecoration(
-                          color: Colors.black26,
                           shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.3),
-                              blurRadius: 6,
-                              offset: const Offset(0, 3),
-                            ),
-                          ],
+                         
                         ),
                         child: IconButton(
                           icon: Icon(
