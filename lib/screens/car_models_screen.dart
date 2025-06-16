@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:icar_instagram_ui/constants/filter_constants.dart';
+import 'package:icar_instagram_ui/screens/spare_parts_list_screen.dart';
 
 class CarModelsScreen extends StatelessWidget {
   final String brand;
@@ -29,9 +31,14 @@ class CarModelsScreen extends StatelessWidget {
                 style: const TextStyle(fontSize: 16),
               ),
               onTap: () {
-                // Handle model selection
-                // You can navigate to another screen or return the selected model
-                Navigator.pop(context, models[index]);
+                // Navigate to spare parts list screen
+                context.push(
+                  '/spare-parts-list',
+                  extra: {
+                    'brand': brand,
+                    'model': models[index],
+                  },
+                );
               },
             ),
           );

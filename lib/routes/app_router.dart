@@ -20,6 +20,7 @@ import '../screens/subcategory_screen.dart';
 import '../screens/add/add_screen.dart';
 import '../screens/car_notification_screen.dart';
 import '../screens/car_search_results_screen.dart';
+import '../screens/spare_parts_list_screen.dart';
 
 import '../models/user_role.dart' as models;
 import '../models/car_post.dart';
@@ -114,6 +115,16 @@ class AppRouter {
         builder: (context, state) {
           final brand = state.extra as String;
           return CarModelsScreen(brand: brand);
+        },
+      ),
+      GoRoute(
+        path: '/spare-parts-list',
+        builder: (context, state) {
+          final args = state.extra as Map<String, dynamic>;
+          return SparePartsListScreen(
+            brand: args['brand'],
+            model: args['model'],
+          );
         },
       ),
       // Car detail route
