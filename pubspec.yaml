@@ -85,6 +85,7 @@ flutter:
   assets:
     - assets/images/
     - assets/images/categoryImages/
+    - assets/images/brandimages/
     - assets/images/subcategoryImages/Freinage/
     - assets/images/subcategoryImages/filtres_sub_images/
     - assets/images/subcategoryImages/Pneus et produits associés/

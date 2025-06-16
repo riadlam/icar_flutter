@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:icar_instagram_ui/constants/filter_constants.dart';
-import 'package:icar_instagram_ui/screens/subcategory_screen.dart';
 import 'package:icar_instagram_ui/widgets/category_card.dart';
 import 'base_content_widget.dart';
 
@@ -21,17 +21,15 @@ class SparePartsContent extends BaseContentWidget {
             name: category['name']!,
             imagePath: category['image']!,
             onTap: () {
-              // Navigate to subcategory screen
+              // Navigate to subcategory screen first
               final subcategories = FilterConstants.getSubcategories(category['id']!);
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => SubcategoryScreen(
-                    categoryId: category['id']!,
-                    categoryName: category['name']!,
-                    subcategories: subcategories,
-                  ),
-                ),
+              context.push(
+                '/subcategory',
+                extra: {
+                  'categoryId': category['id']!,
+                  'categoryName': category['name']!,
+                  'subcategories': subcategories,
+                },
               );
             },
           ),

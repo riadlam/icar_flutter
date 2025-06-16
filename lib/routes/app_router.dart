@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:logging/logging.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../screens/language_selection_screen.dart';
 import '../screens/welcome_screen.dart';
 import '../screens/google_login_screen.dart';
@@ -13,12 +14,13 @@ import '../screens/main_wrapper_screen.dart';
 import '../screens/profile_screen.dart';
 import '../screens/seller_profile_screen.dart';
 import '../screens/car_detail_screen.dart';
-import '../widgets/bottom_navigation_bar.dart';
+import '../screens/car_brands_screen.dart';
+import '../screens/car_models_screen.dart';
+import '../screens/subcategory_screen.dart';
 import '../screens/add/add_screen.dart';
-import '../screens/tow_truck_wishlist_screen.dart';
-import '../screens/wishlist_screen.dart';
 import '../screens/car_notification_screen.dart';
 import '../screens/car_search_results_screen.dart';
+
 import '../models/user_role.dart' as models;
 import '../models/car_post.dart';
 import '../providers/car_detail_provider.dart';
@@ -45,6 +47,7 @@ class AppRouter {
     navigatorKey: _rootNavigatorKey,
     initialLocation: '/splash',
     debugLogDiagnostics: true,
+    observers: [_RouteLogger()],
     redirect: (BuildContext context, GoRouterState state) async {
       // Skip redirection for these paths
       final isSplash = state.uri.path == '/splash';
@@ -71,16 +74,12 @@ class AppRouter {
       
       return null;
     },
-    observers: [
-      _RouteLogger(),
-    ],
     routes: [
       // Splash screen (initial route)
       GoRoute(
         path: '/splash',
         builder: (context, state) => const SplashScreen(),
       ),
-      
       // Public routes
       GoRoute(
         path: '/language-selection',
@@ -106,7 +105,17 @@ class AppRouter {
           return ConditionalFormScreen(role: role);
         },
       ),
-
+      GoRoute(
+        path: '/car-brands',
+        builder: (context, state) => const CarBrandsScreen(),
+      ),
+      GoRoute(
+        path: '/car-models',
+        builder: (context, state) {
+          final brand = state.extra as String;
+          return CarModelsScreen(brand: brand);
+        },
+      ),
       // Car detail route
       GoRoute(
         path: '/car-detail/:id',
@@ -168,34 +177,49 @@ class AppRouter {
         builder: (context, state) => const CarNotificationScreen(),
       ),
       
-      // Shell route for main app with bottom navigation
+      // Private routes (require authentication)
       ShellRoute(
         navigatorKey: _shellNavigatorKey,
-        builder: (context, state, child) {
-          return MainWrapperScreen(
-            child: child,
-          );
-        },
+        builder: (context, state, child) => MainWrapperScreen(
+          child: child,
+        ),
         routes: [
-          // Main tabs
+          // Main tab routes
           GoRoute(
             path: '/home',
             pageBuilder: (context, state) => const NoTransitionPage(
               child: HomeScreen(),
             ),
           ),
+          // Subcategory flow
           GoRoute(
-            path: '/wishlist',
+            path: '/subcategory',
+            pageBuilder: (context, state) {
+              final args = state.extra as Map<String, dynamic>;
+              return NoTransitionPage(
+                child: SubcategoryScreen(
+                  categoryId: args['categoryId'],
+                  categoryName: args['categoryName'],
+                  subcategories: args['subcategories'],
+                ),
+              );
+            },
+          ),
+          // Car brands screen
+          GoRoute(
+            path: '/car-brands',
             pageBuilder: (context, state) => const NoTransitionPage(
-              child: WishlistScreen(),
+              child: CarBrandsScreen(),
             ),
           ),
+          // Car models screen
           GoRoute(
-            path: '/tow-truck-wishlist',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: TowTruckWishlistScreen(),
+            path: '/car-models',
+            pageBuilder: (context, state) => NoTransitionPage(
+              child: CarModelsScreen(brand: state.extra as String),
             ),
           ),
+          // Profile screen
           GoRoute(
             path: '/profile',
             pageBuilder: (context, state) => const NoTransitionPage(

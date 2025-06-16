@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:icar_instagram_ui/models/subcategory_model.dart';
 import 'package:icar_instagram_ui/widgets/category_card.dart';
 
@@ -32,10 +33,8 @@ class SubcategoryScreen extends StatelessWidget {
               name: subcategory.name,
               imagePath: subcategory.imagePath,
               onTap: () {
-                // TODO: Navigate to products list for this subcategory
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Selected: ${subcategory.name}')),
-                );
+                // Navigate to car brands screen when any subcategory is tapped
+                context.push('/car-brands');
               },
             ),
           );
