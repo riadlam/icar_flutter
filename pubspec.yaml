@@ -84,7 +84,10 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - assets/images/
-    - assets/icons/
+    - assets/images/categoryImages/
+    - assets/images/subcategoryImages/Freinage/
+    - assets/images/subcategoryImages/filtres_sub_images/
+    - assets/images/subcategoryImages/Pneus et produits associés/
     - assets/translations/
     - assets/translations/en.json
     - assets/translations/fr.json

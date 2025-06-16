@@ -191,42 +191,44 @@ class UserService extends BaseApiService {
   Future<Map<String, dynamic>> submitProfileData(UserRole role, Map<String, dynamic> formData) async {
     try {
       // Map the form data to the expected API format based on role
-      Map<String, dynamic> requestData = {};
+      Map<String, dynamic> requestData = {
+        'mobile': formData['mobile'] ?? '',
+        'city': formData['city'] ?? '',
+        'store_name': formData['store_name'] ?? (formData['showroom_name'] ?? 'My Store'),
+      };
       
+      // Add role-specific fields
       switch (role) {
         case UserRole.buyer:
-          requestData = {
-            'full_name': formData['fullName'],
-            'showroom_name': 'showrooom',
-            'mobile': formData['mobile'],
-            'city': formData['city'],
-          };
+          requestData.addAll({
+            'full_name': formData['full_name'] ?? 'Buyer',
+            'store_name': formData['store_name'] ?? 'My Store',
+          });
           break;
+          
         case UserRole.seller:
-          requestData = {
-            'full_name': formData['full_name'],
-            'showroom_name': formData['showroom_name'],
-            'mobile': formData['mobile'],
-            'city': formData['city'],
-          };
+          requestData.addAll({
+            'full_name': formData['full_name'] ?? 'Seller',
+            'store_name': formData['store_name'] ?? 'My Showroom',
+            'showroom_name': formData['store_name'] ?? 'My Showroom', // For backward compatibility
+          });
           break;
+          
         case UserRole.mechanic:
-          requestData = {
-            'business_name': formData['driver_name'] ?? 'Mechanic Business',
-            'driver_name': formData['driver_name'],
-            'mobile': formData['mobile'],
-            'city': formData['city'],
-            // No services for mechanics
-          };
+          requestData.addAll({
+            'full_name': formData['full_name'] ?? 'Mechanic',
+            'store_name': formData['store_name'] ?? 'My Garage',
+            'business_name': formData['store_name'] ?? 'My Garage',
+          });
           break;
+          
         case UserRole.other:
-          requestData = {
-            'business_name': formData['driver_name'] ?? 'Garage Business',
-            'driver_name': formData['driver_name'],
-            'mobile': formData['mobile'],
-            'city': formData['city'],
+          requestData.addAll({
+            'full_name': formData['full_name'] ?? 'User',
+            'store_name': formData['store_name'] ?? 'My Business',
+            'business_name': formData['store_name'] ?? 'My Business',
             'services': formData['services'] ?? [],
-          };
+          });
           break;
       }
       

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:icar_instagram_ui/constants/app_colors.dart';
 import 'package:logging/logging.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:icar_instagram_ui/models/user_role.dart' as models;
@@ -83,7 +84,7 @@ class _ConditionalFormScreenState extends ConsumerState<ConditionalFormScreen> {
                                 value: _privacyChecked,
                                 onChanged: (v) =>
                                     setState(() => _privacyChecked = v ?? false),
-                                activeColor: Colors.pinkAccent,
+                                activeColor: AppColors.loginbg,
                               ),
                               GestureDetector(
                                 onTap: () => _showPrivacyPolicy(context),
@@ -129,20 +130,23 @@ class _ConditionalFormScreenState extends ConsumerState<ConditionalFormScreen> {
                                         // Role-specific fields
                                         switch (widget.role) {
                                           case models.UserRole.seller:
-                                            cleanFormData['full_name'] = formData['fullName']?.toString() ?? '';
-                                            cleanFormData['showroom_name'] = formData['showroom_name']?.toString() ?? 
-                                                (formData['fullName']?.isNotEmpty == true 
+                                            cleanFormData['full_name'] = formData['fullName']?.toString().trim() ?? '';
+                                            cleanFormData['store_name'] = formData['showroom_name']?.toString().trim() ?? 
+                                                (formData['fullName']?.toString().trim().isNotEmpty == true 
                                                     ? '${formData['fullName']}\'s Showroom' 
                                                     : 'My Showroom');
+                                            cleanFormData['showroom_name'] = cleanFormData['store_name']; // Keep for backward compatibility
                                             break;
                                           case models.UserRole.buyer:
-                                            cleanFormData['store_name'] = formData['storeName']?.toString() ?? '';
+                                            cleanFormData['store_name'] = formData['storeName']?.toString().trim() ?? '';
                                             break;
                                           case models.UserRole.mechanic:
-                                            cleanFormData['driver_name'] = formData['driverName']?.toString() ?? '';
+                                            cleanFormData['full_name'] = formData['driverName']?.toString().trim() ?? '';
+                                            cleanFormData['store_name'] = formData['driverName']?.toString().trim() ?? '';
                                             break;
                                           case models.UserRole.other:
-                                            cleanFormData['driver_name'] = formData['driverName']?.toString() ?? '';
+                                            cleanFormData['full_name'] = formData['driverName']?.toString().trim() ?? '';
+                                            cleanFormData['store_name'] = formData['driverName']?.toString().trim() ?? '';
                                             if (_selectedServices.isNotEmpty) {  // Only include services for garage owners
                                               cleanFormData['services'] = _selectedServices;
                                             }
@@ -231,7 +235,7 @@ class _ConditionalFormScreenState extends ConsumerState<ConditionalFormScreen> {
                                 },
                                 style: ButtonStyle(
                                   backgroundColor:
-                                      MaterialStateProperty.all<Color>(Colors.pinkAccent),
+                                      MaterialStateProperty.all<Color>(AppColors.loginbg,),
                                   foregroundColor:
                                       MaterialStateProperty.all<Color>(Colors.white),
                                   padding: MaterialStateProperty.all<EdgeInsetsGeometry>(

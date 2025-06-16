@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:icar_instagram_ui/constants/app_colors.dart';
 import 'package:logging/logging.dart';
 import 'package:easy_localization/easy_localization.dart';
 import '../models/user_role.dart' as models;
@@ -59,7 +60,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
                 ElevatedButton(
                   onPressed: _selectedRole == null ? null : _handleNextPressed,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.pinkAccent,
+                    backgroundColor: AppColors.loginbg,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
                     shape: RoundedRectangleBorder(
@@ -80,7 +81,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       child: ListTile(
-        leading: Icon(icon, color: Colors.pinkAccent),
+        leading: Icon(icon, color: AppColors.loginbg),
         title: Text(
           title,
           style: const TextStyle(fontWeight: FontWeight.w500),
@@ -93,7 +94,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
               _selectedRole = value;
             });
           },
-          activeColor: Colors.pinkAccent,
+          activeColor: AppColors.loginbg,
         ),
         onTap: () {
           setState(() {

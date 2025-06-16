@@ -1,6 +1,172 @@
+import 'package:icar_instagram_ui/models/subcategory_model.dart';
 import 'package:intl/intl.dart';
 
 class FilterConstants {
+  // Spare parts categories
+  // Categories
+  static const List<Map<String, String>> sparePartsCategories = [
+    {
+      'id': '1',
+      'name': 'Filter',
+      'image': 'assets/images/categoryImages/Filtre.png',
+    },
+    {
+      'id': '2',
+      'name': 'Freinage',
+      'image': 'assets/images/categoryImages/Freinage.png',
+    },
+    {
+      'id': '3',
+      'name': 'Pneus et produits associés',
+      'image': 'assets/images/categoryImages/Pneus et produits associés.png',
+    },
+  ];
+
+  // Subcategories
+  static List<Subcategory> getSubcategories(String categoryId) {
+    switch (categoryId) {
+       case '1': // Filtre
+      return [
+        Subcategory(
+          id: '1-1',
+          name: 'Filtre à Huile',
+          imagePath: 'assets/images/subcategoryImages/filtres_sub_images/1.jpg',
+          categoryId: '1',
+        ),
+        Subcategory(
+          id: '1-2',
+          name: 'Filtre à Air',
+          imagePath: 'assets/images/subcategoryImages/filtres_sub_images/2.jpg',
+          categoryId: '1',
+        ),
+        Subcategory(
+          id: '1-3',
+          name: 'Filtre d\'Habitacle',
+          imagePath: 'assets/images/subcategoryImages/filtres_sub_images/3.jpg',
+          categoryId: '1',
+        ),
+        Subcategory(
+          id: '1-4',
+          name: 'Filtre à Carburant',
+          imagePath: 'assets/images/subcategoryImages/filtres_sub_images/4.jpg',
+          categoryId: '1',
+        ),
+        Subcategory(
+          id: '1-5',
+          name: 'Filtre, unité d\'alimentation de carburant',
+          imagePath: 'assets/images/subcategoryImages/filtres_sub_images/5.jpg',
+          categoryId: '1',
+        ),
+        Subcategory(
+          id: '1-6',
+          name: 'Kit De Filtres',
+          imagePath: 'assets/images/subcategoryImages/filtres_sub_images/6.jpg',
+          categoryId: '1',
+        ),
+        Subcategory(
+          id: '1-7',
+          name: 'Filtre de Boite Automatique',
+          imagePath: 'assets/images/subcategoryImages/filtres_sub_images/7.jpg',
+          categoryId: '1',
+        ),
+        Subcategory(
+          id: '1-8',
+          name: 'Jeu de pièces, Vidange boîte automatique',
+          imagePath: 'assets/images/subcategoryImages/filtres_sub_images/8.jpg',
+          categoryId: '1',
+        ),
+        Subcategory(
+          id: '1-9',
+          name: 'Bouteille Déshydratante',
+          imagePath: 'assets/images/subcategoryImages/filtres_sub_images/9.jpg',
+          categoryId: '1',
+        ),
+        Subcategory(
+          id: '1-10',
+          name: 'Filtre Hydraulique Direction',
+          imagePath: 'assets/images/subcategoryImages/filtres_sub_images/10.jpg',
+          categoryId: '1',
+        ),
+        Subcategory(
+          id: '1-11',
+          name: 'Filtre à air sport',
+          imagePath: 'assets/images/subcategoryImages/filtres_sub_images/11.jpg',
+          categoryId: '1',
+        ),
+        Subcategory(
+          id: '1-12',
+          name: 'Joint Etancheité Boîtier De Filtre A Huilde',
+          imagePath: 'assets/images/subcategoryImages/filtres_sub_images/12.jpg',
+          categoryId: '1',
+        ),
+        Subcategory(
+          id: '1-13',
+          name: 'Durite D\'Admission D\'Air',
+          imagePath: 'assets/images/subcategoryImages/filtres_sub_images/13.jpg',
+          categoryId: '1',
+        ),
+        Subcategory(
+          id: '1-14',
+          name: 'Soupape, filtre à carburant',
+          imagePath: 'assets/images/subcategoryImages/filtres_sub_images/14.jpg',
+          categoryId: '1',
+        ),
+        Subcategory(
+          id: '1-15',
+          name: 'Boîtier De Filtres à Huile / Joint',
+          imagePath: 'assets/images/subcategoryImages/filtres_sub_images/15.jpg',
+          categoryId: '1',
+        ),
+        Subcategory(
+          id: '1-16',
+          name: 'Support Bloc Du Filtre A Air',
+          imagePath: 'assets/images/subcategoryImages/filtres_sub_images/16.jpg',
+          categoryId: '1',
+        ),
+        Subcategory(
+          id: '1-17',
+          name: 'Filtre à air secondaire',
+          imagePath: 'assets/images/subcategoryImages/filtres_sub_images/17.jpg',
+          categoryId: '1',
+        ),
+        Subcategory(
+          id: '1-18',
+          name: 'Clé à filtre',
+          imagePath: 'assets/images/subcategoryImages/filtres_sub_images/18.jpg',
+          categoryId: '1',
+        ),
+      ];
+      case '2': // Brake System
+        return [
+          Subcategory(
+          id: '2-1',
+          name: 'Plaquettes de frein',
+          imagePath: 'assets/images/subcategoryImages/Freinage/1.jpg',
+          categoryId: '2',
+        ),
+          // Add more subcategories as needed
+        ];
+      case '3': // Tires & Accessories
+        return [
+          Subcategory(
+          id: '3-1',
+          name: 'Pneus Été',
+          imagePath: 'assets/images/subcategoryImages/Pneus et produits associés/1.jpg',
+          categoryId: '3',
+        ),
+          Subcategory(
+            id: '3-2',
+            name: 'Pneus Hiver',
+            imagePath: 'assets/images/subcategoryImages/Pneus et produits associés/2.jpg',
+            categoryId: '3',
+          ),
+          // Add more tire subcategories as needed
+        ];
+      default:
+        return [];
+    }
+  }
+  
   // Price range
   static const double minPrice = 0.0;
   static const double maxPrice = 100000.0;
