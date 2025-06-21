@@ -10,6 +10,7 @@ import 'services/car_profile_service.dart';
 import 'services/notification_service.dart';
 import 'services/garage_service.dart';
 import 'services/tow_truck_service.dart';
+import 'services/spare_parts_service.dart';
 
 class ServiceLocator {
   static final ServiceLocator _instance = ServiceLocator._internal();
@@ -22,6 +23,7 @@ class ServiceLocator {
   late final NotificationService notificationService;
   late final GarageService garageService;
   late final TowTruckService towTruckService;
+  late final SparePartsService sparePartsService;
   
   // Async initialization flag
   bool _isInitialized = false;
@@ -91,6 +93,7 @@ class ServiceLocator {
     notificationService = NotificationService(client: _httpClient, storage: _storage);
     garageService = GarageService(client: _httpClient, storage: _storage);
     towTruckService = TowTruckService(client: _httpClient, storage: _storage);
+    sparePartsService = SparePartsService(client: _httpClient, storage: _storage);
     
     // Initialize the service
     await carProfileService.initialize();
