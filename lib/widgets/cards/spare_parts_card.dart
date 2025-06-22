@@ -3,11 +3,10 @@ import 'package:share_plus/share_plus.dart';
 
 class SparePartsCard extends StatelessWidget {
   final String partName;
-  final String price;
-  final String condition;
-  final String location;
+  final String? location;
   final String? imageUrl;
   final String? sellerName;
+  final String? mobileNumber;
   final bool isFavorite;
   final VoidCallback? onTap;
   final VoidCallback? onFavoritePressed;
@@ -16,11 +15,10 @@ class SparePartsCard extends StatelessWidget {
   const SparePartsCard({
     Key? key,
     required this.partName,
-    required this.price,
-    required this.condition,
-    required this.location,
+    this.location,
     this.imageUrl,
     this.sellerName,
+    this.mobileNumber,
     this.isFavorite = false,
     this.onTap,
     this.onFavoritePressed,
@@ -57,21 +55,23 @@ class SparePartsCard extends StatelessWidget {
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
-                        color: Color(0xFF245124),
+                        color: Color(0xFF2E7D32),
                         letterSpacing: 0.5,
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 8),
-                    _buildInfoRow(Icons.attach_money, 'Price: $price'),
-                    const SizedBox(height: 6),
-                    _buildInfoRow(Icons.construction, 'Condition: $condition'),
-                    const SizedBox(height: 6),
-                    _buildInfoRow(Icons.location_on, location),
+                    const SizedBox(height: 20),
                     if (sellerName != null) ...[
-                      const SizedBox(height: 6),
-                      _buildInfoRow(Icons.person, 'Seller: $sellerName'),
+                      _buildInfoRow(Icons.person, sellerName!),
+                      const SizedBox(height: 8),
+                    ],
+                    if (mobileNumber != null) ...[
+                      _buildInfoRow(Icons.phone, mobileNumber!),
+                      const SizedBox(height: 8),
+                    ],
+                    if (location != null) ...[
+                      _buildInfoRow(Icons.location_on, location!),
                     ],
                   ],
                 ),
@@ -101,7 +101,7 @@ class SparePartsCard extends StatelessWidget {
                     left: -40,
                     child: Container(
                       width: 50,
-                      height: 120,
+                    height: 120,
                       decoration: const BoxDecoration(
                         color: Color(0xFFD59500),
                         borderRadius: BorderRadius.only(
@@ -178,7 +178,7 @@ class SparePartsCard extends StatelessWidget {
                       left: 70,
                       right: 5,
                       child: GestureDetector(
-                        onTap: () => _shareSparePart(partName, price, imageUrl),
+                        onTap: () => _shareSparePart(partName, sellerName, imageUrl),
                         child: Container(
                           width: 30,
                           height: 30,
@@ -236,8 +236,9 @@ class SparePartsCard extends StatelessWidget {
     );
   }
 
-  void _shareSparePart(String partName, String price, String? imageUrl) {
-    final text = 'Check out this spare part: $partName for $price';
+  void _shareSparePart(String partName, String? sellerName, String? imageUrl) {
+    final text = 'Check out this spare part: $partName' + 
+                (sellerName != null ? ' from $sellerName' : '');
     Share.share(
       text,
       subject: 'Spare Part: $partName',

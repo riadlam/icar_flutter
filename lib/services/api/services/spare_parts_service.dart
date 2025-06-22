@@ -1,7 +1,9 @@
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:icar_instagram_ui/services/api/endpoints/api_endpoints.dart';
 import 'package:icar_instagram_ui/services/api/services/base_api_service.dart';
 import 'package:icar_instagram_ui/models/spare_parts_post.dart';
+import 'package:icar_instagram_ui/models/spare_parts_search_params.dart';
 
 class SparePart {
   final int id;
@@ -121,14 +123,143 @@ class SparePartsService extends BaseApiService {
 
   /// Get current user's spare parts posts
   Future<List<SparePartsPost>> getMySparePartsPosts() async {
+    final response = await get('/api/spare-parts/my-posts');
+    return (response['data'] as List).map((post) => SparePartsPost.fromJson(post)).toList();
+  }
+
+  /// Create a new spare parts post
+  Future<void> createSparePartsPost({
+    required String brand,
+    required String model,
+    required String spare_parts_category,
+    required List<String> spare_parts_subcategories,
+  }) async {
+    final response = await post(
+      '/api/spare-parts/posts',
+      body: {
+        'brand': brand,
+        'model': model,
+        'spare_parts_category': spare_parts_category,
+        'spare_parts_subcategories': spare_parts_subcategories,
+      },
+    );
+
+    if (response is! Map<String, dynamic>) {
+      throw Exception('Unexpected response format');
+    }
+  }
+
+  /// Search for spare parts profiles based on criteria
+  Future<SparePartsSearchResponse> searchSparePartsProfiles({
+    required String brand,
+    required String model,
+    required String category,
+    required String subcategory,
+  }) async {
+    final response = await post(
+      '${ApiEndpoints.apiPrefix}/spare-parts/search',
+      body: {
+        'brand': brand,
+        'model': model,
+        'spare_parts_category': category,
+        'spare_parts_subcategory': subcategory,
+      },
+    );
+
+    if (response is Map<String, dynamic>) {
+      return SparePartsSearchResponse.fromJson(response);
+    } else {
+      throw Exception('Unexpected response format');
+    }
+  }
+
+  /// Update a spare parts post
+  /// 
+  /// [postId] The ID of the post to update
+  /// [brand] The updated brand
+  /// [model] The updated model
+  /// [sparePartsCategory] The updated category
+  /// [sparePartsSubcategory] The updated subcategory
+  /// Returns true if the update was successful
+  Future<bool> updateSparePartsPost({
+    required int postId,
+    required String brand,
+    required String model,
+    required String sparePartsCategory,
+    required String sparePartsSubcategory,
+  }) async {
     try {
-      final response = await get('/api/spare-parts/my-posts');
-      final List<dynamic> postsData = response['data'] as List<dynamic>;
-      return postsData
-          .map((post) => SparePartsPost.fromJson(post as Map<String, dynamic>))
-          .toList();
-    } catch (e) {
-      rethrow;
+      print('Updating post with ID: $postId');
+      final response = await put(
+        '/api/spare-parts/posts/$postId',
+        body: {
+          'brand': brand,
+          'model': model,
+          'spare_parts_category': sparePartsCategory,
+          'spare_parts_subcategory': sparePartsSubcategory,
+        },
+      );
+
+      print('Update response: $response');
+      
+      // Check different possible success responses
+      if (response is Map<String, dynamic>) {
+        // Check for success message in the response
+        final message = response['message']?.toString().toLowerCase() ?? '';
+        if (message.contains('updated') && message.contains('success')) {
+          return true;
+        }
+        
+        // Check other possible success indicators
+        return response['success'] == true || 
+               response['updated'] == true ||
+               response['status'] == 'success';
+      }
+      
+      // If we get here, the response format wasn't as expected
+      // but we'll still consider it a success if we didn't get an error
+      return true;
+    } catch (e, stackTrace) {
+      print('Error in updateSparePartsPost: $e');
+      print('Stack trace: $stackTrace');
+      return false;
+    }
+  }
+
+  /// Delete a spare parts post
+  /// 
+  /// [postId] The ID of the post to delete
+  /// Returns true if the deletion was successful
+  Future<bool> deleteSparePartsPost(int postId) async {
+    try {
+      print('Deleting post with ID: $postId');
+      final response = await delete(
+        '/api/spare-parts/posts/$postId',
+      );
+
+      print('Delete response: $response');
+      
+      // Check different possible success responses
+      if (response is Map<String, dynamic>) {
+        // Check for success message in the response
+        final message = response['message']?.toString().toLowerCase() ?? '';
+        if (message.contains('deleted') && message.contains('success')) {
+          return true;
+        }
+        
+        // Check other possible success indicators
+        return response['success'] == true || 
+               response['deleted'] == true ||
+               response['status'] == 'success';
+      }
+      
+      // If we get here, the response format wasn't as expected
+      // but we'll still consider it a success if we didn't get an error
+      return true;
+    } catch (e, stackTrace) {
+      print('Error in deleteSparePartsPost: $e');
+      print('Stack trace: $stackTrace');
+      return false;
     }
   }
 }

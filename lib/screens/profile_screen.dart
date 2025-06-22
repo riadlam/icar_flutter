@@ -32,7 +32,7 @@ class ProfileScreen extends ConsumerWidget {
         // Otherwise show the appropriate profile based on role
         switch (role) {
           case UserRole.buyer:
-            return const BuyerProfileScreen();
+            return  BuyerProfileScreen();
           case UserRole.seller:
             return const SellerProfileScreen();
           case UserRole.mechanic:

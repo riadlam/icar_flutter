@@ -4,29 +4,117 @@ import 'package:icar_instagram_ui/constants/app_colors.dart';
 import 'package:icar_instagram_ui/models/spare_parts_post.dart';
 import 'package:icar_instagram_ui/providers/spare_parts_posts_provider.dart';
 import 'package:icar_instagram_ui/services/ui/bottom_sheet_service.dart' as bottom_sheet_service;
+import 'package:icar_instagram_ui/services/api/service_locator.dart';
 
 class SparePartsPostsGrid extends ConsumerWidget {
   const SparePartsPostsGrid({Key? key}) : super(key: key);
 
-  Future<void> _showEditBottomSheet(SparePartsPost post, BuildContext context) async {
+  Future<void> _showEditBottomSheet(SparePartsPost post, BuildContext context, WidgetRef ref) async {
     print('Opening bottom sheet for post: ${post.id}');
     try {
       await bottom_sheet_service.BottomSheetService.showEditPostBottomSheet(
         context: context,
         post: post,
-        onSave: (updatedPost) {
-          if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Changes saved successfully')),
+        onSave: (updatedPost) async {
+          if (!context.mounted) return;
+          
+          final scaffoldMessenger = ScaffoldMessenger.of(context);
+          final refresh = ref.read(sparePartsRefreshProvider);
+          
+          try {
+            // Show loading indicator
+            final success = await serviceLocator.sparePartsService.updateSparePartsPost(
+              postId: updatedPost.id,
+              brand: updatedPost.brand,
+              model: updatedPost.model,
+              sparePartsCategory: updatedPost.sparePartsCategory,
+              sparePartsSubcategory: updatedPost.sparePartsSubcategory,
             );
+            
+            if (success) {
+              // Refresh the posts list
+              await refresh.refresh();
+              
+              if (context.mounted) {
+                scaffoldMessenger.showSnackBar(
+                  const SnackBar(content: Text('Post updated successfully')),
+                );
+                // The bottom sheet will be automatically closed after this callback
+              }
+            } else {
+              if (context.mounted) {
+                scaffoldMessenger.showSnackBar(
+                  const SnackBar(content: Text('Failed to update post')),
+                );
+              }
+            }
+          } catch (e) {
+            if (context.mounted) {
+              scaffoldMessenger.showSnackBar(
+                SnackBar(content: Text('Error updating post: ${e.toString()}')),
+              );
+            }
+            print('Error updating post: $e');
           }
         },
-        onDelete: () {
-          if (context.mounted) {
-            Navigator.of(context).pop();
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Post deleted')),
-            );
+        onDelete: () async {
+          try {
+            // Show a confirmation dialog
+            final shouldDelete = await showDialog<bool>(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('Delete Post'),
+                content: const Text('Are you sure you want to delete this post?'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    child: const Text('Cancel'),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(true),
+                    style: TextButton.styleFrom(foregroundColor: Colors.red),
+                    child: const Text('Delete'),
+                  ),
+                ],
+              ),
+            ) ?? false;
+
+            if (shouldDelete && context.mounted) {
+              // Show loading indicator
+              final scaffoldMessenger = ScaffoldMessenger.of(context);
+              final navigator = Navigator.of(context);
+              
+              // Get the refresh function from the provider
+              final refresh = ref.read(sparePartsRefreshProvider);
+              
+              // Call the delete API
+              final success = await serviceLocator.sparePartsService.deleteSparePartsPost(post.id);
+              
+              if (success) {
+                // Refresh the posts list
+                await refresh.refresh();
+                
+                if (context.mounted) {
+                  scaffoldMessenger.showSnackBar(
+                    const SnackBar(content: Text('Post deleted successfully')),
+                  );
+                  navigator.pop(); // Close the bottom sheet
+                }
+              } else {
+                if (context.mounted) {
+                  scaffoldMessenger.showSnackBar(
+                    const SnackBar(content: Text('Failed to delete post')),
+                  );
+                }
+              }
+            }
+          } catch (e) {
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Error deleting post: ${e.toString()}')),
+              );
+            }
+            print('Error deleting post: $e');
           }
         },
       );
@@ -86,7 +174,7 @@ class SparePartsPostsGrid extends ConsumerWidget {
               itemCount: posts.length,
               itemBuilder: (context, index) {
                 final post = posts[index];
-                return _buildPostCard(context, post);
+                return _buildPostCard(context, post, ref);
               },
             );
           },
@@ -111,7 +199,7 @@ class SparePartsPostsGrid extends ConsumerWidget {
     return 'assets/images/brandimages/$formattedBrand.PNG';
   }
 
-  Widget _buildPostCard(BuildContext context, SparePartsPost post) {
+  Widget _buildPostCard(BuildContext context, SparePartsPost post, WidgetRef ref) {
     print('Building post card for post: ${post.id}');
     // Get brand image path
     final brandImagePath = _getBrandImagePath(post.brand);
@@ -123,7 +211,7 @@ class SparePartsPostsGrid extends ConsumerWidget {
     // Handle tap on post card
     void _handleTap() {
       print('Tapped on post: ${post.id}');
-      _showEditBottomSheet(post, context);
+      _showEditBottomSheet(post, context, ref);
     }
     
     if (category.contains('filter')) {
@@ -188,17 +276,10 @@ class SparePartsPostsGrid extends ConsumerWidget {
                             ),
                           ],
                         ),
-                        child: Image.asset(
-                          brandImagePath,
-                          width: brandLogoSize,
-                          height: brandLogoSize,
-                          fit: BoxFit.contain,
-                          errorBuilder: (context, error, stackTrace) => Icon(
-                            Icons.edit, 
+                        child: Icon(Icons.edit, 
                             size: brandLogoSize * 0.75,
                             color: AppColors.loginbg,
                           ),
-                        ),
                       ),
                     ),
                   ],
@@ -269,16 +350,19 @@ class SparePartsPostsGrid extends ConsumerWidget {
                             children: [
                             
                               Text(
-                                post.sparePartsSubcategory,
+                                post.sparePartsSubcategory.length > 25
+                                    ? post.sparePartsSubcategory.substring(0, 25) + '..'
+                                    : post.sparePartsSubcategory,
                                 style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 15,
-                                color:  AppColors.loginbg,
-                                height: 1.2,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                  color: AppColors.loginbg,
+                                  height: 1.2,
                                 ),
                                 maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                                overflow: TextOverflow.visible, // use visible since you're managing overflow manually
                               ),
+
                             ],
                           ),
                         ),

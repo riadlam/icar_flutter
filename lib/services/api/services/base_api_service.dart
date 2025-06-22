@@ -74,7 +74,57 @@ class BaseApiService {
     }
   }
 
-  // Add other HTTP methods (PUT, DELETE, etc.) as needed
+  Future<dynamic> delete(String endpoint) async {
+    try {
+      final uri = Uri.parse('${ApiEndpoints.baseUrl}$endpoint');
+      final headers = await getAuthHeaders();
+      
+      if (kDebugMode) {
+        debugPrint('DELETE $uri');
+        debugPrint('Headers: $headers');
+      }
+      
+      final response = await _client.delete(
+        uri,
+        headers: headers,
+      ).timeout(ApiEndpoints.receiveTimeout);
+          
+      return _handleResponse(response);
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('DELETE request failed: $e');
+      }
+      rethrow;
+    }
+  }
+
+  Future<dynamic> put(String endpoint, {dynamic body}) async {
+    try {
+      final uri = Uri.parse('${ApiEndpoints.baseUrl}$endpoint');
+      final headers = await getAuthHeaders();
+      final encodedBody = body != null ? json.encode(body) : null;
+      
+      if (kDebugMode) {
+        debugPrint('PUT $uri');
+        debugPrint('Headers: $headers');
+        debugPrint('Body: $encodedBody');
+      }
+      
+      final response = await _client.put(
+        uri,
+        headers: headers,
+        body: encodedBody,
+      ).timeout(ApiEndpoints.receiveTimeout);
+          
+      return _handleResponse(response);
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('PUT request failed: $e');
+      }
+      rethrow;
+    }
+  }
+
 
   dynamic _handleResponse(http.Response response) {
     switch (response.statusCode) {

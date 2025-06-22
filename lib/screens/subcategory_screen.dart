@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:icar_instagram_ui/models/subcategory_model.dart';
+import 'package:icar_instagram_ui/outils/appbar_custom.dart';
 import 'package:icar_instagram_ui/widgets/category_card.dart';
 
 class SubcategoryScreen extends StatelessWidget {
@@ -18,10 +19,7 @@ class SubcategoryScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(categoryName),
-        centerTitle: true,
-      ),
+     appBar:AnimatedSearchAppBar(),
       body: ListView.builder(
         padding: const EdgeInsets.all(12.0),
         itemCount: subcategories.length,
@@ -33,8 +31,14 @@ class SubcategoryScreen extends StatelessWidget {
               name: subcategory.name,
               imagePath: subcategory.imagePath,
               onTap: () {
-                // Navigate to car brands screen when any subcategory is tapped
-                context.push('/car-brands');
+                // Navigate to car brands screen with category and subcategory information
+                context.push(
+                  '/car-brands',
+                  extra: {
+                    'categoryName': categoryName,
+                    'subcategoryName': subcategory.name,
+                  },
+                );
               },
             ),
           );

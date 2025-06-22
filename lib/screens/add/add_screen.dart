@@ -32,9 +32,9 @@ class AddScreen extends ConsumerWidget {
         // Otherwise show the appropriate add screen based on role
         switch (role) {
           case UserRole.buyer:
-            return const BuyerAddScreen();
+            return const SellerAddScreen();
           case UserRole.seller:
-            return const BuyerAddScreen();
+            return const SellerAddScreen();
           case UserRole.mechanic:
             return const MechanicAddScreen();
           case UserRole.other:

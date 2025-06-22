@@ -5,9 +5,12 @@ import 'package:icar_instagram_ui/providers/spare_parts_profile_provider.dart';
 import 'package:icar_instagram_ui/providers/spare_parts_posts_provider.dart';
 import 'package:icar_instagram_ui/widgets/cards/spare_parts_card.dart';
 import 'package:icar_instagram_ui/widgets/spare_parts_posts_grid.dart';
+import 'package:icar_instagram_ui/widgets/two%20truck/menu_navbar/tow_truck_navbar.dart';
 
 class BuyerProfileScreen extends ConsumerWidget {
-  const BuyerProfileScreen({super.key});
+  BuyerProfileScreen({super.key});
+  
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -17,9 +20,12 @@ class BuyerProfileScreen extends ConsumerWidget {
     );
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text('my_spare_parts_profile'.tr()),
+      key: _scaffoldKey,
+      appBar: TowTruckNavBar(
+        scaffoldKey: _scaffoldKey,
+        title: 'app_title'.tr(),
       ),
+      endDrawer: TowTruckNavBar.buildDrawer(context),
       body: sparePartsProfileAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stack) => Center(
@@ -33,11 +39,9 @@ class BuyerProfileScreen extends ConsumerWidget {
               children: [
                 // Store Info Card
                 SparePartsCard(
-                  partName: profile.storeName,
-                  price: '', // Empty price since this is a store info card
-                  condition: '', // Not used for store info
+                  partName: profile.storeName.isNotEmpty ? profile.storeName : 'Store',
                   location: profile.city.isNotEmpty ? profile.city : 'N/A',
-                  sellerName: profile.mobile.isNotEmpty ? 'Phone: ${profile.mobile}' : 'N/A',
+                  mobileNumber: profile.mobile,
                   showFavoriteButton: false, // Hide favorite button for store info
                   onTap: () {
                     // TODO: Implement store details navigation if needed

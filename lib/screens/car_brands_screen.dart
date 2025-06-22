@@ -1,19 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:icar_instagram_ui/constants/filter_constants.dart';
+import 'package:icar_instagram_ui/outils/appbar_custom.dart';
 import 'package:icar_instagram_ui/widgets/category_card.dart';
 
 class CarBrandsScreen extends StatelessWidget {
-  const CarBrandsScreen({Key? key}) : super(key: key);
+  final String category;
+  final String subcategory;
+
+  const CarBrandsScreen({
+    Key? key,
+    this.category = '',
+    this.subcategory = '',
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     final brands = brandModels.keys.toList()..sort();
     
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Select Brand'),
-      ),
+      appBar:AnimatedSearchAppBar(),
       body: ListView.builder(
         padding: const EdgeInsets.all(8.0),
         itemCount: brands.length,
@@ -27,7 +33,15 @@ class CarBrandsScreen extends StatelessWidget {
               name: brand,
               imagePath: imagePath,
               onTap: () {
-                context.push('/car-models', extra: brand);
+                // Navigate to car models with brand, category, and subcategory
+                context.push(
+                  '/car-models',
+                  extra: {
+                    'brand': brand,
+                    'category': category,
+                    'subcategory': subcategory,
+                  },
+                );
               },
             ),
           );

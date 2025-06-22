@@ -108,23 +108,30 @@ class AppRouter {
       ),
       GoRoute(
         path: '/car-brands',
-        builder: (context, state) => const CarBrandsScreen(),
+        builder: (context, state) {
+          final args = state.extra as Map<String, dynamic>? ?? {};
+          return CarBrandsScreen(
+            category: args['categoryName'] as String? ?? '',
+            subcategory: args['subcategoryName'] as String? ?? '',
+          );
+        },
       ),
       GoRoute(
         path: '/car-models',
         builder: (context, state) {
-          final brand = state.extra as String;
-          return CarModelsScreen(brand: brand);
+          final args = state.extra as Map<String, dynamic>;
+          return CarModelsScreen(
+            brand: args['brand'] as String,
+            category: args['category'] as String? ?? '',
+            subcategory: args['subcategory'] as String? ?? '',
+          );
         },
       ),
       GoRoute(
         path: '/spare-parts-list',
         builder: (context, state) {
           final args = state.extra as Map<String, dynamic>;
-          return SparePartsListScreen(
-            brand: args['brand'],
-            model: args['model'],
-          );
+          return SparePartsListScreen(args: args);
         },
       ),
       // Car detail route
