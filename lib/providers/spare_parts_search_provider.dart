@@ -17,6 +17,7 @@ class SparePartsSearchNotifier extends StateNotifier<AsyncValue<SparePartsSearch
     required String model,
     required String category,
     required String subcategory,
+    String city = '',
   }) async {
     state = const AsyncValue.loading();
     try {
@@ -25,6 +26,7 @@ class SparePartsSearchNotifier extends StateNotifier<AsyncValue<SparePartsSearch
         model: model,
         category: category,
         subcategory: subcategory,
+        city: city,
       );
       state = AsyncValue.data(response);
     } catch (e, stackTrace) {

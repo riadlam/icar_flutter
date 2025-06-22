@@ -155,15 +155,23 @@ class SparePartsService extends BaseApiService {
     required String model,
     required String category,
     required String subcategory,
+    String city = '',
   }) async {
+    final Map<String, dynamic> body = {
+      'brand': brand,
+      'model': model,
+      'spare_parts_category': category,
+      'spare_parts_subcategory': subcategory,
+    };
+
+    // Add city to the request if provided
+    if (city.isNotEmpty) {
+      body['city'] = city;
+    }
+
     final response = await post(
       '${ApiEndpoints.apiPrefix}/spare-parts/search',
-      body: {
-        'brand': brand,
-        'model': model,
-        'spare_parts_category': category,
-        'spare_parts_subcategory': subcategory,
-      },
+      body: body,
     );
 
     if (response is Map<String, dynamic>) {

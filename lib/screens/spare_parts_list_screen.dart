@@ -24,6 +24,7 @@ class _SparePartsListScreenState extends ConsumerState<SparePartsListScreen> {
   late String model;
   late String category;
   late String subcategory;
+  late String city;
   bool _isInitialized = false;
   
   @override
@@ -34,6 +35,7 @@ class _SparePartsListScreenState extends ConsumerState<SparePartsListScreen> {
     model = widget.args['model'] as String;
     category = widget.args['category'] as String;
     subcategory = widget.args['subcategory'] as String;
+    city = widget.args['city'] as String? ?? '';
   }
 
   @override
@@ -57,6 +59,7 @@ class _SparePartsListScreenState extends ConsumerState<SparePartsListScreen> {
         model: model,
         category: category,
         subcategory: subcategory,
+        city: city,
       );
       
       if (mounted) {
@@ -130,6 +133,9 @@ class _SparePartsListScreenState extends ConsumerState<SparePartsListScreen> {
     }
     
     String selectedModel = models.contains(model) ? model : (models.isNotEmpty ? models.first : '');
+    
+    // Initialize city with current value or empty
+    String selectedCity = city;
     
     // Handle category
     String selectedCategory = category.isNotEmpty ? category : '';
@@ -316,6 +322,30 @@ class _SparePartsListScreenState extends ConsumerState<SparePartsListScreen> {
                           }
                         },
                 ),
+                const SizedBox(height: 12),
+                _buildFilterDropdown<String>(
+                  title: 'City',
+                  value: selectedCity.isNotEmpty ? selectedCity : null,
+                  items: [
+                    const DropdownMenuItem<String>(
+                      value: '',
+                      child: Text('All Cities'),
+                    ),
+                    ...filter_constants.FilterConstants.garageCities.map<DropdownMenuItem<String>>((city) {
+                      return DropdownMenuItem<String>(
+                        value: city,
+                        child: Text(city),
+                      );
+                    }).toList(),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() {
+                        selectedCity = value;
+                      });
+                    }
+                  },
+                ),
                 const SizedBox(height: 20),
                 Row(
                   children: [
@@ -336,6 +366,7 @@ class _SparePartsListScreenState extends ConsumerState<SparePartsListScreen> {
                             model = selectedModel;
                             category = selectedCategory;
                             subcategory = selectedSubcategory;
+                            city = selectedCity;
                           });
                           _searchSpareParts();
                           Navigator.pop(context);

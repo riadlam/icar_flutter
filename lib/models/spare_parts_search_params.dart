@@ -3,12 +3,14 @@ class SparePartsSearchParams {
   final String model;
   final String sparePartsCategory;
   final String sparePartsSubcategory;
+  final String city;
 
   SparePartsSearchParams({
     required this.brand,
     required this.model,
     required this.sparePartsCategory,
     required this.sparePartsSubcategory,
+    this.city = '',
   });
 
   Map<String, dynamic> toJson() => {
@@ -16,6 +18,7 @@ class SparePartsSearchParams {
         'model': model,
         'spare_parts_category': sparePartsCategory,
         'spare_parts_subcategory': sparePartsSubcategory,
+        'city': city,
       };
 }
 

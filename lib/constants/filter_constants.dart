@@ -416,6 +416,34 @@ static const List<String> garageCities = [
     '6.0L+',
   ];
   
+  // Cities
+  static const List<String> cities = [
+    'Tunis',
+    'Sfax',
+    'Sousse',
+    'Kairouan',
+    'Bizerte',
+    'Gabès',
+    'Ariana',
+    'Gafsa',
+    'Monastir',
+    'Ben Arous',
+    'Nabeul',
+    'Béja',
+    'Jendouba',
+    'Kasserine',
+    'Kébili',
+    'Le Kef',
+    'Mahdia',
+    'Manouba',
+    'Médenine',
+    'Sidi Bouzid',
+    'Siliana',
+    'Tataouine',
+    'Tozeur',
+    'Zaghouan',
+  ];
+
   // Features
   static const List<String> features = [
     'Air Conditioning',
