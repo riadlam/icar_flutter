@@ -87,7 +87,7 @@ class TowTruckServiceCard extends StatelessWidget {
                   left: -40,
                   child: Container(
                     width: 50,
-                    height: 1300,
+                    height: 120,
                     decoration: const BoxDecoration(
                       color: Color(0xFFD59500),
                       borderRadius: BorderRadius.only(

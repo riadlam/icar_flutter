@@ -21,6 +21,7 @@ import '../screens/add/add_screen.dart';
 import '../screens/car_notification_screen.dart';
 import '../screens/car_search_results_screen.dart';
 import '../screens/spare_parts_list_screen.dart';
+import '../screens/wishlist_screen.dart';
 
 import '../models/user_role.dart' as models;
 import '../models/car_post.dart';
@@ -248,6 +249,13 @@ class AppRouter {
             path: '/add',
             pageBuilder: (context, state) => const NoTransitionPage(
               child: AddScreen(),
+            ),
+          ),
+          // Wishlist screen
+          GoRoute(
+            path: '/wishlist',
+            pageBuilder: (context, state) => const NoTransitionPage(
+              child: WishlistScreen(),
             ),
           ),
         ],

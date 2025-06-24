@@ -8,7 +8,12 @@ import 'package:icar_instagram_ui/services/ui/bottom_sheet_service.dart' as bott
 import 'package:icar_instagram_ui/services/api/service_locator.dart';
 
 class SparePartsPostsGrid extends ConsumerWidget {
-  const SparePartsPostsGrid({Key? key}) : super(key: key);
+  final VoidCallback? onShare;
+  
+  const SparePartsPostsGrid({
+    Key? key,
+    this.onShare,
+  }) : super(key: key);
 
   Future<void> _showEditBottomSheet(SparePartsPost post, BuildContext context, WidgetRef ref) async {
     print('Opening bottom sheet for post: ${post.id}');
@@ -143,14 +148,6 @@ class SparePartsPostsGrid extends ConsumerWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'My Posts',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF245124),
-                ),
-              ),
               // Category filter dropdown
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -184,6 +181,27 @@ class SparePartsPostsGrid extends ConsumerWidget {
                   ),
                 ),
               ),
+              if (onShare != null)
+                IconButton(
+                  icon: Image.asset(
+                    'assets/images/newshare.png',
+                    width: 30,
+                    height: 30,
+                    color: const Color(0xFF245124),
+                  ),
+                  onPressed: onShare,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                )
+              else
+                const Text(
+                  'My Posts',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF245124),
+                  ),
+                ),
             ],
           ),
         ),

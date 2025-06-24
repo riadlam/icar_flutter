@@ -500,6 +500,8 @@ class _SparePartsListScreenState extends ConsumerState<SparePartsListScreen> {
                         partName: profile.storeName,
                         location: profile.city,
                         mobileNumber: profile.mobile,
+                        partId: '${profile.storeName}_${profile.mobile}', // Create a unique ID for wishlist
+                        profile: profile,
                         imageUrl: 'https://via.placeholder.com/150',
                         onTap: () {
                           // Handle tap on spare part profile

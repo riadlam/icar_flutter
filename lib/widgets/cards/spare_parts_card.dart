@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
+import '../../models/spare_parts_search_params.dart';
+import '../../providers/spare_parts_wishlist_provider.dart';
+import '../../services/share_service.dart';
 
 class SparePartsCard extends StatelessWidget {
   final String partName;
@@ -11,6 +15,11 @@ class SparePartsCard extends StatelessWidget {
   final VoidCallback? onTap;
   final VoidCallback? onFavoritePressed;
   final bool showFavoriteButton;
+  final VoidCallback? onEdit;
+  final bool showEditButton;
+  final bool showShareButton;
+  final String partId; // Required partId for wishlist functionality
+  final SparePartsProfile? profile; // The full profile data
 
   const SparePartsCard({
     Key? key,
@@ -23,6 +32,11 @@ class SparePartsCard extends StatelessWidget {
     this.onTap,
     this.onFavoritePressed,
     this.showFavoriteButton = true,
+    this.onEdit,
+    this.showEditButton = false,
+    this.showShareButton = false,
+    required this.partId,
+    this.profile,
   }) : super(key: key);
 
   @override
@@ -113,32 +127,48 @@ class SparePartsCard extends StatelessWidget {
                   ),
 
                   // Part image or placeholder
-                  Positioned.fill(
-                    child: imageUrl != null
-                        ? ClipRRect(
-                            borderRadius: const BorderRadius.only(
-                              topRight: Radius.circular(16),
-                              bottomRight: Radius.circular(16),
-                            ),
-                            child: Image.network(
-                              imageUrl!,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) => _buildPlaceholderIcon(),
-                            ),
-                          )
-                        : _buildPlaceholderIcon(),
+                 Positioned(
+                    right: 30,
+                    top: 20,
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        borderRadius: const BorderRadius.only(
+                          topRight: Radius.circular(16),
+                          bottomRight: Radius.circular(16),
+                        ),
+                        // Optional: add a background color or shadow if needed
+                      ),
+                      width: 90, // You can adjust width and height as needed
+                      height: 90,
+                      child: imageUrl != null
+                          ? ClipRRect(
+                              borderRadius: const BorderRadius.only(
+                                topRight: Radius.circular(16),
+                                bottomRight: Radius.circular(16),
+                              ),
+                              child: Image.network(
+                                imageUrl!,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    _buildPlaceholderIcon(),
+                              ),
+                            )
+                          : _buildPlaceholderIcon(),
+                    ),
                   ),
 
-                  // Floating iCar bottom container
+
+                 // Floating iCar bottom container
                   Positioned(
                     bottom: 0,
                     left: -10,
                     right: 40,
                     child: Container(
-                      height: 60,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFdeebd9),
-                        borderRadius: BorderRadius.only(
+                      height: 80,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFdeebd9),
+                        borderRadius: const BorderRadius.only(
                           topRight: Radius.circular(40),
                           bottomRight: Radius.circular(40),
                         ),
@@ -150,50 +180,90 @@ class SparePartsCard extends StatelessWidget {
                           color: Color(0XFF245124),
                           fontWeight: FontWeight.bold,
                           letterSpacing: 1.2,
-                          fontSize: 24,
+                          fontSize: 30,
                         ),
                       ),
                     ),
                   ),
-
-                  // Favorite button
-                  if (showFavoriteButton && onFavoritePressed != null)
+                  // Edit button (only shown when showEditButton is true)
+                  if (showEditButton && onEdit != null)
                     Positioned(
                       top: 8,
                       right: 8,
                       child: IconButton(
-                        icon: Icon(
-                          isFavorite ? Icons.favorite : Icons.favorite_border,
-                          color: isFavorite ? Colors.red : Colors.white,
-                          size: 30,
+                        icon: const Icon(
+                          Icons.edit,
+                          color: Colors.white,
+                          size: 24,
                         ),
-                        onPressed: onFavoritePressed,
+                        onPressed: onEdit,
+                      ),
+                    ),
+                  // Share button (only shown when showFavoriteButton is true)
+                  if (showFavoriteButton)
+                  Positioned(
+                    bottom: 5,
+                    left: 70,
+                    right: 5,
+                    child: GestureDetector(
+                      onTap: () => ShareService.shareSparePartsProfile(context, profile!),
+                      child: Container(
+                        width: 30,
+                        height: 30,
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Center(
+                          child: Image.asset(
+                            'assets/images/sharebutton.webp',
+                            width: 20,
+                            height: 20,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Favorite button
+                  if (showFavoriteButton)
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Consumer(
+                        builder: (context, ref, _) {
+                          final isInWishlist = ref.watch(sparePartsWishlistProvider).containsKey(partId);
+                          return IconButton(
+                            icon: Icon(
+                              isInWishlist ? Icons.favorite : Icons.favorite_border,
+                              color: Colors.red,
+                              size: 30,
+                            ),
+                            onPressed: () {
+                              debugPrint('Toggling wishlist for part: $partId, current state: $isInWishlist');
+                              // Call the original onFavoritePressed if provided
+                              if (onFavoritePressed != null) {
+                                onFavoritePressed!();
+                              } else if (profile != null) {
+                                ref.read(sparePartsWishlistProvider.notifier).toggleWishlist(profile!);
+                              }
+                            },
+                          );
+                        },
                       ),
                     ),
 
-                  // Share button
-                  if (showFavoriteButton)
+                  // Share button (positioned below favorite button)
+                  if (showShareButton)
                     Positioned(
-                      bottom: 5,
-                      left: 70,
-                      right: 5,
-                      child: GestureDetector(
-                        onTap: () => _shareSparePart(partName, sellerName, imageUrl),
-                        child: Container(
-                          width: 30,
-                          height: 30,
-                          decoration: const BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Center(
-                            child: Image.asset(
-                              'assets/images/sharebutton.webp',
-                              width: 20,
-                              height: 20,
-                            ),
-                          ),
+                      top: (showEditButton ? 48 : 8) + (showFavoriteButton ? 40 : 0), // Position below favorite button
+                      right: 8,
+                      child: IconButton(
+                        icon: const Icon(
+                          Icons.share,
+                          color: Colors.white,
+                          size: 24,
                         ),
+                        onPressed: () => _shareSparePart(partName, sellerName, imageUrl),
                       ),
                     ),
                 ],
@@ -229,9 +299,9 @@ class SparePartsCard extends StatelessWidget {
   Widget _buildPlaceholderIcon() {
     return const Center(
       child: Icon(
-        Icons.inventory_2_outlined,
+        Icons.shopping_cart_sharp,
         size: 60,
-        color: Colors.black26,
+        color: Colors.black,
       ),
     );
   }

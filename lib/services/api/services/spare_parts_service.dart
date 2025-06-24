@@ -95,6 +95,30 @@ class SparePartsService extends BaseApiService {
     }
   }
 
+  /// Update store information
+  Future<Map<String, dynamic>> updateStoreInfo({
+    required String storeName,
+    required String mobile,
+    required String city,
+  }) async {
+    try {
+      final response = await put(
+        '/api/spare-parts/profile',
+        body: {
+          'store_name': storeName,
+          'mobile': mobile,
+          'city': city,
+        },
+      );
+      return {
+        'success': true,
+        'data': SparePartsProfile.fromJson(response['data'] as Map<String, dynamic>)
+      };
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   /// Get spare parts by seller ID
   Future<List<SparePart>> getSparePartsBySeller(int sellerId) async {
     try {

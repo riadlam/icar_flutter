@@ -6,6 +6,7 @@ import 'package:icar_instagram_ui/constants/app_colors.dart';
 import '../../providers/wishlist_provider.dart';
 import '../../providers/tow_truck_wishlist_provider.dart';
 import '../../providers/car_wishlist_provider.dart';
+import '../../providers/spare_parts_wishlist_provider.dart';
 
 class BottomNavigationBarWidget extends StatelessWidget {
   final int currentIndex;
@@ -54,7 +55,8 @@ class BottomNavigationBarWidget extends StatelessWidget {
                 final garageWishlistCount = ref.watch(wishlistCountProvider);
                 final towTruckWishlistCount = ref.watch(towTruckWishlistCountProvider);
                 final carWishlistCount = ref.watch(carWishlistCountProvider);
-                final totalWishlistCount = garageWishlistCount + towTruckWishlistCount + carWishlistCount;
+                final sparePartsWishlistCount = ref.watch(sparePartsWishlistCountProvider);
+                final totalWishlistCount = garageWishlistCount + towTruckWishlistCount + carWishlistCount + sparePartsWishlistCount;
                 return Tooltip(
                   message: 'wishlist'.tr(),
                   child: Stack(

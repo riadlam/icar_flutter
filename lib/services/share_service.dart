@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../models/car_post.dart';
 import '../models/garage_service.dart';
 import '../models/tow_truck_service.dart';
+import '../models/spare_parts_search_params.dart';
 
 class ShareService {
   // Private constructor
@@ -500,6 +501,161 @@ class ShareService {
         break;
       case 'email':
         await _shareViaEmail(fullShareText, service.businessName);
+        break;
+      case 'copy':
+        await Share.share(shareUrl);
+        break;
+      case 'facebook':
+        await _shareViaFacebook(fullShareText);
+        break;
+      case 'whatsapp':
+        await _shareViaWhatsApp(fullShareText);
+        break;
+      case 'instagram':
+        await _shareViaInstagram(shareUrl);
+        break;
+    }
+  }
+
+  static Future<void> shareSparePartsProfile(
+    BuildContext context, 
+    SparePartsProfile profile, {
+    String? imagePath,
+  }) async {
+    // Ensure we have a valid context
+    if (!context.mounted) return;
+    
+    // Create a share text with spare parts details
+    final shareText = 'Check out ${profile.storeName} - ${profile.storeName} in ${profile.city}\n\n';
+    
+    // Show a bottom sheet with sharing options
+    final result = await showModalBottomSheet<Map<String, dynamic>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext context) => Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(24),
+            topRight: Radius.circular(24),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 10,
+              spreadRadius: 5,
+            ),
+          ],
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Drag handle
+              Container(
+                margin: const EdgeInsets.only(top: 8, bottom: 4),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[400],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              
+              // Title
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Text(
+                  'Share this spare part',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).textTheme.titleLarge?.color,
+                  ),
+                ),
+              ),
+              
+              // Share options
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                child: Column(
+                  children: [
+                    // First row of share options
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _buildShareButton(
+                          context: context,
+                          icon: Icons.message_rounded,
+                          label: 'Message',
+                          onTap: () => Navigator.pop(context, {'type': 'message'}),
+                        ),
+                        _buildShareButton(
+                          context: context,
+                          icon: Icons.email_rounded,
+                          label: 'Email',
+                          onTap: () => Navigator.pop(context, {'type': 'email'}),
+                        ),
+                        _buildShareButton(
+                          context: context,
+                          icon: Icons.copy_rounded,
+                          label: 'Copy Link',
+                          onTap: () => Navigator.pop(context, {'type': 'copy'}),
+                        ),
+                      ],
+                    ),
+                    
+                    const SizedBox(height: 16),
+                    
+                    // Second row of share options
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _buildShareButton(
+                          context: context,
+                          icon: Icons.facebook_rounded,
+                          label: 'Facebook',
+                          onTap: () => Navigator.pop(context, {'type': 'facebook'}),
+                        ),
+                        _buildShareButton(
+                          context: context,
+                          icon: Icons.share,
+                          label: 'WhatsApp',
+                          onTap: () => Navigator.pop(context, {'type': 'whatsapp'}),
+                        ),
+                        _buildShareButton(
+                          context: context,
+                          icon: Icons.photo_camera_back_rounded,
+                          label: 'Instagram',
+                          onTap: () => Navigator.pop(context, {'type': 'instagram'}),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              
+              const SizedBox(height: 24),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (result == null) return;
+
+    // Generate a share URL (this would be your actual URL in production)
+    final shareUrl = 'https://icar.com/spare-parts/${Uri.encodeComponent(profile.storeName)}';
+    final fullShareText = '$shareText$shareUrl';
+
+    // Handle the selected share option
+    switch (result['type']) {
+      case 'message':
+        await Share.share(fullShareText);
+        break;
+      case 'email':
+        await _shareViaEmail(fullShareText, profile.storeName);
         break;
       case 'copy':
         await Share.share(shareUrl);
