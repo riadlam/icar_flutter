@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:icar_instagram_ui/constants/app_colors.dart';
+import 'package:icar_instagram_ui/constants/filter_constants.dart';
 import 'package:icar_instagram_ui/models/spare_parts_post.dart';
 import 'package:icar_instagram_ui/providers/spare_parts_posts_provider.dart';
 import 'package:icar_instagram_ui/services/ui/bottom_sheet_service.dart' as bottom_sheet_service;
@@ -131,28 +132,71 @@ class SparePartsPostsGrid extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final postsAsync = ref.watch(sparePartsPostsProvider);
+    final selectedCategory = ref.watch(selectedCategoryProvider);
+    final postsAsync = ref.watch(sparePartsPostsProvider(selectedCategory));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-          child: Text(
-            'My Posts',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF245124),
-            ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'My Posts',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF245124),
+                ),
+              ),
+              // Category filter dropdown
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.loginbg),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: selectedCategory,
+                    hint: const Text('Categories'),
+                    icon: const Icon(Icons.arrow_drop_down, color: AppColors.loginbg),
+                    elevation: 16,
+                    style: const TextStyle(color: AppColors.loginbg, fontSize: 14),
+                    onChanged: (String? newValue) {
+                      ref.read(selectedCategoryProvider.notifier).state = newValue;
+                    },
+                    items: [
+                      const DropdownMenuItem<String>(
+                        value: null,
+                        child: Text('All Categories'),
+                      ),
+                      ...FilterConstants.sparePartsCategories.map<DropdownMenuItem<String>>((category) {
+                        return DropdownMenuItem<String>(
+                          value: category['name'],
+                          child: Text(category['name'] ?? 'Unknown'),
+                        );
+                      }).toList(),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
         const SizedBox(height: 8),
         postsAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (error, stack) => Center(
-            child: Text('Error loading posts: $error'),
-          ),
+          error: (error, stack) {
+            print('Error loading posts: $error');
+            print('Stack trace: $stack');
+            return Center(
+              child: Text('Error loading posts: ${error.toString()}'),
+            );
+          },
           data: (posts) {
             if (posts.isEmpty) {
               return const Padding(

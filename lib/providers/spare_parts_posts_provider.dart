@@ -2,10 +2,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:icar_instagram_ui/models/spare_parts_post.dart';
 import 'package:icar_instagram_ui/services/api/service_locator.dart';
 
+// Provider for the selected category
+final selectedCategoryProvider = StateProvider<String?>((ref) => null);
+
 // Provider for the posts data
-final sparePartsPostsProvider = FutureProvider.autoDispose<List<SparePartsPost>>((ref) async {
-  return _fetchSparePartsPosts();
-});
+final sparePartsPostsProvider = FutureProvider.autoDispose.family<List<SparePartsPost>, String?>(
+  (ref, category) async {
+    // This will automatically re-fetch when the category changes
+    return _fetchSparePartsPosts(category);
+  },
+);
 
 // Provider for the refresh functionality
 final sparePartsRefreshProvider = Provider<SparePartsRefresh>((ref) {
@@ -18,18 +24,36 @@ class SparePartsRefresh {
   SparePartsRefresh(this._ref);
   
   Future<void> refresh() async {
-    // Invalidate the provider to trigger a refresh
-    _ref.invalidate(sparePartsPostsProvider);
+    // Get the current category to maintain it during refresh
+    final currentCategory = _ref.read(selectedCategoryProvider);
     
-    // Force a new fetch and ignore the result since we're just refreshing
-    await _ref.refresh(sparePartsPostsProvider.future).then((_) => null);
+    // Invalidate the provider to trigger a refresh
+    _ref.invalidate(sparePartsPostsProvider(currentCategory));
+    
+    // Force a new fetch and ensure the result is used
+    final result = _ref.refresh(sparePartsPostsProvider(currentCategory).future);
+    await result;
   }
 }
 
-Future<List<SparePartsPost>> _fetchSparePartsPosts() async {
+// Helper function to get the current posts provider with the selected category
+final currentSparePartsPostsProvider = Provider.autoDispose<AsyncValue<List<SparePartsPost>>>((ref) {
+  final selectedCategory = ref.watch(selectedCategoryProvider);
+  return ref.watch(sparePartsPostsProvider(selectedCategory));
+});
+
+Future<List<SparePartsPost>> _fetchSparePartsPosts(String? category) async {
   try {
     final response = await serviceLocator.sparePartsService.getMySparePartsPosts();
-    return response;
+    
+    if (category == null || category.isEmpty) {
+      return response;
+    }
+    
+    // Filter posts by category (case-insensitive)
+    return response.where((post) => 
+      post.sparePartsCategory.toLowerCase().contains(category.toLowerCase())
+    ).toList();
   } catch (e) {
     rethrow;
   }
