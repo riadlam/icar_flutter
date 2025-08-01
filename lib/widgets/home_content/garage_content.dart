@@ -37,6 +37,7 @@ class _GarageContentState extends State<GarageContent> {
   void _showFilterSheet() {
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       builder: (context) => GarageFiltersSheet(
         initialCity: _selectedCity,
@@ -53,7 +54,9 @@ class _GarageContentState extends State<GarageContent> {
 
   @override
   Widget build(BuildContext context) {
-    return RefreshIndicator(
+    return Directionality(
+      textDirection: TextDirection.ltr, // Force LTR direction
+      child: RefreshIndicator(
       onRefresh: _refreshProfiles,
       child: FutureBuilder<List<GarageProfile>>(
         future: _loadProfiles(),
@@ -65,7 +68,7 @@ class _GarageContentState extends State<GarageContent> {
           }
 
           Widget content;
-          
+
           if (snapshot.connectionState == ConnectionState.waiting) {
             content = const Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
@@ -87,14 +90,15 @@ class _GarageContentState extends State<GarageContent> {
             );
           } else {
             final profiles = snapshot.data ?? [];
-            
+
             if (profiles.isEmpty) {
               content = const Center(
                 child: Text('No garage profiles found'),
               );
             } else {
               content = ListView.builder(
-                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                 itemCount: profiles.length,
                 itemBuilder: (context, index) {
                   final profile = profiles[index];
@@ -105,12 +109,13 @@ class _GarageContentState extends State<GarageContent> {
                     ownerName: profile.mechanicName,
                     phoneNumber: profile.mobile,
                     location: profile.city,
-                    imageUrl: 'https://via.placeholder.com/300x150?text=${Uri.encodeComponent(profile.businessName)}',
+                    imageUrl:
+                        'https://via.placeholder.com/300x150?text=${Uri.encodeComponent(profile.businessName)}',
                     services: profile.services ?? [],
                     rating: 4.5, // Default rating
-                    reviews: 10,  // Default reviews
+                    reviews: 10, // Default reviews
                   );
-                  
+
                   return GarageServiceCard(
                     service: garageService,
                     onTap: () {
@@ -127,7 +132,8 @@ class _GarageContentState extends State<GarageContent> {
             children: [
               // Filter button
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                 child: Row(
                   children: [
                     Expanded(
@@ -141,10 +147,14 @@ class _GarageContentState extends State<GarageContent> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           side: BorderSide(
-                            color: (_selectedCity != null || _selectedService != null)
-                                ? Theme.of(context).primaryColor 
+                            color: (_selectedCity != null ||
+                                    _selectedService != null)
+                                ? Theme.of(context).primaryColor
                                 : Colors.grey.shade300,
-                            width: (_selectedCity != null || _selectedService != null) ? 2.0 : 1.0,
+                            width: (_selectedCity != null ||
+                                    _selectedService != null)
+                                ? 2.0
+                                : 1.0,
                           ),
                         ),
                       ),
@@ -178,6 +188,6 @@ class _GarageContentState extends State<GarageContent> {
           );
         },
       ),
-    );
+    ));
   }
 }

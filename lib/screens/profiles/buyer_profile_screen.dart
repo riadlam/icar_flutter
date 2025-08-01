@@ -19,7 +19,7 @@ class BuyerProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final sparePartsProfileAsync = ref.watch(sparePartsProfileProvider);
     final sellerPartsAsync = ref.watch(
-      sellerSparePartsProvider(sparePartsProfileAsync.value?.id ?? 0),
+      sellerSparePartsProvider(sparePartsProfileAsync.value?.id ?? '0'),
     );
 
     return Scaffold(

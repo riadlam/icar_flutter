@@ -1,5 +1,6 @@
 import 'dart:developer';
 
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:icar_instagram_ui/constants/app_colors.dart';
 import 'package:icar_instagram_ui/widgets/two%20truck/menu_navbar/tow_truck_navbar.dart';
@@ -19,14 +20,14 @@ class _SellerAddScreenState extends State<SellerAddScreen> {
   void _showAddSparePartForm() {
     final context = _scaffoldKey.currentContext;
     if (context == null || !context.mounted) return;
-    
+
     if (_isLoading) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please wait...')),
       );
       return;
     }
-    
+
     SparePartsFormSheet.show(
       context,
       onSuccess: () {
@@ -81,8 +82,8 @@ class _SellerAddScreenState extends State<SellerAddScreen> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        child: const Text(
-                          'List a Spare Part',
+                        child: Text(
+                          'list_a_spare_part'.tr(),
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,

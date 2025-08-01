@@ -14,7 +14,7 @@ class ProfileScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final roleAsync = ref.watch(roleProvider);
-    
+
     return roleAsync.when(
       data: (role) {
         // If no role is set, show role selection screen
@@ -28,13 +28,15 @@ class ProfileScreen extends ConsumerWidget {
             ),
           );
         }
-        
+
         // Otherwise show the appropriate profile based on role
         switch (role) {
+          //cars
           case UserRole.buyer:
-            return  BuyerProfileScreen();
+            return SellerProfileScreen();
+          //spare parts
           case UserRole.seller:
-            return const SellerProfileScreen();
+            return BuyerProfileScreen();
           case UserRole.mechanic:
             return const MechanicProfileScreen();
           case UserRole.other:

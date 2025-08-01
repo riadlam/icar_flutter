@@ -35,12 +35,23 @@ class SparePartsProfile {
     required this.userId,
   });
 
+  Map<String, dynamic> toJson() {
+    return {
+      'storeName': storeName,
+      'mobile': mobile,
+      'city': city,
+      'userId': userId,
+    };
+  }
+
   factory SparePartsProfile.fromJson(Map<String, dynamic> json) {
     return SparePartsProfile(
-      storeName: json['store_name'] ?? '',
-      mobile: json['mobile'] ?? '',
-      city: json['city'] ?? '',
-      userId: json['user_id'] ?? 0,
+      storeName: json['store_name'] as String? ?? '',
+      mobile: json['mobile'] as String? ?? '',
+      city: json['city'] as String? ?? '',
+      userId: json['user_id'] is String
+          ? int.tryParse(json['user_id']) ?? 0
+          : json['user_id'] as int? ?? 0,
     );
   }
 }

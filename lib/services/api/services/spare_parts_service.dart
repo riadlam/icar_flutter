@@ -63,8 +63,12 @@ class SparePartsProfile {
 
   factory SparePartsProfile.fromJson(Map<String, dynamic> json) {
     return SparePartsProfile(
-      id: json['id'] as int,
-      userId: json['user_id'] as int,
+      id: json['id'] is String
+          ? int.tryParse(json['id']) ?? 0
+          : json['id'] as int,
+      userId: json['user_id'] is String
+          ? int.tryParse(json['user_id']) ?? 0
+          : json['user_id'] as int,
       storeName: json['store_name'] as String,
       mobile: json['mobile'] as String? ?? '',
       city: json['city'] as String? ?? '',
@@ -89,7 +93,8 @@ class SparePartsService extends BaseApiService {
   Future<SparePartsProfile> getSparePartsProfile() async {
     try {
       final response = await get('/api/spare-parts/my-profile');
-      return SparePartsProfile.fromJson(response['data'] as Map<String, dynamic>);
+      return SparePartsProfile.fromJson(
+          response['data'] as Map<String, dynamic>);
     } catch (e) {
       rethrow;
     }
@@ -112,7 +117,8 @@ class SparePartsService extends BaseApiService {
       );
       return {
         'success': true,
-        'data': SparePartsProfile.fromJson(response['data'] as Map<String, dynamic>)
+        'data':
+            SparePartsProfile.fromJson(response['data'] as Map<String, dynamic>)
       };
     } catch (e) {
       rethrow;
@@ -120,9 +126,11 @@ class SparePartsService extends BaseApiService {
   }
 
   /// Get spare parts by seller ID
-  Future<List<SparePart>> getSparePartsBySeller(int sellerId) async {
+  Future<List<SparePart>> getSparePartsBySeller(dynamic sellerId) async {
     try {
-      final response = await get('/api/spare-parts/seller/$sellerId');
+      // Convert sellerId to string to ensure it works with the API
+      final sellerIdStr = sellerId.toString();
+      final response = await get('/api/spare-parts/seller/$sellerIdStr');
       final List<dynamic> partsData = response['data'] as List<dynamic>;
       return partsData
           .map((part) => SparePart.fromJson(part as Map<String, dynamic>))
@@ -148,7 +156,9 @@ class SparePartsService extends BaseApiService {
   /// Get current user's spare parts posts
   Future<List<SparePartsPost>> getMySparePartsPosts() async {
     final response = await get('/api/spare-parts/my-posts');
-    return (response['data'] as List).map((post) => SparePartsPost.fromJson(post)).toList();
+    return (response['data'] as List)
+        .map((post) => SparePartsPost.fromJson(post))
+        .toList();
   }
 
   /// Create a new spare parts post
@@ -157,6 +167,7 @@ class SparePartsService extends BaseApiService {
     required String model,
     required String spare_parts_category,
     required List<String> spare_parts_subcategories,
+    required int is_available,
   }) async {
     final response = await post(
       '/api/spare-parts/posts',
@@ -165,6 +176,7 @@ class SparePartsService extends BaseApiService {
         'model': model,
         'spare_parts_category': spare_parts_category,
         'spare_parts_subcategories': spare_parts_subcategories,
+        'is_available': is_available,
       },
     );
 
@@ -199,6 +211,19 @@ class SparePartsService extends BaseApiService {
     );
 
     if (response is Map<String, dynamic>) {
+      // Add debug logging to see the response structure
+      print('🔍 Spare parts search response received:');
+      print('   Response keys: ${response.keys.toList()}');
+      if (response.containsKey('data') && response['data'] is List) {
+        final dataList = response['data'] as List;
+        print('   Data list length: ${dataList.length}');
+        if (dataList.isNotEmpty) {
+          print(
+              '   First item keys: ${(dataList.first as Map<String, dynamic>).keys.toList()}');
+          print('   First item values: ${dataList.first}');
+        }
+      }
+
       return SparePartsSearchResponse.fromJson(response);
     } else {
       throw Exception('Unexpected response format');
@@ -206,7 +231,7 @@ class SparePartsService extends BaseApiService {
   }
 
   /// Update a spare parts post
-  /// 
+  ///
   /// [postId] The ID of the post to update
   /// [brand] The updated brand
   /// [model] The updated model
@@ -219,21 +244,30 @@ class SparePartsService extends BaseApiService {
     required String model,
     required String sparePartsCategory,
     required String sparePartsSubcategory,
+    required int is_available,
   }) async {
     try {
       print('Updating post with ID: $postId');
+      print(
+          'Update data - brand: $brand, model: $model, category: $sparePartsCategory, subcategory: $sparePartsSubcategory, is_available: $is_available');
+
+      final requestBody = {
+        'brand': brand,
+        'model': model,
+        'spare_parts_category': sparePartsCategory,
+        'spare_parts_subcategory': sparePartsSubcategory,
+        'is_available': is_available,
+      };
+
+      print('Sending request body: $requestBody');
+
       final response = await put(
         '/api/spare-parts/posts/$postId',
-        body: {
-          'brand': brand,
-          'model': model,
-          'spare_parts_category': sparePartsCategory,
-          'spare_parts_subcategory': sparePartsSubcategory,
-        },
+        body: requestBody,
       );
 
       print('Update response: $response');
-      
+
       // Check different possible success responses
       if (response is Map<String, dynamic>) {
         // Check for success message in the response
@@ -241,13 +275,13 @@ class SparePartsService extends BaseApiService {
         if (message.contains('updated') && message.contains('success')) {
           return true;
         }
-        
+
         // Check other possible success indicators
-        return response['success'] == true || 
-               response['updated'] == true ||
-               response['status'] == 'success';
+        return response['success'] == true ||
+            response['updated'] == true ||
+            response['status'] == 'success';
       }
-      
+
       // If we get here, the response format wasn't as expected
       // but we'll still consider it a success if we didn't get an error
       return true;
@@ -259,7 +293,7 @@ class SparePartsService extends BaseApiService {
   }
 
   /// Delete a spare parts post
-  /// 
+  ///
   /// [postId] The ID of the post to delete
   /// Returns true if the deletion was successful
   Future<bool> deleteSparePartsPost(int postId) async {
@@ -270,7 +304,7 @@ class SparePartsService extends BaseApiService {
       );
 
       print('Delete response: $response');
-      
+
       // Check different possible success responses
       if (response is Map<String, dynamic>) {
         // Check for success message in the response
@@ -278,13 +312,13 @@ class SparePartsService extends BaseApiService {
         if (message.contains('deleted') && message.contains('success')) {
           return true;
         }
-        
+
         // Check other possible success indicators
-        return response['success'] == true || 
-               response['deleted'] == true ||
-               response['status'] == 'success';
+        return response['success'] == true ||
+            response['deleted'] == true ||
+            response['status'] == 'success';
       }
-      
+
       // If we get here, the response format wasn't as expected
       // but we'll still consider it a success if we didn't get an error
       return true;

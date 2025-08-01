@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:icar_instagram_ui/constants/app_colors.dart';
 import 'package:icar_instagram_ui/providers/additional_phones_provider.dart';
-import 'package:icar_instagram_ui/providers/phone_number_provider.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class PhoneNumberCard extends ConsumerStatefulWidget {
   const PhoneNumberCard({Key? key}) : super(key: key);
@@ -42,7 +42,7 @@ class _PhoneNumberCardState extends ConsumerState<PhoneNumberCard> {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: const Text('Add Phone Number'),
+              title: Text('add_phone_number'.tr()),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -55,10 +55,10 @@ class _PhoneNumberCardState extends ConsumerState<PhoneNumberCard> {
                     TextField(
                       controller: phoneController,
                       enabled: !isLoading,
-                      decoration: const InputDecoration(
-                        labelText: 'Phone Number',
-                        hintText: 'Enter phone number',
-                        border: OutlineInputBorder(),
+                      decoration: InputDecoration(
+                        labelText: 'phone_number'.tr(),
+                        hintText: 'enter_phone_number'.tr(),
+                        border: const OutlineInputBorder(),
                       ),
                       keyboardType: TextInputType.phone,
                     ),
@@ -80,17 +80,14 @@ class _PhoneNumberCardState extends ConsumerState<PhoneNumberCard> {
 
                           try {
                             await ref
-                                .read(phoneNumberProvider.notifier)
+                                .read(additionalPhonesProvider.notifier)
                                 .addPhoneNumber(phoneNumber);
-
-                            await _loadPhones();
 
                             if (context.mounted) {
                               Navigator.pop(context);
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                    content:
-                                        Text('Phone number added successfully')),
+                                SnackBar(
+                                    content: Text('phone_added_success'.tr())),
                               );
                             }
                           } catch (e) {
@@ -98,9 +95,7 @@ class _PhoneNumberCardState extends ConsumerState<PhoneNumberCard> {
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                    content: Text(
-                                        'Failed to add phone number: $e')),
-                              );
+                                    content: Text('phone_add_failed'.tr(args: ['$e']))),                              );
                             }
                           }
                         },
@@ -150,24 +145,21 @@ class _PhoneNumberCardState extends ConsumerState<PhoneNumberCard> {
                       .deletePhone('', phoneId);
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content:
-                              Text('Phone number deleted successfully')),
+                      SnackBar(
+                          content: Text('phone_deleted_success'.tr())),
                     );
                   }
                 } catch (e) {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                          content:
-                              Text('Failed to delete phone number: $e')),
-                    );
+                          content: Text('phone_delete_failed'.tr(args: ['$e'])))                    );
                   }
                 }
               },
-              child: const Text(
-                'Delete',
-                style: TextStyle(color: Colors.red),
+              child: Text(
+                'delete'.tr(),
+                style: const TextStyle(color: Colors.red),
               ),
             ),
           ],
@@ -187,7 +179,7 @@ class _PhoneNumberCardState extends ConsumerState<PhoneNumberCard> {
       children: [
         phonesAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (error, stack) => Text('Error: $error'),
+          error: (error, stack) => Text('error_occurred'.tr(args: ['$error'])),
           data: (phones) {
             if (phones.isEmpty) {
               return const SizedBox.shrink();
@@ -238,7 +230,7 @@ class _PhoneNumberCardState extends ConsumerState<PhoneNumberCard> {
           child: FilledButton.icon(
           onPressed: () => _showAddPhoneDialog(context, ref),
           icon: const Icon(Icons.add, size: 20),
-          label: const Text('Add Another Number'),
+          label: Text('add_another_number'.tr()),
           style: FilledButton.styleFrom(
             backgroundColor: AppColors.loginbg, // ✅ Green background
             foregroundColor: Colors.white, // Optional: white text/icon

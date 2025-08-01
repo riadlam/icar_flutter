@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class FavoriteSellerService {
-  final String baseUrl = 'http://192.168.1.8:8000/api';
+  final String baseUrl = 'http://app.icaralgerie.com/api';
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
   // Check if a seller is in favorites

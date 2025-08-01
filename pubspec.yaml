@@ -39,7 +39,7 @@ dependencies:
   go_router: ^13.2.0
   modal_bottom_sheet: ^3.0.0
   image_picker: ^1.0.7
-  intl: ^0.19.0
+  intl: ^0.20.2
   easy_localization: ^3.0.3
   google_sign_in: ^6.1.6
   http: ^1.1.0
@@ -83,16 +83,53 @@ flutter:
 
   # To add assets to your application, add an assets section, like this:
   assets:
+    - assets/images/towtruck_icon.png
+    - assets/images/car2.png
+    - assets/images/car1.png
+    - assets/images/shopcart.png
     - assets/images/
     - assets/images/categoryImages/
-    - assets/images/brandimages/
-    - assets/images/subcategoryImages/Freinage/
-    - assets/images/subcategoryImages/filtres_sub_images/
-    - assets/images/subcategoryImages/Pneus et produits associés/
+    - assets/images/brandimages/ 
     - assets/translations/
     - assets/translations/en.json
     - assets/translations/fr.json
     - assets/translations/ar.json
+     # Subcategory images - list each subdirectory explicitly
+    - assets/images/subcategoryImages/Amortissement/
+    - assets/images/subcategoryImages/Arbres_De_Transmission_et_Différentiels/
+    - assets/images/subcategoryImages/Boîte_de_vitesses/
+    - assets/images/subcategoryImages/Capteurs_Relais_Unités_De_Commande/
+    - assets/images/subcategoryImages/Cardan_De_Transmission_et_Joint_Homocinétique/
+    - assets/images/subcategoryImages/Carrosserie/
+    - assets/images/subcategoryImages/Chauffage__Ventilation/
+    - assets/images/subcategoryImages/Climatisation/
+    - assets/images/subcategoryImages/Courroies_Chaînes_Galets/
+    - assets/images/subcategoryImages/Direction/
+    - assets/images/subcategoryImages/Dispositif_d'attelage_accessoires/
+    - assets/images/subcategoryImages/Echappement/
+    - assets/images/subcategoryImages/Eclairage/
+    - assets/images/subcategoryImages/Embrayage__composants/
+    - assets/images/subcategoryImages/Filtre/
+    - assets/images/subcategoryImages/Freinage/
+    - assets/images/subcategoryImages/Intérieur_et_Confort/
+    - assets/images/subcategoryImages/Joints_et_Rondelles_d'Étanchéité/
+    - assets/images/subcategoryImages/Kits_De_Réparation/
+    - assets/images/subcategoryImages/Moteur/
+    - assets/images/subcategoryImages/Nettoyage_des_vitres/
+    - assets/images/subcategoryImages/Pneus_et_produits_associés/
+
+    - assets/images/subcategoryImages/Recirculation_des_gaz_d'échappement/
+    - assets/images/subcategoryImages/Refroidissement_Moteur/
+    - assets/images/subcategoryImages/Roulements/
+    - assets/images/subcategoryImages/Suspension_et_Bras/
+    - assets/images/subcategoryImages/Suspension_pneumatique/
+    - assets/images/subcategoryImages/Système_d'Alimentation/
+    - assets/images/subcategoryImages/Système_d'Allumage_et_Bougies_de_Préchauffage/
+    - assets/images/subcategoryImages/Système_électrique/
+    - assets/images/subcategoryImages/Tuning/
+    - assets/images/subcategoryImages/Turbocompresseur/
+    - assets/images/subcategoryImages/Tuyaux_et_Conduites/
+    - assets/images/subcategoryImages/Éléments_de_fixation/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

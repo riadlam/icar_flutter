@@ -2,6 +2,7 @@ import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_image_slideshow/flutter_image_slideshow.dart';
 import 'package:icar_instagram_ui/providers/notification_provider.dart';
@@ -58,13 +59,6 @@ class CarDetailScreen extends StatelessWidget {
       log('  - City: ${post.city}');
       log('  - Images: ${post.images}');
 
-      // Show loading dialog
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(child: CircularProgressIndicator()),
-      );
-
       try {
         log('Fetching seller profile...');
         
@@ -86,11 +80,7 @@ class CarDetailScreen extends StatelessWidget {
 
         if (!context.mounted) return;
         
-        // Dismiss loading dialog
-        Navigator.of(context).pop();
-        
         // Navigate to seller profile with the filtered cars
-        if (!context.mounted) return;
         
         await Navigator.push(
           context,
@@ -108,14 +98,12 @@ class CarDetailScreen extends StatelessWidget {
       } catch (e, stackTrace) {
         log('Error in _handleViewProfile', error: e, stackTrace: stackTrace);
         if (context.mounted) {
-          Navigator.of(context).pop(); // Dismiss loading dialog
           _showErrorSnackBar(context, 'Failed to open profile: ${e.toString()}');
         }
       }
     } catch (e) {
       log('Unexpected error: $e');
       if (context.mounted) {
-        Navigator.of(context).pop(); // Dismiss loading dialog if still showing
         _showErrorSnackBar(context, 'An unexpected error occurred');
       }
     }
@@ -154,7 +142,7 @@ class CarDetailScreen extends StatelessWidget {
                   debugPrint('Error refreshing notifications: $e');
                 }
                 if (context.mounted) {
-                  context.go('/home');
+                  Navigator.of(context).pop();
                 }
               },
             ),
@@ -451,9 +439,15 @@ class CarDetailScreen extends StatelessWidget {
             children: [
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: () {
-                    // Call
-                  },
+                onPressed: () async {
+                final phone = post.sellerPhone!.replaceAll(RegExp(r'\s+'), '');
+                final uri = Uri(scheme: 'tel', path: phone);
+                if (await canLaunchUrl(uri)) {
+                  await launchUrl(uri);
+                } else {
+                  _showErrorSnackBar(context, 'Could not launch phone app');
+                }
+              },
                   icon: const Icon(Icons.phone),
                   label: Text('call'.tr()),
                   style: ElevatedButton.styleFrom(
@@ -467,9 +461,16 @@ class CarDetailScreen extends StatelessWidget {
               const SizedBox(width: 16),
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: () {
-                    // Message
-                  },
+                 onPressed: () async {
+                  final phone = post.sellerPhone!.replaceAll(RegExp(r'\s+'), '');
+                  final uri = Uri(scheme: 'sms', path: phone); // 'sms:' opens the default messaging app
+                  if (await canLaunchUrl(uri)) {
+                    await launchUrl(uri);
+                  } else {
+                    _showErrorSnackBar(context, 'Could not launch SMS app');
+                  }
+                },
+
                   icon: const Icon(Icons.message),
                   label: Text('message'.tr()),
                   style: ElevatedButton.styleFrom(

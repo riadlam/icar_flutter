@@ -11,6 +11,7 @@ import 'package:icar_instagram_ui/providers/role_provider.dart';
 import 'package:icar_instagram_ui/services/api/services/user_service.dart';
 import 'package:icar_instagram_ui/services/api/service_locator.dart';
 import 'dart:convert'; // For JSON encoding
+import 'package:http/http.dart' as http; // For HTTP requests
 
 final _log = Logger('ConditionalFormScreen');
 
@@ -19,17 +20,99 @@ class ConditionalFormScreen extends ConsumerStatefulWidget {
   const ConditionalFormScreen({super.key, required this.role});
 
   @override
-  ConsumerState<ConditionalFormScreen> createState() => _ConditionalFormScreenState();
+  ConsumerState<ConditionalFormScreen> createState() =>
+      _ConditionalFormScreenState();
 }
 
 class _ConditionalFormScreenState extends ConsumerState<ConditionalFormScreen> {
+  Future<void> _setRegistrationPhaseFalse() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('registration_phase', false);
+  }
+
   final _formKey = GlobalKey<FormState>();
   bool _privacyChecked = false;
 
   // Form fields
   final Map<String, dynamic> formData = {};
   bool _isSubmitting = false;
-  
+
+  // Helper to submit buyer profile update
+  Future<void> _submitNameOnlyUpdate(String fullName) async {
+    print('[DEBUG] _submitNameOnlyUpdate: About to send name: ' + fullName);
+    _log.info('_submitNameOnlyUpdate: About to send name: ' + fullName);
+    try {
+      final authService = serviceLocator.authService;
+      final token = await authService.getToken();
+      if (token == null || token.isEmpty) throw Exception('No auth token');
+      final uri =
+          Uri.parse('http://app.icaralgerie.com/api/profile/update-name');
+      final response = await http.post(
+        uri,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'name': fullName,
+        }),
+      );
+      print(
+          '[DEBUG] _submitNameOnlyUpdate: Response status: \'${response.statusCode}\', body: \'${response.body}\'');
+      _log.info(
+          '_submitNameOnlyUpdate: Response status: \'${response.statusCode}\', body: \'${response.body}\'');
+      if (response.statusCode != 200 && response.statusCode != 204) {
+        debugPrint(
+            'Name-only update failed: Status: \\${response.statusCode} Body: \\${response.body}');
+        print(
+            '[DEBUG] Name-only update failed: Status: \'${response.statusCode}\', Body: \'${response.body}\'');
+        _log.warning(
+            'Name-only update failed: Status: \'${response.statusCode}\', Body: \'${response.body}\'');
+      }
+    } catch (e, stack) {
+      debugPrint('Name-only update exception: \n$e\n$stack');
+      print('[DEBUG] Name-only update exception: ' + e.toString());
+      _log.severe('Name-only update exception: ' + e.toString());
+    }
+  }
+
+  Future<bool> _submitBuyerProfileUpdate({
+    required String storeName,
+    required String mobile,
+    required String city,
+  }) async {
+    try {
+      // Get token from auth provider/service
+      final authService = serviceLocator.authService;
+      final token = await authService.getToken();
+      if (token == null || token.isEmpty) throw Exception('No auth token');
+      final uri =
+          Uri.parse('http://app.icaralgerie.com/api/profile/update-name');
+      final response = await http.post(
+        uri,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'full_name': storeName,
+          'phone': mobile,
+          'city': city,
+        }),
+      );
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        return true;
+      } else {
+        debugPrint(
+            'Buyer profile update failed: Status: \\${response.statusCode} Body: \\${response.body}');
+        return false;
+      }
+    } catch (e, stack) {
+      debugPrint('Buyer profile update exception: \\n$e\\n$stack');
+      return false;
+    }
+  }
+
   // Services for garage role
   final List<String> _garageServices = [
     'Body Repair Technician',
@@ -38,7 +121,7 @@ class _ConditionalFormScreenState extends ConsumerState<ConditionalFormScreen> {
     'Tire Technician',
   ];
   List<String> _selectedServices = [];
-  
+
   // Get services
   late final UserService _userService = serviceLocator.userService;
 
@@ -82,13 +165,13 @@ class _ConditionalFormScreenState extends ConsumerState<ConditionalFormScreen> {
                             children: [
                               Checkbox(
                                 value: _privacyChecked,
-                                onChanged: (v) =>
-                                    setState(() => _privacyChecked = v ?? false),
+                                onChanged: (v) => setState(
+                                    () => _privacyChecked = v ?? false),
                                 activeColor: AppColors.loginbg,
                               ),
                               GestureDetector(
                                 onTap: () => _showPrivacyPolicy(context),
-                                child:  Text(
+                                child: Text(
                                   'privacy_policy_agree'.tr(),
                                   style: TextStyle(
                                       decoration: TextDecoration.underline),
@@ -105,144 +188,269 @@ class _ConditionalFormScreenState extends ConsumerState<ConditionalFormScreen> {
                                 child: Text('back'.tr().toUpperCase()),
                               ),
                               ElevatedButton(
-                                onPressed: _isSubmitting ? null : () async {
-                                  try {
-                                    if (_formKey.currentState?.validate() ?? false) {
-                                      if (!_privacyChecked) {
-                                        if (context.mounted) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(content: Text('please_accept_privacy_policy'.tr())),
-                                          );
-                                        }
-                                        return;
-                                      }
-
-                                      setState(() => _isSubmitting = true);
-
-                                      try {
-                                        // Prepare clean form data based on role
-                                        final Map<String, dynamic> cleanFormData = {};
-                                        
-                                        // Common fields for all roles
-                                        cleanFormData['mobile'] = formData['mobile']?.toString() ?? '';
-                                        cleanFormData['city'] = formData['city']?.toString() ?? '';
-                                        
-                                        // Role-specific fields
-                                        switch (widget.role) {
-                                          case models.UserRole.seller:
-                                            cleanFormData['full_name'] = formData['fullName']?.toString().trim() ?? '';
-                                            cleanFormData['store_name'] = formData['showroom_name']?.toString().trim() ?? 
-                                                (formData['fullName']?.toString().trim().isNotEmpty == true 
-                                                    ? '${formData['fullName']}\'s Showroom' 
-                                                    : 'My Showroom');
-                                            cleanFormData['showroom_name'] = cleanFormData['store_name']; // Keep for backward compatibility
-                                            break;
-                                          case models.UserRole.buyer:
-                                            cleanFormData['store_name'] = formData['storeName']?.toString().trim() ?? '';
-                                            break;
-                                          case models.UserRole.mechanic:
-                                            cleanFormData['full_name'] = formData['driverName']?.toString().trim() ?? '';
-                                            cleanFormData['store_name'] = formData['driverName']?.toString().trim() ?? '';
-                                            break;
-                                          case models.UserRole.other:
-                                            cleanFormData['full_name'] = formData['driverName']?.toString().trim() ?? '';
-                                            cleanFormData['store_name'] = formData['driverName']?.toString().trim() ?? '';
-                                            if (_selectedServices.isNotEmpty) {  // Only include services for garage owners
-                                              cleanFormData['services'] = _selectedServices;
+                                onPressed: _isSubmitting
+                                    ? null
+                                    : () async {
+                                        try {
+                                          if (_formKey.currentState
+                                                  ?.validate() ??
+                                              false) {
+                                            if (!_privacyChecked) {
+                                              if (context.mounted) {
+                                                ScaffoldMessenger.of(context)
+                                                    .showSnackBar(
+                                                  SnackBar(
+                                                      content: Text(
+                                                          'please_accept_privacy_policy'
+                                                              .tr())),
+                                                );
+                                              }
+                                              return;
                                             }
-                                            break;
-                                        }
-                                        
-                                        // Save clean form data to SharedPreferences
-                                        final prefs = await SharedPreferences.getInstance();
-                                        final formDataJson = jsonEncode(cleanFormData);
-                                        await prefs.setString('user_profile_data_${widget.role.name}', formDataJson);
-                                        
-                                        // Save the selected role to the role provider
-                                        final roleNotifier = ref.read(roleProvider.notifier);
-                                        await roleNotifier.setRole(widget.role);
-                                        
-                                        // Log form data to terminal
-                                        _log.info('=== FORM DATA TO BE SUBMITTED ===');
-                                        cleanFormData.forEach((key, value) {
-                                          _log.info('$key: $value');
-                                        });
-                                        _log.info('Role: ${widget.role}');
-                                        _log.info('==============================');
 
-                                        // Submit the clean form data using the service
-                                        await _userService.submitProfileData(widget.role, cleanFormData);
-                                        
-                                        // Log successful submission
-                                        _log.info('=== PROFILE SAVED SUCCESSFULLY ===');
-                                        _log.info('Role: ${widget.role}');
-                                        _log.info('Saved to SharedPreferences with key: user_profile_data_${widget.role.name}');
-                                        _log.info('==============================');
-                                        
-                                        // Show success message
-                                        if (context.mounted) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(
-                                              content: Text('profile_saved_successfully'.tr()),
-                                              backgroundColor: Colors.green,
-                                            ),
-                                          );
-                                          
-                                          // Navigate to home after a short delay
-                                          await Future.delayed(const Duration(seconds: 1));
+                                            setState(
+                                                () => _isSubmitting = true);
+
+                                            try {
+                                              // Prepare clean form data based on role
+                                              final Map<String, dynamic>
+                                                  cleanFormData = {};
+
+                                              // Common fields for all roles
+                                              cleanFormData['mobile'] =
+                                                  formData['mobile']
+                                                          ?.toString() ??
+                                                      '';
+                                              cleanFormData['city'] =
+                                                  formData['city']
+                                                          ?.toString() ??
+                                                      '';
+
+                                              // Role-specific fields
+                                              switch (widget.role) {
+                                                case models.UserRole.seller:
+                                                  cleanFormData['full_name'] =
+                                                      formData['fullName']
+                                                              ?.toString()
+                                                              .trim() ??
+                                                          '';
+                                                  cleanFormData['store_name'] =
+                                                      formData['storeName']
+                                                              ?.toString()
+                                                              .trim() ??
+                                                          'My Showroom';
+                                                  cleanFormData[
+                                                          'showroom_name'] =
+                                                      cleanFormData[
+                                                          'store_name'];
+                                                  break;
+                                                case models.UserRole.buyer:
+                                                  cleanFormData['full_name'] =
+                                                      formData['fullName']
+                                                              ?.toString()
+                                                              .trim() ??
+                                                          '';
+                                                  cleanFormData['mobile'] =
+                                                      formData['mobile']
+                                                              ?.toString()
+                                                              .trim() ??
+                                                          '';
+                                                  cleanFormData['city'] =
+                                                      formData['city']
+                                                              ?.toString()
+                                                              .trim() ??
+                                                          '';
+                                                  // Call the API to update buyer profile
+                                                  final updateSuccess =
+                                                      await _submitBuyerProfileUpdate(
+                                                    storeName: cleanFormData[
+                                                        'full_name'],
+                                                    mobile:
+                                                        cleanFormData['mobile'],
+                                                    city: cleanFormData['city'],
+                                                  );
+
+                                                  // Additional API call: send {"name": <full_name>} to backend
+                                                  print(
+                                                      '[DEBUG] Calling _submitNameOnlyUpdate with name: \'${cleanFormData['full_name']}\'');
+                                                  await _submitNameOnlyUpdate(
+                                                      cleanFormData[
+                                                          'full_name']);
+                                                  if (updateSuccess) {
+                                                    if (mounted) {}
+                                                  } else {
+                                                    if (mounted) {
+                                                      // ScaffoldMessenger.of(context).showSnackBar(
+                                                      //   SnackBar(content: Text('Failed to update profile.')),
+                                                      // );
+                                                    }
+                                                  }
+                                                  break;
+                                                case models.UserRole.mechanic:
+                                                  cleanFormData['full_name'] =
+                                                      formData['driverName']
+                                                              ?.toString()
+                                                              .trim() ??
+                                                          '';
+                                                  cleanFormData['store_name'] =
+                                                      formData['driverName']
+                                                              ?.toString()
+                                                              .trim() ??
+                                                          '';
+                                                  break;
+                                                case models.UserRole.other:
+                                                  cleanFormData['full_name'] =
+                                                      formData['driverName']
+                                                              ?.toString()
+                                                              .trim() ??
+                                                          '';
+                                                  cleanFormData['store_name'] =
+                                                      formData['driverName']
+                                                              ?.toString()
+                                                              .trim() ??
+                                                          '';
+                                                  if (_selectedServices
+                                                      .isNotEmpty) {
+                                                    // Only include services for garage owners
+                                                    cleanFormData['services'] =
+                                                        _selectedServices;
+                                                  }
+                                                  break;
+                                              }
+
+                                              // Save clean form data to SharedPreferences
+                                              final prefs =
+                                                  await SharedPreferences
+                                                      .getInstance();
+                                              final formDataJson =
+                                                  jsonEncode(cleanFormData);
+                                              await prefs.setString(
+                                                  'user_profile_data_${widget.role.name}',
+                                                  formDataJson);
+
+                                              // Save the selected role to the role provider
+                                              final roleNotifier = ref
+                                                  .read(roleProvider.notifier);
+                                              await roleNotifier
+                                                  .setRole(widget.role);
+
+                                              // Log form data to terminal
+                                              _log.info(
+                                                  '=== FORM DATA TO BE SUBMITTED ===');
+                                              cleanFormData
+                                                  .forEach((key, value) {
+                                                _log.info('$key: $value');
+                                              });
+                                              _log.info('Role: ${widget.role}');
+                                              _log.info(
+                                                  '==============================');
+
+                                              // Submit the clean form data using the service
+                                              await _userService
+                                                  .submitProfileData(
+                                                      widget.role,
+                                                      cleanFormData);
+
+                                              // Log successful submission
+                                              _log.info(
+                                                  '=== PROFILE SAVED SUCCESSFULLY ===');
+                                              _log.info('Role: ${widget.role}');
+                                              _log.info(
+                                                  'Saved to SharedPreferences with key: user_profile_data_${widget.role.name}');
+                                              _log.info(
+                                                  '==============================');
+
+                                              // Show success message
+                                              if (context.mounted) {
+                                                ScaffoldMessenger.of(context)
+                                                    .showSnackBar(
+                                                  SnackBar(
+                                                    content: Text(
+                                                        'profile_saved_successfully'
+                                                            .tr()),
+                                                    backgroundColor:
+                                                        AppColors.loginbg,
+                                                  ),
+                                                );
+                                                // Set registration_phase to false
+                                                await _setRegistrationPhaseFalse();
+                                                // Navigate to home after a short delay
+                                                await Future.delayed(
+                                                    const Duration(seconds: 1));
+                                                if (mounted) {
+                                                  context.go('/home');
+                                                }
+                                              }
+                                            } on FormatException catch (e) {
+                                              _log.severe(
+                                                  'Format error: ${e.message}');
+                                              if (context.mounted) {
+                                                ScaffoldMessenger.of(context)
+                                                    .showSnackBar(
+                                                  SnackBar(
+                                                    content: Text(
+                                                        'invalid_data_format'
+                                                            .tr()),
+                                                    backgroundColor: Colors.red,
+                                                  ),
+                                                );
+                                              }
+                                            } catch (e) {
+                                              _log.severe(
+                                                  'Error submitting profile',
+                                                  e);
+                                              if (context.mounted) {
+                                                ScaffoldMessenger.of(context)
+                                                    .showSnackBar(
+                                                  SnackBar(
+                                                    content: Text(
+                                                        'error_submitting_form'
+                                                            .tr()),
+                                                    backgroundColor: Colors.red,
+                                                  ),
+                                                );
+                                              }
+                                            } finally {
+                                              if (mounted) {
+                                                setState(() =>
+                                                    _isSubmitting = false);
+                                              }
+                                            }
+                                          }
+                                        } catch (e, stackTrace) {
+                                          _log.severe(
+                                              'Unexpected error in form submission',
+                                              e,
+                                              stackTrace);
                                           if (mounted) {
-                                            context.go('/home');
+                                            setState(
+                                                () => _isSubmitting = false);
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(
+                                              SnackBar(
+                                                content: Text(
+                                                    'unexpected_error'.tr()),
+                                                backgroundColor: Colors.red,
+                                              ),
+                                            );
                                           }
                                         }
-                                      } on FormatException catch (e) {
-                                        _log.severe('Format error: ${e.message}');
-                                        if (context.mounted) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(
-                                              content: Text('invalid_data_format'.tr()),
-                                              backgroundColor: Colors.red,
-                                            ),
-                                          );
-                                        }
-                                      } catch (e) {
-                                        _log.severe('Error submitting profile', e);
-                                        if (context.mounted) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(
-                                              content: Text('error_submitting_form'.tr()),
-                                              backgroundColor: Colors.red,
-                                            ),
-                                          );
-                                        }
-                                      } finally {
-                                        if (mounted) {
-                                          setState(() => _isSubmitting = false);
-                                        }
-                                      }
-                                    }
-                                  } catch (e, stackTrace) {
-                                    _log.severe('Unexpected error in form submission', e, stackTrace);
-                                    if (mounted) {
-                                      setState(() => _isSubmitting = false);
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(
-                                          content: Text('unexpected_error'.tr()),
-                                          backgroundColor: Colors.red,
-                                        ),
-                                      );
-                                    }
-                                  }
-                                },
+                                      },
                                 style: ButtonStyle(
                                   backgroundColor:
-                                      MaterialStateProperty.all<Color>(AppColors.loginbg,),
+                                      MaterialStateProperty.all<Color>(
+                                    AppColors.loginbg,
+                                  ),
                                   foregroundColor:
-                                      MaterialStateProperty.all<Color>(Colors.white),
-                                  padding: MaterialStateProperty.all<EdgeInsetsGeometry>(
+                                      MaterialStateProperty.all<Color>(
+                                          Colors.white),
+                                  padding: MaterialStateProperty.all<
+                                      EdgeInsetsGeometry>(
                                     const EdgeInsets.symmetric(
                                         horizontal: 32, vertical: 12),
                                   ),
-                                  shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+                                  shape: MaterialStateProperty.all<
+                                      RoundedRectangleBorder>(
                                     RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(12),
                                     ),
@@ -254,7 +462,9 @@ class _ConditionalFormScreenState extends ConsumerState<ConditionalFormScreen> {
                                         height: 20,
                                         child: CircularProgressIndicator(
                                           strokeWidth: 2,
-                                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                          valueColor:
+                                              AlwaysStoppedAnimation<Color>(
+                                                  Colors.white),
                                         ),
                                       )
                                     : Text('finish'.tr().toUpperCase()),
@@ -262,7 +472,8 @@ class _ConditionalFormScreenState extends ConsumerState<ConditionalFormScreen> {
                             ],
                           ),
                           // Add bottom padding equal to keyboard height to prevent overlay
-                          SizedBox(height: MediaQuery.of(context).viewInsets.bottom),
+                          SizedBox(
+                              height: MediaQuery.of(context).viewInsets.bottom),
                         ],
                       ),
                     ),
@@ -276,10 +487,21 @@ class _ConditionalFormScreenState extends ConsumerState<ConditionalFormScreen> {
     );
   }
 
-
   List<Widget> _buildFields(models.UserRole role) {
     switch (role) {
       case models.UserRole.seller:
+        formData['city'] ??= '';
+        return [
+          _textField('store_name'.tr(), (v) => formData['storeName'] = v),
+          _textField('mobile_number'.tr(), (v) => formData['mobile'] = v,
+              keyboardType: TextInputType.phone),
+          _cityDropdown(
+            label: 'city'.tr(),
+            onChanged: (v) => formData['city'] = v ?? '',
+            initialValue: formData['city']?.toString(),
+          ),
+        ];
+      case models.UserRole.buyer:
         // Initialize form fields with empty strings if not set
         formData['fullName'] ??= '';
         formData['mobile'] ??= '';
@@ -290,24 +512,13 @@ class _ConditionalFormScreenState extends ConsumerState<ConditionalFormScreen> {
         } else {
           formData['showroom_name'] = 'My Showroom';
         }
-        
+
         return [
-          _textField('full_name'.tr(), (v) => formData['fullName'] = v ?? '', 
+          _textField('full_name'.tr(), (v) => formData['fullName'] = v ?? '',
               initialValue: formData['fullName']?.toString() ?? ''),
-          _textField('mobile_number'.tr(), (v) => formData['mobile'] = v ?? '', 
+          _textField('mobile_number'.tr(), (v) => formData['mobile'] = v ?? '',
               keyboardType: TextInputType.phone,
               initialValue: formData['mobile']?.toString() ?? ''),
-          _cityDropdown(
-            label: 'city'.tr(),
-            onChanged: (v) => formData['city'] = v ?? '',
-            initialValue: formData['city']?.toString(),
-          ),
-        ];
-      case models.UserRole.buyer:
-        formData['city'] ??= '';
-        return [
-          _textField('store_name'.tr(), (v) => formData['storeName'] = v),
-          _textField('mobile_number'.tr(), (v) => formData['mobile'] = v, keyboardType: TextInputType.phone),
           _cityDropdown(
             label: 'city'.tr(),
             onChanged: (v) => formData['city'] = v ?? '',
@@ -317,8 +528,10 @@ class _ConditionalFormScreenState extends ConsumerState<ConditionalFormScreen> {
       case models.UserRole.mechanic:
         formData['city'] ??= '';
         return [
-          _textField('business_driver_name'.tr(), (v) => formData['driverName'] = v),
-          _textField('mobile_number'.tr(), (v) => formData['mobile'] = v, keyboardType: TextInputType.phone),
+          _textField(
+              'business_driver_name'.tr(), (v) => formData['driverName'] = v),
+          _textField('mobile_number'.tr(), (v) => formData['mobile'] = v,
+              keyboardType: TextInputType.phone),
           _cityDropdown(
             label: 'city'.tr(),
             onChanged: (v) => formData['city'] = v ?? '',
@@ -329,7 +542,8 @@ class _ConditionalFormScreenState extends ConsumerState<ConditionalFormScreen> {
         formData['city'] ??= '';
         return [
           _textField('mechanic_name'.tr(), (v) => formData['driverName'] = v),
-          _textField('mobile_number'.tr(), (v) => formData['mobile'] = v, keyboardType: TextInputType.phone),
+          _textField('mobile_number'.tr(), (v) => formData['mobile'] = v,
+              keyboardType: TextInputType.phone),
           _cityDropdown(
             label: 'city'.tr(),
             onChanged: (v) => formData['city'] = v ?? '',
@@ -346,23 +560,26 @@ class _ConditionalFormScreenState extends ConsumerState<ConditionalFormScreen> {
     String? initialValue,
   }) {
     // Ensure the initial value is in the list of valid cities or set to null
-    final validInitialValue = initialValue != null && 
-        FilterConstants.garageCities.any((city) => city.trim() == initialValue.trim())
-        ? initialValue 
+    final validInitialValue = initialValue != null &&
+            FilterConstants.garageCities
+                .any((city) => city.trim() == initialValue.trim())
+        ? initialValue
         : null;
 
     // Create a list of DropdownMenuItem with unique values
     final cityItems = [
-      const DropdownMenuItem<String>(
+      DropdownMenuItem<String>(
         value: null,
-        child: Text('Select a city'),
+        child: Text('please_select_a_city'.tr()),
       ),
-      ...FilterConstants.garageCities.map((city) => DropdownMenuItem<String>(
-            value: city,
-            child: Text(city),
-          )).toList(),
+      ...FilterConstants.garageCities
+          .map((city) => DropdownMenuItem<String>(
+                value: city,
+                child: Text(city),
+              ))
+          .toList(),
     ];
-        
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
       child: DropdownButtonFormField<String>(
@@ -370,7 +587,8 @@ class _ConditionalFormScreenState extends ConsumerState<ConditionalFormScreen> {
         decoration: InputDecoration(
           labelText: label,
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
         ),
         items: cityItems,
         validator: (value) => value == null ? 'required_field'.tr() : null,
@@ -388,7 +606,7 @@ class _ConditionalFormScreenState extends ConsumerState<ConditionalFormScreen> {
     );
   }
 
-  Widget _textField(String label, void Function(String) onSaved, 
+  Widget _textField(String label, void Function(String) onSaved,
       {TextInputType? keyboardType, String initialValue = ''}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
@@ -399,7 +617,8 @@ class _ConditionalFormScreenState extends ConsumerState<ConditionalFormScreen> {
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         ),
         keyboardType: keyboardType,
-        validator: (v) => (v == null || v.isEmpty) ? 'required_field'.tr() : null,
+        validator: (v) =>
+            (v == null || v.isEmpty) ? 'required_field'.tr() : null,
         onChanged: onSaved,
       ),
     );
@@ -441,7 +660,8 @@ class _ConditionalFormScreenState extends ConsumerState<ConditionalFormScreen> {
                           _selectedServices.remove(service);
                         }
                         // Update form data with the list of selected services
-                        formData['services'] = List<String>.from(_selectedServices);
+                        formData['services'] =
+                            List<String>.from(_selectedServices);
                       });
                     },
                     controlAffinity: ListTileControlAffinity.leading,
@@ -462,7 +682,8 @@ class _ConditionalFormScreenState extends ConsumerState<ConditionalFormScreen> {
                   onDeleted: () {
                     setState(() {
                       _selectedServices.remove(service);
-                      formData['services'] = List<String>.from(_selectedServices);
+                      formData['services'] =
+                          List<String>.from(_selectedServices);
                     });
                   },
                 );
@@ -476,7 +697,7 @@ class _ConditionalFormScreenState extends ConsumerState<ConditionalFormScreen> {
 
   bool _canFinish() {
     if (!_privacyChecked) return false;
-    
+
     // Default return value
     bool canFinish = false;
 
@@ -484,11 +705,11 @@ class _ConditionalFormScreenState extends ConsumerState<ConditionalFormScreen> {
       case models.UserRole.seller:
         // Set default showroom name if not set
         if (formData['showroom_name']?.isEmpty ?? true) {
-          formData['showroom_name'] = formData['fullName']?.isNotEmpty == true 
-              ? '${formData['fullName']}\'s Showroom' 
+          formData['showroom_name'] = formData['fullName']?.isNotEmpty == true
+              ? '${formData['fullName']}\'s Showroom'
               : 'My Showroom';
         }
-        
+
         canFinish = (formData['fullName']?.toString().isNotEmpty ?? false) &&
             (formData['mobile']?.toString().isNotEmpty ?? false) &&
             (formData['city']?.toString().isNotEmpty ?? false);
@@ -499,10 +720,10 @@ class _ConditionalFormScreenState extends ConsumerState<ConditionalFormScreen> {
             (formData['city']?.toString().isNotEmpty ?? false);
         break;
       case models.UserRole.mechanic:
-      canFinish = (formData['driverName']?.toString().isNotEmpty ?? false) &&
-          (formData['mobile']?.toString().isNotEmpty ?? false) &&
-          (formData['city']?.toString().isNotEmpty ?? false);
-       break;
+        canFinish = (formData['driverName']?.toString().isNotEmpty ?? false) &&
+            (formData['mobile']?.toString().isNotEmpty ?? false) &&
+            (formData['city']?.toString().isNotEmpty ?? false);
+        break;
       case models.UserRole.other:
         canFinish = (formData['driverName']?.toString().isNotEmpty ?? false) &&
             (formData['mobile']?.toString().isNotEmpty ?? false) &&
@@ -510,7 +731,7 @@ class _ConditionalFormScreenState extends ConsumerState<ConditionalFormScreen> {
             (_selectedServices.isNotEmpty);
         break;
     }
-    
+
     return canFinish;
   }
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:icar_instagram_ui/constants/app_colors.dart';
 import 'package:icar_instagram_ui/constants/filter_constants.dart';
@@ -35,6 +36,7 @@ class SparePartsPostsGrid extends ConsumerWidget {
               model: updatedPost.model,
               sparePartsCategory: updatedPost.sparePartsCategory,
               sparePartsSubcategory: updatedPost.sparePartsSubcategory,
+              is_available: updatedPost.isAvailable ? 1 : 0,
             );
             
             if (success) {
@@ -43,21 +45,21 @@ class SparePartsPostsGrid extends ConsumerWidget {
               
               if (context.mounted) {
                 scaffoldMessenger.showSnackBar(
-                  const SnackBar(content: Text('Post updated successfully')),
+                  SnackBar(content: Text('post_updated_success'.tr())),
                 );
                 // The bottom sheet will be automatically closed after this callback
               }
             } else {
               if (context.mounted) {
                 scaffoldMessenger.showSnackBar(
-                  const SnackBar(content: Text('Failed to update post')),
+                  SnackBar(content: Text('post_update_failed'.tr())),
                 );
               }
             }
           } catch (e) {
             if (context.mounted) {
               scaffoldMessenger.showSnackBar(
-                SnackBar(content: Text('Error updating post: ${e.toString()}')),
+                SnackBar(content: Text('error_updating_post'.tr(args: [e.toString()]))),
               );
             }
             print('Error updating post: $e');
@@ -69,17 +71,17 @@ class SparePartsPostsGrid extends ConsumerWidget {
             final shouldDelete = await showDialog<bool>(
               context: context,
               builder: (context) => AlertDialog(
-                title: const Text('Delete Post'),
-                content: const Text('Are you sure you want to delete this post?'),
+                title: Text('delete_post'.tr()),
+                content: Text('are_you_sure_you_want_to_delete_this_post'.tr()),
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(false),
-                    child: const Text('Cancel'),
+                    child: Text('cancel'.tr()),
                   ),
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(true),
                     style: TextButton.styleFrom(foregroundColor: Colors.red),
-                    child: const Text('Delete'),
+                    child: Text('delete'.tr()),
                   ),
                 ],
               ),
@@ -102,14 +104,14 @@ class SparePartsPostsGrid extends ConsumerWidget {
                 
                 if (context.mounted) {
                   scaffoldMessenger.showSnackBar(
-                    const SnackBar(content: Text('Post deleted successfully')),
+                    SnackBar(content: Text('post_deleted_success'.tr())),
                   );
                   navigator.pop(); // Close the bottom sheet
                 }
               } else {
                 if (context.mounted) {
                   scaffoldMessenger.showSnackBar(
-                    const SnackBar(content: Text('Failed to delete post')),
+                    SnackBar(content: Text('post_delete_failed'.tr())),
                   );
                 }
               }
@@ -117,7 +119,7 @@ class SparePartsPostsGrid extends ConsumerWidget {
           } catch (e) {
             if (context.mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Error deleting post: ${e.toString()}')),
+                SnackBar(content: Text('error_deleting_post'.tr(args: [e.toString()]))),
               );
             }
             print('Error deleting post: $e');
@@ -129,7 +131,7 @@ class SparePartsPostsGrid extends ConsumerWidget {
       print('Stack trace: $stackTrace');
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error opening editor')),
+          SnackBar(content: Text('error_opening_editor'.tr())),
         );
       }
     }
@@ -138,7 +140,17 @@ class SparePartsPostsGrid extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final selectedCategory = ref.watch(selectedCategoryProvider);
+    print(' [UI] Current selected category: ${selectedCategory ?? 'All categories'}');
+    
+    // Log when the provider is being watched with the current category
     final postsAsync = ref.watch(sparePartsPostsProvider(selectedCategory));
+    
+    // Log provider state changes
+    postsAsync.when(
+      data: (posts) => print(' [UI] Posts loaded: ${posts.length} posts'),
+      loading: () => print(' [UI] Loading posts...'),
+      error: (error, stack) => print(' [UI] Error loading posts: $error'),
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -148,39 +160,51 @@ class SparePartsPostsGrid extends ConsumerWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Category filter dropdown
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.loginbg),
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: selectedCategory,
-                    hint: const Text('Categories'),
-                    icon: const Icon(Icons.arrow_drop_down, color: AppColors.loginbg),
-                    elevation: 16,
-                    style: const TextStyle(color: AppColors.loginbg, fontSize: 14),
-                    onChanged: (String? newValue) {
-                      ref.read(selectedCategoryProvider.notifier).state = newValue;
-                    },
-                    items: [
-                      const DropdownMenuItem<String>(
-                        value: null,
-                        child: Text('All Categories'),
+              // Left side - Category filter dropdown
+              Expanded(
+                child: Row(
+                  children: [
+                    Container(
+                      constraints: const BoxConstraints(maxWidth: 200), // Limit maximum width
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppColors.loginbg),
                       ),
-                      ...FilterConstants.sparePartsCategories.map<DropdownMenuItem<String>>((category) {
-                        return DropdownMenuItem<String>(
-                          value: category['name'],
-                          child: Text(category['name'] ?? 'Unknown'),
-                        );
-                      }).toList(),
-                    ],
-                  ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          isExpanded: true, // Take available width
+                          value: selectedCategory,
+                          hint: Text('categories'.tr()),
+                          icon: const Icon(Icons.arrow_drop_down, color: AppColors.loginbg),
+                          elevation: 16,
+                          style: const TextStyle(color: AppColors.loginbg, fontSize: 14),
+                          onChanged: (String? newValue) {
+                            print(' [UI] Category dropdown changed from "$selectedCategory" to "$newValue"');
+                            ref.read(selectedCategoryProvider.notifier).state = newValue;
+                            // The provider will be automatically refreshed by the watch in the build method
+                          },
+                          items: [
+                            DropdownMenuItem<String>(
+                              value: null,
+                              child: Text('all_categories'.tr()),
+                            ),
+                            ...FilterConstants.sparePartsCategories.map<DropdownMenuItem<String>>((category) {
+                              return DropdownMenuItem<String>(
+                                value: category['name'],
+                                child: Text(category['name'] ?? 'Unknown'),
+                              );
+                            }).toList(),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
+              
+              // Right side - Share button or My Posts text
               if (onShare != null)
                 IconButton(
                   icon: Image.asset(
@@ -190,16 +214,18 @@ class SparePartsPostsGrid extends ConsumerWidget {
                     color: const Color(0xFF245124),
                   ),
                   onPressed: onShare,
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
+                  padding: const EdgeInsets.all(8),
                 )
               else
-                const Text(
-                  'My Posts',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF245124),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                  child: Text(
+                    'my_posts'.tr(),
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF245124),
+                    ),
                   ),
                 ),
             ],
@@ -212,14 +238,14 @@ class SparePartsPostsGrid extends ConsumerWidget {
             print('Error loading posts: $error');
             print('Stack trace: $stack');
             return Center(
-              child: Text('Error loading posts: ${error.toString()}'),
+              child: Text('error_loading_posts'.tr(args: [error.toString()])),
             );
           },
           data: (posts) {
             if (posts.isEmpty) {
-              return const Padding(
-                padding: EdgeInsets.all(16.0),
-                child: Center(child: Text('No posts available')),
+              return Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Center(child: Text('no_posts_available'.tr())),
               );
             }
 
@@ -266,22 +292,51 @@ class SparePartsPostsGrid extends ConsumerWidget {
     // Get brand image path
     final brandImagePath = _getBrandImagePath(post.brand);
     
-    // Get category image path (fallback if brand image not found)
-    final category = post.sparePartsCategory.toLowerCase();
+    // Get category image path from FilterConstants
     String categoryImagePath = 'assets/images/spare_parts/placeholder.png';
+    final category = post.sparePartsCategory.trim();
+    
+    // Debug: Print all available categories
+    print('🔍 [DEBUG] Available categories:');
+    for (var cat in FilterConstants.sparePartsCategories) {
+      print(' - ${cat['name']} (id: ${cat['id']})');
+    }
+    
+    // Find the category in FilterConstants (case-insensitive)
+    try {
+      // First try exact match
+      var categoryData = FilterConstants.sparePartsCategories.firstWhere(
+        (c) => c['name']?.toLowerCase() == category.toLowerCase(),
+        orElse: () => <String, String>{},
+      );
+      
+      // If no exact match, try partial match
+      if (categoryData.isEmpty) {
+        print('⚠️ No exact match for category: "$category". Trying partial match...');
+        categoryData = FilterConstants.sparePartsCategories.firstWhere(
+          (c) => c['name']?.toLowerCase().contains(category.toLowerCase()) == true,
+          orElse: () => <String, String>{},
+        );
+      }
+      
+      if (categoryData.isNotEmpty) {
+        if (categoryData['image'] != null) {
+          categoryImagePath = categoryData['image']!;
+          print('✅ Found image for category "$category": $categoryImagePath');
+        } else {
+          print('⚠️ Category "${categoryData['name']}" has no image path');
+        }
+      } else {
+        print('❌ No matching category found for: "$category"');
+      }
+    } catch (e) {
+      print('❌ Error getting category image for "$category": $e');
+    }
     
     // Handle tap on post card
     void _handleTap() {
       print('Tapped on post: ${post.id}');
       _showEditBottomSheet(post, context, ref);
-    }
-    
-    if (category.contains('filter')) {
-      categoryImagePath = 'assets/images/categoryImages/Filtre.png';
-    } else if (category.contains('freinage') || category.contains('brake')) {
-      categoryImagePath = 'assets/images/categoryImages/Freinage.png';
-    } else if (category.contains('pneu') || category.contains('tire')) {
-      categoryImagePath = 'assets/images/categoryImages/Pneus et produits associés.png';
     }
     
     return LayoutBuilder(
@@ -384,23 +439,23 @@ class SparePartsPostsGrid extends ConsumerWidget {
                       const SizedBox(height: 6),
                       
                       // Category
-                      Container(
-                  
-                        child: Row(
-                          children: [
-                            Text(
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(
+                            child: Text(
                               post.sparePartsCategory,
                               style: TextStyle(
-                               fontWeight: FontWeight.bold,
-                              fontSize: 15,
-                              color:  AppColors.loginbg,
-                              height: 1.2,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                                color: AppColors.loginbg,
+                                height: 1.2,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                       
                       if (post.sparePartsSubcategory.isNotEmpty) ...[
@@ -412,8 +467,8 @@ class SparePartsPostsGrid extends ConsumerWidget {
                             children: [
                             
                               Text(
-                                post.sparePartsSubcategory.length > 25
-                                    ? post.sparePartsSubcategory.substring(0, 25) + '..'
+                                post.sparePartsSubcategory.length > 20
+                                    ? post.sparePartsSubcategory.substring(0, 20) + '..'
                                     : post.sparePartsSubcategory,
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,

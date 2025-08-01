@@ -14,11 +14,11 @@
       },
       "oauth_client": [
         {
-          "client_id": "531675145063-qsmntm6a61uqdn7opoqddsv6vfnpvj2s.apps.googleusercontent.com",
+          "client_id": "531675145063-kmeklk3vb7hgfikp73ocm0ipunl8d6k9.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.example.icar_instagram_ui",
-            "certificate_hash": "be10cf2a47e7914497d0fb606d0ad517c9e27f15"
+            "certificate_hash": "eef535beb8854e4abbc5aa4794d42d8abb2c4143"
           }
         },
         {

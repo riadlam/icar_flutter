@@ -4,6 +4,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../models/spare_parts_search_params.dart';
 import '../../providers/spare_parts_wishlist_provider.dart';
 import '../../services/share_service.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class SparePartsCard extends StatelessWidget {
   final String partName;
@@ -41,6 +42,13 @@ class SparePartsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: _buildCardContent(context),
+    );
+  }
+
+  Widget _buildCardContent(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -81,7 +89,11 @@ class SparePartsCard extends StatelessWidget {
                       const SizedBox(height: 8),
                     ],
                     if (mobileNumber != null) ...[
-                      _buildInfoRow(Icons.phone, mobileNumber!),
+                      _buildInfoRow(
+                        Icons.phone,
+                        mobileNumber!,
+                        onTap: () => _launchPhone(mobileNumber!),
+                      ),
                       const SizedBox(height: 8),
                     ],
                     if (location != null) ...[
@@ -91,7 +103,6 @@ class SparePartsCard extends StatelessWidget {
                 ),
               ),
             ),
-
             // Right: Yellow Background with Image and Buttons
             Expanded(
               flex: 1,
@@ -115,7 +126,7 @@ class SparePartsCard extends StatelessWidget {
                     left: -40,
                     child: Container(
                       width: 50,
-                    height: 120,
+                      height: 120,
                       decoration: const BoxDecoration(
                         color: Color(0xFFD59500),
                         borderRadius: BorderRadius.only(
@@ -127,7 +138,7 @@ class SparePartsCard extends StatelessWidget {
                   ),
 
                   // Part image or placeholder
-                 Positioned(
+                  Positioned(
                     right: 30,
                     top: 20,
                     child: Container(
@@ -158,8 +169,7 @@ class SparePartsCard extends StatelessWidget {
                     ),
                   ),
 
-
-                 // Floating iCar bottom container
+                  // Floating iCar bottom container
                   Positioned(
                     bottom: 0,
                     left: -10,
@@ -201,29 +211,30 @@ class SparePartsCard extends StatelessWidget {
                     ),
                   // Share button (only shown when showFavoriteButton is true)
                   if (showFavoriteButton)
-                  Positioned(
-                    bottom: 5,
-                    left: 70,
-                    right: 5,
-                    child: GestureDetector(
-                      onTap: () => ShareService.shareSparePartsProfile(context, profile!),
-                      child: Container(
-                        width: 30,
-                        height: 30,
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Center(
-                          child: Image.asset(
-                            'assets/images/sharebutton.webp',
-                            width: 20,
-                            height: 20,
+                    Positioned(
+                      bottom: 5,
+                      left: 70,
+                      right: 5,
+                      child: GestureDetector(
+                        onTap: () => ShareService.shareSparePartsProfile(
+                            context, profile!),
+                        child: Container(
+                          width: 30,
+                          height: 30,
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Center(
+                            child: Image.asset(
+                              'assets/images/sharebutton.webp',
+                              width: 20,
+                              height: 20,
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
                   // Favorite button
                   if (showFavoriteButton)
                     Positioned(
@@ -231,20 +242,27 @@ class SparePartsCard extends StatelessWidget {
                       right: 8,
                       child: Consumer(
                         builder: (context, ref, _) {
-                          final isInWishlist = ref.watch(sparePartsWishlistProvider).containsKey(partId);
+                          final isInWishlist = ref
+                              .watch(sparePartsWishlistProvider)
+                              .containsKey(partId);
                           return IconButton(
                             icon: Icon(
-                              isInWishlist ? Icons.favorite : Icons.favorite_border,
+                              isInWishlist
+                                  ? Icons.favorite
+                                  : Icons.favorite_border,
                               color: Colors.red,
                               size: 30,
                             ),
                             onPressed: () {
-                              debugPrint('Toggling wishlist for part: $partId, current state: $isInWishlist');
+                              debugPrint(
+                                  'Toggling wishlist for part: $partId, current state: $isInWishlist');
                               // Call the original onFavoritePressed if provided
                               if (onFavoritePressed != null) {
                                 onFavoritePressed!();
                               } else if (profile != null) {
-                                ref.read(sparePartsWishlistProvider.notifier).toggleWishlist(profile!);
+                                ref
+                                    .read(sparePartsWishlistProvider.notifier)
+                                    .toggleWishlist(profile!);
                               }
                             },
                           );
@@ -255,7 +273,10 @@ class SparePartsCard extends StatelessWidget {
                   // Share button (positioned below favorite button)
                   if (showShareButton)
                     Positioned(
-                      top: (showEditButton ? 48 : 8) + (showFavoriteButton ? 40 : 0), // Position below favorite button
+                      top: (showEditButton ? 48 : 8) +
+                          (showFavoriteButton
+                              ? 40
+                              : 0), // Position below favorite button
                       right: 8,
                       child: IconButton(
                         icon: const Icon(
@@ -263,7 +284,8 @@ class SparePartsCard extends StatelessWidget {
                           color: Colors.white,
                           size: 24,
                         ),
-                        onPressed: () => _shareSparePart(partName, sellerName, imageUrl),
+                        onPressed: () =>
+                            _shareSparePart(partName, sellerName, imageUrl),
                       ),
                     ),
                 ],
@@ -275,8 +297,8 @@ class SparePartsCard extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String text) {
-    return Row(
+  Widget _buildInfoRow(IconData icon, String text, {VoidCallback? onTap}) {
+    final row = Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Icon(icon, size: 16, color: const Color(0xFF245124)),
@@ -294,21 +316,39 @@ class SparePartsCard extends StatelessWidget {
         ),
       ],
     );
+    if (onTap != null) {
+      return InkWell(
+        onTap: onTap,
+        child: row,
+      );
+    } else {
+      return row;
+    }
+  }
+
+  void _launchPhone(String phoneNumber) async {
+    final Uri phoneUri = Uri(scheme: 'tel', path: phoneNumber);
+    if (await canLaunchUrl(phoneUri)) {
+      await launchUrl(phoneUri);
+    } else {
+      // Optionally show an error
+    }
   }
 
   Widget _buildPlaceholderIcon() {
-    return const Center(
-      child: Icon(
-        Icons.shopping_cart_sharp,
-        size: 60,
-        color: Colors.black,
-      ),
+    return  Center(
+      child: Image.asset(
+                      'assets/images/shopcart.png',
+                      width: 90,
+                      height: 90,
+                      fit: BoxFit.cover,
+                    ),
     );
   }
 
   void _shareSparePart(String partName, String? sellerName, String? imageUrl) {
-    final text = 'Check out this spare part: $partName' + 
-                (sellerName != null ? ' from $sellerName' : '');
+    final text = 'Check out this spare part: $partName' +
+        (sellerName != null ? ' from $sellerName' : '');
     Share.share(
       text,
       subject: 'Spare Part: $partName',

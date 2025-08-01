@@ -1,12 +1,16 @@
 import 'dart:io';
 
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:icar_instagram_ui/constants/app_colors.dart';
+import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:icar_instagram_ui/models/car_post.dart';
 import 'package:icar_instagram_ui/services/api/service_locator.dart';
 import 'package:icar_instagram_ui/services/api/services/car_service.dart';
-import 'package:icar_instagram_ui/constants/filter_constants.dart' as filter_constants;
+import 'package:icar_instagram_ui/constants/filter_constants.dart'
+    as filter_constants;
 
 class CarFormSheet extends StatefulWidget {
   final CarPost? car;
@@ -33,6 +37,7 @@ class CarFormSheet extends StatefulWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
+      useRootNavigator: true,
       builder: (context) => Container(
         decoration: const BoxDecoration(
           color: Colors.white,
@@ -52,10 +57,55 @@ class CarFormSheet extends StatefulWidget {
 }
 
 class _CarFormSheetState extends State<CarFormSheet> {
+  Future<void> _deleteCar() async {
+    if (widget.car == null || widget.car!.id == null) return;
+    final carId = widget.car!.id;
+    setState(() => _isLoading = true);
+    try {
+      final authService = serviceLocator.authService;
+      final token = await authService.getToken();
+      final uri = Uri.parse('http://app.icaralgerie.com/api/cars/$carId');
+      final response = await http.delete(
+        uri,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        if (widget.onSuccess != null) widget.onSuccess!();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('car_deleted_success'.tr())),
+          );
+          Navigator.of(context).pop();
+        }
+      } else {
+        final msg = 'car_delete_failed'
+            .tr(args: ['${response.statusCode} ${response.body}']);
+        if (widget.onError != null) widget.onError!(msg);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(msg)),
+          );
+        }
+      }
+    } catch (e) {
+      if (widget.onError != null) widget.onError!(e.toString());
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('error_deleting_car'.tr(args: ['$e']))),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
   final _formKey = GlobalKey<FormState>();
   final _brandController = TextEditingController();
   final _modelController = TextEditingController();
-  
+
   // Dropdown state
   String? _selectedBrand;
   String? _selectedModel;
@@ -63,22 +113,24 @@ class _CarFormSheetState extends State<CarFormSheet> {
   List<String> _availableModels = [];
   final List<String> _availableBrands = filter_constants.FilterConstants.brands;
   final List<String> _availableYears = filter_constants.FilterConstants.years;
-  
-  void _updateModelsForBrand(String? brand) {
+
+  void _updateModelsForBrand(String? brand, {bool resetModel = true}) {
     setState(() {
       _selectedBrand = brand;
-      _availableModels = brand != null 
+      _availableModels = brand != null
           ? filter_constants.FilterConstants.getModelsForBrand(brand)
           : [];
-      _selectedModel = null; // Reset model when brand changes
+      if (resetModel) {
+        _selectedModel = null;
+      }
     });
   }
-  
+
   final _priceController = TextEditingController();
   final _yearController = TextEditingController();
   final _mileageController = TextEditingController();
   final _descriptionController = TextEditingController();
-  
+
   final ImagePicker _picker = ImagePicker();
   final List<XFile> _images = [];
   final List<String> _existingImageUrls = [];
@@ -100,7 +152,7 @@ class _CarFormSheetState extends State<CarFormSheet> {
       _modelController.text = widget.car!.model;
       _selectedYear = widget.car!.year.toString();
       if (widget.car!.brand.isNotEmpty) {
-        _updateModelsForBrand(widget.car!.brand);
+        _updateModelsForBrand(widget.car!.brand, resetModel: false);
       }
       _priceController.text = widget.car!.price.toString();
       _yearController.text = widget.car!.year.toString();
@@ -110,7 +162,7 @@ class _CarFormSheetState extends State<CarFormSheet> {
       _transmission = widget.car!.transmission.toLowerCase();
       _fuelType = widget.car!.fuel.toLowerCase();
       _listingType = widget.car!.type.toLowerCase();
-      
+
       // Store existing image URLs
       if (widget.car!.imageUrls != null) {
         _existingImageUrls.addAll(widget.car!.imageUrls!);
@@ -123,7 +175,7 @@ class _CarFormSheetState extends State<CarFormSheet> {
       final List<XFile>? pickedFiles = await _picker.pickMultiImage(
         imageQuality: 85,
       );
-      
+
       if (pickedFiles != null && pickedFiles.isNotEmpty) {
         setState(() {
           _images.addAll(pickedFiles);
@@ -152,7 +204,7 @@ class _CarFormSheetState extends State<CarFormSheet> {
 
   Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate()) return;
-    
+
     final brand = _selectedBrand ?? '';
     final model = _selectedModel ?? '';
     final price = double.tryParse(_priceController.text) ?? 0;
@@ -169,7 +221,7 @@ class _CarFormSheetState extends State<CarFormSheet> {
       }
       return;
     }
-    
+
     // Convert XFile to File for upload
     final List<File> imageFiles = [];
     for (var image in _images) {
@@ -193,7 +245,7 @@ class _CarFormSheetState extends State<CarFormSheet> {
           'description': description,
           'enabled': _isEnabled ? '1' : '0',
         };
-        
+
         if (kDebugMode) {
           print('Updating car with type: ${_listingType}');
         }
@@ -232,10 +284,10 @@ class _CarFormSheetState extends State<CarFormSheet> {
       }
     } catch (e) {
       if (mounted) {
-        final errorMessage = widget.car == null 
-            ? 'Failed to create car: ${e.toString()}' 
+        final errorMessage = widget.car == null
+            ? 'Failed to create car: ${e.toString()}'
             : 'Failed to update car: ${e.toString()}';
-            
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(errorMessage)),
         );
@@ -257,7 +309,7 @@ class _CarFormSheetState extends State<CarFormSheet> {
     _yearController.dispose();
     _mileageController.dispose();
     _descriptionController.dispose();
-    
+
     // Clear state variables
     _selectedBrand = null;
     _selectedModel = null;
@@ -266,7 +318,7 @@ class _CarFormSheetState extends State<CarFormSheet> {
     _images.clear();
     _existingImageUrls.clear();
     _removedImageUrls.clear();
-    
+
     super.dispose();
   }
 
@@ -296,10 +348,11 @@ class _CarFormSheetState extends State<CarFormSheet> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  if (widget.car != null) // Only show enable/disable in edit mode
+                  if (widget.car !=
+                      null) // Only show enable/disable in edit mode
                     Row(
                       children: [
-                        const Text('Enable', style: TextStyle(fontSize: 14)),
+                        Text('enable'.tr(), style: const TextStyle(fontSize: 14)),
                         const SizedBox(width: 8),
                         Switch(
                           value: _isEnabled,
@@ -315,19 +368,19 @@ class _CarFormSheetState extends State<CarFormSheet> {
                 ],
               ),
               const SizedBox(height: 20),
-              
+
               // Listing Type
               Padding(
                 padding: const EdgeInsets.only(bottom: 12.0),
                 child: SegmentedButton<String>(
-                  segments: const [
+                  segments: [
                     ButtonSegment(
                       value: 'sale',
-                      label: Text('For Sale'),
+                      label: Text('for_sale'.tr()),
                     ),
                     ButtonSegment(
                       value: 'rent',
-                      label: Text('For Rent'),
+                      label: Text('for_rent'.tr()),
                     ),
                   ],
                   selected: {_listingType},
@@ -338,10 +391,12 @@ class _CarFormSheetState extends State<CarFormSheet> {
                   },
                 ),
               ),
-              
+
               // Image Picker
               GestureDetector(
-                onTap: _images.length + _existingImageUrls.length < 10 ? _pickImage : null,
+                onTap: _images.length + _existingImageUrls.length < 10
+                    ? _pickImage
+                    : null,
                 child: Container(
                   height: 120,
                   decoration: BoxDecoration(
@@ -356,7 +411,8 @@ class _CarFormSheetState extends State<CarFormSheet> {
                       ? Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(Icons.add_photo_alternate_outlined, size: 40, color: Colors.grey),
+                            const Icon(Icons.add_photo_alternate_outlined,
+                                size: 40, color: Colors.grey),
                             const SizedBox(height: 8),
                             Text(
                               'Add Photos (${_images.length + _existingImageUrls.length}/10)',
@@ -367,11 +423,15 @@ class _CarFormSheetState extends State<CarFormSheet> {
                       : Stack(
                           children: [
                             PageView.builder(
-                              itemCount: _existingImageUrls.length + _images.length,
+                              itemCount:
+                                  _existingImageUrls.length + _images.length,
                               itemBuilder: (context, index) {
-                                final isExisting = index < _existingImageUrls.length;
-                                final imageIndex = isExisting ? index : index - _existingImageUrls.length;
-                                
+                                final isExisting =
+                                    index < _existingImageUrls.length;
+                                final imageIndex = isExisting
+                                    ? index
+                                    : index - _existingImageUrls.length;
+
                                 return Stack(
                                   fit: StackFit.expand,
                                   children: [
@@ -379,8 +439,11 @@ class _CarFormSheetState extends State<CarFormSheet> {
                                         ? Image.network(
                                             _existingImageUrls[imageIndex],
                                             fit: BoxFit.cover,
-                                            errorBuilder: (context, error, stackTrace) => 
-                                              const Icon(Icons.broken_image, size: 50, color: Colors.grey),
+                                            errorBuilder: (context, error,
+                                                    stackTrace) =>
+                                                const Icon(Icons.broken_image,
+                                                    size: 50,
+                                                    color: Colors.grey),
                                           )
                                         : Image.file(
                                             File(_images[imageIndex].path),
@@ -436,77 +499,80 @@ class _CarFormSheetState extends State<CarFormSheet> {
               // Form Fields
 
               Wrap(
-  spacing: 16, // Space between the dropdowns horizontally
-  runSpacing: 16, // Space when wrapping to a new line
-  children: [
-    SizedBox(
-      width: MediaQuery.of(context).size.width >= 600
-          ? (MediaQuery.of(context).size.width - 48) / 2 // For larger screens
-          : double.infinity, // Full width on small screens
-      child: DropdownButtonFormField<String>(
-        value: _selectedBrand,
-        decoration: const InputDecoration(
-          labelText: 'Brand',
-          border: OutlineInputBorder(),
-          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-        ),
-        hint: const Text('Select Brand'),
-        items: _availableBrands.map((String brand) {
-          return DropdownMenuItem<String>(
-            value: brand,
-            child: Text(brand),
-          );
-        }).toList(),
-        onChanged: (String? newValue) {
-          _updateModelsForBrand(newValue);
-          _brandController.text = newValue ?? '';
-        },
-        validator: (value) {
-          if (value == null || value.isEmpty) {
-            return 'Please select a brand';
-          }
-          return null;
-        },
-      ),
-    ),
-    SizedBox(
-      width: MediaQuery.of(context).size.width >= 600
-          ? (MediaQuery.of(context).size.width - 48) / 2
-          : double.infinity,
-      child: DropdownButtonFormField<String>(
-        value: _selectedModel,
-        decoration: const InputDecoration(
-          labelText: 'Model',
-          border: OutlineInputBorder(),
-          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-        ),
-        hint: const Text('Select Model'),
-        items: _availableModels.map((String model) {
-          return DropdownMenuItem<String>(
-            value: model,
-            child: Text(model),
-          );
-        }).toList(),
-        onChanged: (String? newValue) {
-          setState(() {
-            _selectedModel = newValue;
-            _modelController.text = newValue ?? '';
-          });
-        },
-        validator: (value) {
-          if (value == null || value.isEmpty) {
-            return 'Please select a model';
-          }
-          return null;
-        },
-        isExpanded: true,
-        disabledHint: _selectedBrand == null 
-            ? const Text('Select a brand first')
-            : null,
-      ),
-    ),
-  ],
-),
+                spacing: 16, // Space between the dropdowns horizontally
+                runSpacing: 16, // Space when wrapping to a new line
+                children: [
+                  SizedBox(
+                    width: MediaQuery.of(context).size.width >= 600
+                        ? (MediaQuery.of(context).size.width - 48) /
+                            2 // For larger screens
+                        : double.infinity, // Full width on small screens
+                    child: DropdownButtonFormField<String>(
+                      value: _selectedBrand,
+                      decoration: const InputDecoration(
+                        labelText: 'Brand',
+                        border: OutlineInputBorder(),
+                        contentPadding:
+                            EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                      ),
+                      hint: Text('select_brand'.tr()),
+                      items: _availableBrands.map((String brand) {
+                        return DropdownMenuItem<String>(
+                          value: brand,
+                          child: Text(brand),
+                        );
+                      }).toList(),
+                      onChanged: (String? newValue) {
+                        _updateModelsForBrand(newValue);
+                        _brandController.text = newValue ?? '';
+                      },
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'please_enter_field'.tr(args: ['brand'.tr()]);
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                  SizedBox(
+                    width: MediaQuery.of(context).size.width >= 600
+                        ? (MediaQuery.of(context).size.width - 48) / 2
+                        : double.infinity,
+                    child: DropdownButtonFormField<String>(
+                      value: _selectedModel,
+                      decoration: const InputDecoration(
+                        labelText: 'Model',
+                        border: OutlineInputBorder(),
+                        contentPadding:
+                            EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                      ),
+                      hint: const Text('Select Model'),
+                      items: _availableModels.map((String model) {
+                        return DropdownMenuItem<String>(
+                          value: model,
+                          child: Text(model),
+                        );
+                      }).toList(),
+                      onChanged: (String? newValue) {
+                        setState(() {
+                          _selectedModel = newValue;
+                          _modelController.text = newValue ?? '';
+                        });
+                      },
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please select a model';
+                        }
+                        return null;
+                      },
+                      isExpanded: true,
+                      disabledHint: _selectedBrand == null
+                          ? const Text('Select a brand first')
+                          : null,
+                    ),
+                  ),
+                ],
+              ),
 
               const SizedBox(height: 12),
               Wrap(
@@ -520,12 +586,12 @@ class _CarFormSheetState extends State<CarFormSheet> {
                         : (MediaQuery.of(context).size.width - 32) / 2,
                     child: _buildTextField(
                       controller: _priceController,
-                      label: 'Price',
+                      label: 'price'.tr(),
                       keyboardType: TextInputType.number,
-                      prefix: '\$',
+                      prefix: 'dzd',
                     ),
                   ),
-                  
+
                   // Year Dropdown
                   SizedBox(
                     width: MediaQuery.of(context).size.width >= 600
@@ -533,12 +599,13 @@ class _CarFormSheetState extends State<CarFormSheet> {
                         : (MediaQuery.of(context).size.width - 32) / 2,
                     child: DropdownButtonFormField<String>(
                       value: _selectedYear,
-                      decoration: const InputDecoration(
-                        labelText: 'Year',
+                      decoration: InputDecoration(
+                        labelText: 'year'.tr(),
                         border: OutlineInputBorder(),
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                        contentPadding:
+                            EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                       ),
-                      hint: const Text('Select Year'),
+                      hint: Text('select_year'.tr()),
                       items: _availableYears.map((String year) {
                         return DropdownMenuItem<String>(
                           value: year,
@@ -553,14 +620,14 @@ class _CarFormSheetState extends State<CarFormSheet> {
                       },
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Please select a year';
+                          return 'please_enter_field'.tr(args: ['year'.tr()]);
                         }
                         return null;
                       },
                       isExpanded: true,
                     ),
                   ),
-                  
+
                   // Mileage Field
                   SizedBox(
                     width: MediaQuery.of(context).size.width >= 600
@@ -568,7 +635,7 @@ class _CarFormSheetState extends State<CarFormSheet> {
                         : double.infinity,
                     child: _buildTextField(
                       controller: _mileageController,
-                      label: 'Mileage',
+                      label: 'mileage'.tr(),
                       keyboardType: TextInputType.number,
                       suffix: 'km',
                     ),
@@ -576,7 +643,7 @@ class _CarFormSheetState extends State<CarFormSheet> {
                 ],
               ),
               const SizedBox(height: 12),
-              
+
               // Transmission and Fuel Type
               Row(
                 children: [
@@ -588,12 +655,20 @@ class _CarFormSheetState extends State<CarFormSheet> {
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
                       ),
-                      items: ['automatic', 'manual'].map((String type) {
+                      items: [
+                        'automatic',
+                        'manual',
+                        'semi automatic',
+                        'CVT',
+                        'Dual Clutch'
+                      ].map((String type) {
                         return DropdownMenuItem<String>(
                           value: type,
-                          child: Text(type[0].toUpperCase() + type.substring(1)),
+                          child:
+                              Text(type[0].toUpperCase() + type.substring(1)),
                         );
                       }).toList(),
                       onChanged: (String? newValue) {
@@ -610,16 +685,19 @@ class _CarFormSheetState extends State<CarFormSheet> {
                     child: DropdownButtonFormField<String>(
                       value: _fuelType,
                       decoration: InputDecoration(
-                        labelText: 'Fuel Type',
+                        labelText: 'fuel_type'.tr(),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
                       ),
-                      items: ['gasoline', 'diesel', 'electric', 'hybrid'].map((String type) {
+                      items: ['gasoline', 'diesel', 'electric', 'hybrid']
+                          .map((String type) {
                         return DropdownMenuItem<String>(
                           value: type,
-                          child: Text(type[0].toUpperCase() + type.substring(1)),
+                          child:
+                              Text(type[0].toUpperCase() + type.substring(1)),
                         );
                       }).toList(),
                       onChanged: (String? newValue) {
@@ -633,9 +711,9 @@ class _CarFormSheetState extends State<CarFormSheet> {
                   ),
                 ],
               ),
-              
+
               const SizedBox(height: 12),
-              
+
               // Description
               TextFormField(
                 controller: _descriptionController,
@@ -657,40 +735,64 @@ class _CarFormSheetState extends State<CarFormSheet> {
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Please enter a description';
+                    return 'please_enter_field'.tr(args: ['description'.tr()]);
                   }
                   return null;
                 },
               ),
-              
+
               const SizedBox(height: 24),
-              
-              // Submit Button
-              ElevatedButton(
-                onPressed: _submitForm,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: _isLoading
-                    ? const SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2,
-                        ),
-                      )
-                    : Text(
-                        widget.car == null ? 'List Car' : 'Save Changes',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+
+              // Submit & Delete Buttons
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: _submitForm,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.loginbg,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
+                      child: _isLoading
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : Text(
+                              widget.car == null
+                                  ? 'list_a_car_for_sale_rent'.tr()
+                                  : 'save_changes'.tr(),
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                    ),
+                  ),
+                  if (widget.car != null) ...[
+                    const SizedBox(width: 12),
+                    ElevatedButton(
+                      onPressed: _isLoading ? null : _deleteCar,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.redAccent,
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 16, horizontal: 18),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Icon(Icons.delete, color: Colors.white),
+                    ),
+                  ],
+                ],
               ),
               const SizedBox(height: 20),
             ],
@@ -711,36 +813,39 @@ class _CarFormSheetState extends State<CarFormSheet> {
     if (label.toLowerCase() == 'year') {
       return const SizedBox.shrink();
     }
-    
+
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
       decoration: InputDecoration(
-        labelText: label,
+        labelText: label.tr(),
         border: const OutlineInputBorder(),
         prefixText: prefix,
         suffixText: suffix,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
       ),
       validator: (value) {
         if (value == null || value.isEmpty) {
-          return 'Please enter $label';
+          return 'please_enter_field'.tr(args: [label.tr()]);
         }
         if (keyboardType == TextInputType.number) {
           // Check if it's a valid number
           final number = double.tryParse(value);
           if (number == null || number <= 0) {
-            return 'Please enter a valid $label';
+            return 'please_enter_valid_field'.tr(args: [label.tr()]);
           }
           // Special validation for year field
           if (label.toLowerCase().contains('year')) {
             final currentYear = DateTime.now().year;
-            if (number < 1886 || number > currentYear + 1) { // 1886 is when the first car was made
-              return 'Please enter a year between 1886 and ${currentYear + 1}';
+            if (number < 1886 || number > currentYear + 1) {
+              // 1886 is when the first car was made
+              return 'please_enter_year_between'
+                  .tr(args: ['1886', '${currentYear + 1}']);
             }
           }
         }
-        
+
         return null;
       },
     );

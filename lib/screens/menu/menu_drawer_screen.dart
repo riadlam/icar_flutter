@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../models/favorite_seller.dart';
 import '../../services/api/services/favorite_seller_list_service.dart';
 import '../../services/auth_service.dart';
+import 'package:http/http.dart' as http;
 
 class MenuDrawerScreen extends StatefulWidget {
   const MenuDrawerScreen({super.key});
@@ -116,39 +117,23 @@ class _MenuDrawerScreenState extends State<MenuDrawerScreen> {
               child: ListView(
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 children: [
-                  _buildExpandableSection(
-                    icon: Icons.favorite_border,
-                    title: 'favorite_sellers'.tr(),
-                    isExpanded: _isFavoriteSellersExpanded,
-                    onTap: () {
-                      setState(() {
-                        _isFavoriteSellersExpanded = !_isFavoriteSellersExpanded;
-                        if (_isFavoriteSellersExpanded) {
-                          _loadFavoriteSellers();
-                        }
-                      });
-                    },
-                    children: _isFavoriteSellersExpanded
-                        ? _buildFavoriteSellersList()
-                        : [],
-                  ),
-                  _buildExpandableSection(
-                    icon: Icons.person_outline,
-                    title: 'personal_info'.tr(),
-                    isExpanded: _isPersonalInfoExpanded,
-                    onTap: () {
-                      setState(() {
-                        _isPersonalInfoExpanded = !_isPersonalInfoExpanded;
-                      });
-                    },
-                    children: _isPersonalInfoExpanded
-                        ? [
-                            _buildInfoRow(Icons.person, '${'name'.tr()}: John Doe'),
-                            _buildInfoRow(Icons.location_city, '${'city'.tr()}: New York'),
-                            _buildInfoRow(Icons.email, '${'email'.tr()}: john.doe@example.com'),
-                          ]
-                        : [],
-                  ),
+                  // _buildExpandableSection(
+                  //   icon: Icons.person_outline,
+                  //   title: 'personal_info'.tr(),
+                  //   isExpanded: _isPersonalInfoExpanded,
+                  //   onTap: () {
+                  //     setState(() {
+                  //       _isPersonalInfoExpanded = !_isPersonalInfoExpanded;
+                  //     });
+                  //   },
+                  //   children: _isPersonalInfoExpanded
+                  //       ? [
+                  //           _buildInfoRow(Icons.person, '${'name'.tr()}: John Doe'),
+                  //           _buildInfoRow(Icons.location_city, '${'city'.tr()}: New York'),
+                  //           _buildInfoRow(Icons.email, '${'email'.tr()}: john.doe@example.com'),
+                  //         ]
+                  //       : [],
+                  // ),
                   _buildExpandableSection(
                     icon: Icons.language,
                     title: 'language'.tr(),
@@ -481,26 +466,100 @@ class _MenuDrawerScreenState extends State<MenuDrawerScreen> {
     }
   }
 
-  void _showDeleteAccountDialog() {
-    showDialog(
+  Future<void> _showDeleteAccountDialog() async {
+    if (!mounted) return;
+
+    final shouldDelete = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text('delete_account'.tr()),
         content: Text('confirm_delete_account'.tr()),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(context, false),
             child: Text('cancel'.tr().toUpperCase()),
           ),
           TextButton(
-            onPressed: () {
-              Navigator.pop(context); // dialog
-              Navigator.pop(context); // drawer
-            },
+            onPressed: () => Navigator.pop(context, true),
             child: Text('delete_account'.tr().toUpperCase(), style: const TextStyle(color: Colors.red)),
           ),
         ],
       ),
     );
+
+    if (shouldDelete != true) return;
+    if (!mounted) return;
+
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) => const PopScope(
+        canPop: false,
+        child: Center(child: CircularProgressIndicator()),
+      ),
+    );
+
+    try {
+      // Get token from authService
+      final token = await authService.getToken();
+      if (!mounted) return;
+      if (token == null || token.isEmpty) {
+        throw Exception('No auth token');
+      }
+      final response = await _deleteAccount(token);
+      if (!mounted) return;
+      if (response) {
+        // Log out and go to welcome
+        await authService.signOut(); // This clears all user data and shared prefs
+        // Optionally, clear any additional app-specific storage here if needed
+        if (!mounted) return;
+        // Close all dialogs/screens
+        Navigator.popUntil(context, (route) => route.isFirst);
+        if (!mounted) return;
+        context.go('/welcome');
+      } else {
+        if (!mounted) return;
+        Navigator.pop(context); // Close loading
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('delete_account_error'.tr()),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context); // Close loading
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('delete_account_error'.tr()),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  // Helper to call the delete account API
+  Future<bool> _deleteAccount(String token) async {
+    try {
+      final uri = Uri.parse('http://app.icaralgerie.com/api/profile/me');
+      final response = await http.delete(
+        uri,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        return true;
+      } else {
+        debugPrint('Delete account failed: \\nStatus: \\${response.statusCode}\\nBody: \\${response.body}');
+        return false;
+      }
+    } catch (e, stack) {
+      debugPrint('Delete account exception: \\n$e\\n$stack');
+      return false;
+    }
   }
 }

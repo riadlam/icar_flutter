@@ -4,7 +4,8 @@ import 'package:icar_instagram_ui/models/tow_truck_service.dart' as model;
 import 'package:icar_instagram_ui/widgets/cards/tow_truck_service_card.dart';
 import 'package:icar_instagram_ui/widgets/tow_truck/tow_truck_filters_sheet.dart';
 import 'package:icar_instagram_ui/services/api/service_locator.dart';
-import 'package:icar_instagram_ui/services/api/services/tow_truck_service.dart' as api_service;
+import 'package:icar_instagram_ui/services/api/services/tow_truck_service.dart'
+    as api_service;
 
 class TowTruckContent extends StatefulWidget {
   const TowTruckContent({Key? key}) : super(key: key);
@@ -14,7 +15,8 @@ class TowTruckContent extends StatefulWidget {
 }
 
 class _TowTruckContentState extends State<TowTruckContent> {
-  final api_service.TowTruckService _towTruckService = serviceLocator.towTruckService;
+  final api_service.TowTruckService _towTruckService =
+      serviceLocator.towTruckService;
   List<model.TowTruckService> _services = [];
   bool _isLoading = false;
   String? _error;
@@ -33,24 +35,30 @@ class _TowTruckContentState extends State<TowTruckContent> {
     });
 
     try {
-      final profiles = await _towTruckService.getAllTowTruckProfiles(city: city);
+      final profiles =
+          await _towTruckService.getAllTowTruckProfiles(city: city);
       if (mounted) {
         setState(() {
-          _services = profiles.map((profile) => model.TowTruckService(
-            id: profile['id'].toString(),
-            businessName: profile['business_name'] ?? 'Unnamed Business',
-            driverName: profile['driver_name'] ?? 'No Name',
-            phoneNumber: profile['mobile'] ?? 'No Phone',
-            location: profile['city'] ?? 'No Location',
-            imageUrl: 'https://images.unsplash.com/photo-1570129477492-45c003edd2be',
-            isFavorite: false,
-          )).toList();
+          _services = profiles
+              .map((profile) => model.TowTruckService(
+                    id: profile['id'].toString(),
+                    businessName:
+                        profile['business_name'] ?? 'Unnamed Business',
+                    driverName: profile['driver_name'] ?? 'No Name',
+                    phoneNumber: profile['mobile'] ?? 'No Phone',
+                    location: profile['city'] ?? 'No Location',
+                    imageUrl:
+                        'https://images.unsplash.com/photo-1570129477492-45c003edd2be',
+                    isFavorite: false,
+                  ))
+              .toList();
         });
       }
     } catch (e) {
       if (mounted) {
         setState(() {
-          _error = 'Failed to load tow truck profiles: ${e is Exception ? e.toString().split(':').last.trim() : 'Unknown error'}';
+          _error =
+              'Failed to load tow truck profiles: ${e is Exception ? e.toString().split(':').last.trim() : 'Unknown error'}';
         });
       }
     } finally {
@@ -65,6 +73,7 @@ class _TowTruckContentState extends State<TowTruckContent> {
   void _showFilterSheet() {
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => TowTruckFiltersSheet(
@@ -90,6 +99,14 @@ class _TowTruckContentState extends State<TowTruckContent> {
 
   @override
   Widget build(BuildContext context) {
+    // Force LTR direction for the entire widget
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: _buildContent(),
+    );
+  }
+
+  Widget _buildContent() {
     if (_isLoading) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
@@ -114,19 +131,13 @@ class _TowTruckContentState extends State<TowTruckContent> {
       );
     }
 
-    if (_services.isEmpty) {
-      return const Center(
-        child: Text('No tow truck services available'),
-      );
-    }
-
     return Scaffold(
-
       body: Column(
         children: [
           // Filter buttons row
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             child: Row(
               children: [
                 Expanded(
@@ -134,8 +145,7 @@ class _TowTruckContentState extends State<TowTruckContent> {
                     onPressed: _showFilterSheet,
                     icon: const Icon(Icons.filter_list, size: 20),
                     label: Text(
-                      'Filter${_selectedCity != null ? ' (${_selectedCity})' : ''}'
-                    ),
+                        'Filter${_selectedCity != null ? ' (${_selectedCity})' : ''}'),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(
@@ -143,7 +153,7 @@ class _TowTruckContentState extends State<TowTruckContent> {
                       ),
                       side: BorderSide(
                         color: _selectedCity != null
-                            ? Theme.of(context).primaryColor 
+                            ? Theme.of(context).primaryColor
                             : Colors.grey.shade300,
                         width: _selectedCity != null ? 2.0 : 1.0,
                       ),
@@ -175,7 +185,8 @@ class _TowTruckContentState extends State<TowTruckContent> {
                 return RefreshIndicator(
                   onRefresh: _loadTowTruckProfiles,
                   child: ListView.builder(
-                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                    padding:
+                        const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                     itemCount: _services.length,
                     itemBuilder: (context, index) {
                       final service = _services[index];

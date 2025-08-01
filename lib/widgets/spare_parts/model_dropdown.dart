@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:icar_instagram_ui/constants/filter_constants.dart' as filter_constants;
+import 'package:icar_instagram_ui/constants/filter_constants.dart'
+    as filter_constants;
 
 class ModelDropdownField extends StatelessWidget {
   final String? brand;
@@ -15,9 +16,12 @@ class ModelDropdownField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final models = (brand != null && filter_constants.brandModels.containsKey(brand))
-        ? filter_constants.brandModels[brand]!.toSet().toList() // Ensure unique models
-        : <String>[];
+    final models =
+        (brand != null && filter_constants.brandModels.containsKey(brand))
+            ? filter_constants.brandModels[brand]!
+                .toSet()
+                .toList() // Ensure unique models
+            : <String>[];
 
     return DropdownButtonFormField<String>(
       value: value,
@@ -27,8 +31,9 @@ class ModelDropdownField extends StatelessWidget {
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        prefixIcon: const Icon(Icons.directions_car),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        // Removed prefixIcon to avoid left icon on the model row
       ),
       items: models.map<DropdownMenuItem<String>>((String value) {
         return DropdownMenuItem<String>(

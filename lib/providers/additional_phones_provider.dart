@@ -42,6 +42,25 @@ class AdditionalPhonesNotifier extends StateNotifier<AsyncValue<List<AdditionalP
     await loadPhones(userId);
   }
 
+  Future<void> addPhoneNumber(String phoneNumber) async {
+    try {
+      final carProfileService = ref.read(carProfileProvider);
+      final currentUserId = await _getCurrentUserId();
+      if (currentUserId == null) {
+        throw Exception('User not logged in');
+      }
+      final response = await carProfileService.addPhoneNumber(phoneNumber);
+      if (response['success'] == true) {
+        await loadPhones(currentUserId);
+      } else {
+        throw Exception(response['message'] ?? 'Failed to add phone number');
+      }
+    } catch (e, stackTrace) {
+      state = AsyncValue.error(e, stackTrace);
+      rethrow;
+    }
+  }
+
   Future<void> deletePhone(String userId, String phoneId) async {
     try {
       final carProfileService = ref.read(carProfileProvider);

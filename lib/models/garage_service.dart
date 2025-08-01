@@ -23,6 +23,36 @@ class GarageService {
     this.reviews = 0,
   });
 
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'businessName': businessName,
+      'ownerName': ownerName,
+      'phoneNumber': phoneNumber,
+      'location': location,
+      'imageUrl': imageUrl,
+      'isFavorite': isFavorite,
+      'services': services,
+      'rating': rating,
+      'reviews': reviews,
+    };
+  }
+
+  factory GarageService.fromJson(Map<String, dynamic> json) {
+    return GarageService(
+      id: json['id'] as String,
+      businessName: json['businessName'] as String,
+      ownerName: json['ownerName'] as String,
+      phoneNumber: json['phoneNumber'] as String,
+      location: json['location'] as String,
+      imageUrl: json['imageUrl'] as String,
+      isFavorite: json['isFavorite'] as bool,
+      services: List<String>.from(json['services'] as List),
+      rating: json['rating'] as double,
+      reviews: json['reviews'] as int,
+    );
+  }
+
   // Sample data
   static List<GarageService> sampleServices = [
     GarageService(

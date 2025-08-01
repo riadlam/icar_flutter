@@ -34,9 +34,21 @@ class GarageProfile {
         return null;
       }
 
+      // Helper to parse int from either String or int
+      int parseInt(dynamic value) {
+        if (value == null) return 0;
+        if (value is int) return value;
+        if (value is String) return int.tryParse(value) ?? 0;
+        return 0;
+      }
+
+      // Handle nested user object if present
+      final userData = json['user'] is Map<String, dynamic> ? json['user'] : null;
+      final userIdFromUser = userData != null ? parseInt(userData['id']) : null;
+
       return GarageProfile(
-        id: json['id'] as int? ?? 0,
-        userId: json['user_id'] as int? ?? 0,
+        id: parseInt(json['id']),
+        userId: userIdFromUser ?? parseInt(json['user_id']),
         businessName: (json['business_name'] as String?)?.trim() ?? 'No Business Name',
         mechanicName: (json['mechanic_name'] as String?)?.trim() ?? 'No Name',
         mobile: (json['mobile']?.toString() ?? 'N/A').trim(),

@@ -44,16 +44,27 @@ final currentSparePartsPostsProvider = Provider.autoDispose<AsyncValue<List<Spar
 
 Future<List<SparePartsPost>> _fetchSparePartsPosts(String? category) async {
   try {
+    print('🔍 [DEBUG] Fetching posts with category filter: ${category ?? 'All categories'}');
     final response = await serviceLocator.sparePartsService.getMySparePartsPosts();
     
     if (category == null || category.isEmpty) {
+      print('✅ [DEBUG] No category filter applied, returning all ${response.length} posts');
       return response;
     }
     
-    // Filter posts by category (case-insensitive)
-    return response.where((post) => 
-      post.sparePartsCategory.toLowerCase().contains(category.toLowerCase())
-    ).toList();
+    print('🔎 [DEBUG] Filtering posts for category: $category');
+    print('📋 [DEBUG] Available categories in response: ${response.map((p) => p.sparePartsCategory).toSet().toList()}');
+    
+    final filtered = response.where((post) {
+      final matches = post.sparePartsCategory.toLowerCase() == category.toLowerCase();
+      if (matches) {
+        print('   ✅ [DEBUG] Match found - Post ID: ${post.id}, Category: ${post.sparePartsCategory}');
+      }
+      return matches;
+    }).toList();
+    
+    print('📊 [DEBUG] Filter results: Found ${filtered.length} of ${response.length} posts match category \'$category\'');
+    return filtered;
   } catch (e) {
     rethrow;
   }

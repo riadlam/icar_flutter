@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 extension StringCasingExtension on String {
   String toTitleCase() {
     if (length <= 1) return toUpperCase();
@@ -17,7 +19,7 @@ class CarPost {
   final String fuel;
   final String description;
   final List<String> imageUrls;
-  
+
   // For backward compatibility with existing code
   List<String> get images => imageUrls;
   final String? sellerId;
@@ -30,15 +32,14 @@ class CarPost {
   final bool isWishlisted;
   final bool enabled;
   final DateTime? updatedAt;
-  
+
   // Computed properties
   String get name => '$brand $model'.trim();
   bool get isForSale => type.toLowerCase() == 'sale';
-  String get formattedPrice => '\$${price.toStringAsFixed(2)}';
+  String get formattedPrice => 'DZD${price.toStringAsFixed(2)}';
   String get formattedMileage => '${mileage.toStringAsFixed(0)} km';
   String get formattedYear => year.toString();
   String get transmissionType => transmission.toTitleCase();
-  
 
   CarPost({
     required this.id,
@@ -65,28 +66,72 @@ class CarPost {
   });
 
   factory CarPost.fromJson(Map<String, dynamic> json) {
+    DateTime? parseDate(dynamic date) {
+      if (date == null) return null;
+      
+      try {
+        // Try parsing the date string directly
+        final parsed = DateTime.tryParse(date.toString());
+        if (parsed != null) return parsed;
+        
+        // If direct parsing fails, try to handle potential formats
+        final dateStr = date.toString();
+        if (dateStr.contains('T')) {
+          // Handle ISO 8601 format with T separator
+          return DateTime.parse(dateStr);
+        } else {
+          // Handle other formats if needed
+          final parts = dateStr.split(' ');
+          if (parts.length >= 2) {
+            return DateTime.parse('${parts[0]}T${parts[1]}Z');
+          }
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          print('Error parsing date $date: $e');
+        }
+      }
+      
+      return null;
+    }
+    
+    if (kDebugMode) {
+      print('Parsing CarPost from JSON:');
+      print('  created_at: ${json['created_at']} (${json['created_at']?.runtimeType})');
+      if (json['created_at'] != null) {
+        final parsedDate = parseDate(json['created_at']);
+        print('  Parsed date: $parsedDate');
+      }
+    }
+    
     return CarPost(
       id: json['id']?.toString() ?? '',
       type: json['type']?.toString().toLowerCase() ?? 'sale',
       brand: json['brand']?.toString() ?? '',
       model: json['model']?.toString() ?? '',
-      price: (json['price'] is int ? json['price'].toDouble() : json['price'] as double?) ?? 0.0,
+      price: (json['price'] is int
+              ? json['price'].toDouble()
+              : json['price'] as double?) ??
+          0.0,
       mileage: (json['mileage'] as int?) ?? 0,
       year: (json['year'] as int?) ?? DateTime.now().year,
-      transmission: (json['transmission'] as String?)?.toLowerCase() ?? 'automatic',
+      transmission:
+          (json['transmission'] as String?)?.toLowerCase() ?? 'automatic',
       fuel: (json['fuel'] as String?)?.toLowerCase() ?? 'gasoline',
       description: json['description']?.toString() ?? '',
-      imageUrls: List<String>.from((json['images'] as List<dynamic>?)?.map((e) => e.toString()) ?? []),
+      imageUrls: List<String>.from(
+          (json['images'] as List<dynamic>?)?.map((e) => e.toString()) ?? []),
       sellerId: json['user_id']?.toString(),
-      sellerName: json['full_name']?.toString() ?? 'Seller ${json['user_id']?.toString() ?? ''}',
+      sellerName: json['full_name']?.toString() ??
+          'Seller ${json['user_id']?.toString() ?? ''}',
       sellerPhone: json['mobile']?.toString(),
       fullName: json['full_name']?.toString(),
       city: json['city']?.toString(),
-      createdAt: json['created_at'] != null 
-          ? DateTime.tryParse(json['created_at'].toString()) ?? DateTime.now()
+      createdAt: json['created_at'] != null
+          ? parseDate(json['created_at']) ?? DateTime.now()
           : null,
       updatedAt: json['updated_at'] != null
-          ? DateTime.tryParse(json['updated_at'].toString())
+          ? parseDate(json['updated_at'])
           : null,
       isFavorite: false, // Not provided in the API response
       isWishlisted: false, // Not provided in the API response

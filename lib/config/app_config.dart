@@ -1,6 +1,6 @@
 class AppConfig {
   // API Configuration
-  static const String baseUrl = 'http://192.168.1.8:8000';
+  static const String baseUrl = 'http://app.icaralgerie.com';
   static const String apiPrefix = '/api';
   
   // API Endpoints

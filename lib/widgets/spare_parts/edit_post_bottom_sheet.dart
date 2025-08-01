@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:icar_instagram_ui/models/spare_parts_post.dart';
 import 'package:icar_instagram_ui/constants/filter_constants.dart' as filter_constants;
+import 'package:icar_instagram_ui/services/api/service_locator.dart';
 import 'package:icar_instagram_ui/widgets/spare_parts/brand_dropdown.dart';
 import 'package:icar_instagram_ui/widgets/spare_parts/model_dropdown.dart';
 import 'package:icar_instagram_ui/widgets/spare_parts/category_dropdown.dart';
@@ -24,20 +26,28 @@ class EditPostBottomSheet extends StatefulWidget {
 }
 
 class _EditPostBottomSheetState extends State<EditPostBottomSheet> {
-  // State variables for dropdowns
+  // State variables for dropdowns and toggle
   String? _selectedBrand;
   String? _selectedModel;
   String? _selectedCategory;
   String? _selectedSubcategory;
+  late bool _isAvailable;
 
   @override
   void initState() {
     super.initState();
-    // Initialize dropdown values from the post
+    // Initialize values from the post
     _selectedBrand = widget.post.brand;
     _selectedModel = widget.post.model;
     _selectedCategory = widget.post.sparePartsCategory;
     _selectedSubcategory = widget.post.sparePartsSubcategory;
+    // Ensure isAvailable is properly set based on the post data
+    _isAvailable = widget.post.isAvailable == true;
+    
+    if (kDebugMode) {
+      print('EditPostBottomSheet - Initial isAvailable: $_isAvailable');
+      print('Post data - isAvailable: ${widget.post.isAvailable}');
+    }
   }
 
   // No need for dispose since we're not using controllers anymore
@@ -124,6 +134,37 @@ class _EditPostBottomSheetState extends State<EditPostBottomSheet> {
               },
             ),
             const SizedBox(height: 24),
+            // Availability Toggle
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'availability'.tr(),
+                  style: theme.textTheme.titleMedium,
+                ),
+                Row(
+                  children: [
+                    Text(
+                      _isAvailable ? 'available'.tr() : 'not_available'.tr(),
+                      style: TextStyle(
+                        color: _isAvailable ? Colors.green : Colors.red,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    Switch(
+                      value: _isAvailable,
+                      onChanged: (value) {
+                        setState(() {
+                          _isAvailable = value;
+                        });
+                      },
+                      activeColor: Colors.green,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
             Row(
               children: [
                 Expanded(
@@ -165,50 +206,93 @@ class _EditPostBottomSheetState extends State<EditPostBottomSheet> {
 
   // Text field building method removed as we're using dropdowns now
 
-  void _saveChanges() {
+  Future<void> _saveChanges() async {
     // Ensure all required fields are filled and the selected model is valid for the brand
     if (_selectedBrand == null || _selectedModel == null || 
         _selectedCategory == null || _selectedSubcategory == null) {
       // Show error message
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill in all fields')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('please_fill_all_fields'.tr())),
+        );
+      }
       return;
     }
-    
+
     // Verify the selected model exists in the brand's models
     try {
       final brandModels = filter_constants.brandModels[_selectedBrand] ?? [];
       if (!brandModels.contains(_selectedModel)) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please select a valid model')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('please_select_valid_model'.tr())),
+          );
+        }
         return;
       }
     } catch (e) {
       if (kDebugMode) {
         print('Error validating model: $e');
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('An error occurred. Please try again.')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('error_occurred_try_again'.tr())),
+        );
+      }
       return;
     }
 
-    final updatedPost = SparePartsPost(
-      id: widget.post.id,
-      userId: widget.post.userId,
-      brand: _selectedBrand!,
-      model: _selectedModel!,
-      sparePartsCategory: _selectedCategory!,
-      sparePartsSubcategory: _selectedSubcategory!,
-      createdAt: widget.post.createdAt,
-      updatedAt: DateTime.now(),
-    );
-    
-    widget.onSave(updatedPost);
-    if (mounted) {
-      Navigator.of(context).pop();
+    try {
+      if (kDebugMode) {
+        print('Sending update with is_available: ${_isAvailable ? 1 : 0}');
+      }
+      
+      final success = await serviceLocator.sparePartsService.updateSparePartsPost(
+        postId: widget.post.id,
+        brand: _selectedBrand!,
+        model: _selectedModel!,
+        sparePartsCategory: _selectedCategory!,
+        sparePartsSubcategory: _selectedSubcategory!,
+        is_available: _isAvailable ? 1 : 0,
+      );
+
+      if (success) {
+        if (mounted) {
+          if (kDebugMode) {
+            print('Update successful, creating updated post with isAvailable: $_isAvailable');
+          }
+          
+          final updatedPost = SparePartsPost(
+            id: widget.post.id,
+            userId: widget.post.userId,
+            brand: _selectedBrand!,
+            model: _selectedModel!,
+            sparePartsCategory: _selectedCategory!,
+            sparePartsSubcategory: _selectedSubcategory!,
+            isAvailable: _isAvailable, // Make sure this is set correctly
+            createdAt: widget.post.createdAt,
+            updatedAt: DateTime.now(),
+          );
+          
+          widget.onSave(updatedPost);
+          if (mounted) {
+            Navigator.of(context).pop();
+          }
+        }
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('update_failed_try_again'.tr())),
+        );
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error updating post: $e');
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('error_occurred_try_again'.tr())),
+        );
+      }
     }
   }
 }

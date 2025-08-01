@@ -40,6 +40,7 @@ class _CarPostsContentState extends ConsumerState<CarPostsContent> {
     try {
       final filters = await showModalBottomSheet<Map<String, dynamic>>(
         context: context,
+        useRootNavigator: true,
         isScrollControlled: true,
         isDismissible: true,
         enableDrag: true,
@@ -234,10 +235,20 @@ class _CarPostsContentState extends ConsumerState<CarPostsContent> {
                   ),
                 );
               }
-              return _CarPostsList(
-                cars: cars,
-                onRefresh: _onRefresh,
-              );
+              for (final car in cars) {
+  debugPrint('Car ID: [32m[1m${car.id}[0m, createdAt: [36m${car.createdAt}[0m');
+}
+final sortedCars = List<CarPost>.from(cars)
+  ..sort((a, b) {
+    if (a.createdAt == null && b.createdAt == null) return 0;
+    if (a.createdAt == null) return 1;
+    if (b.createdAt == null) return -1;
+    return b.createdAt!.compareTo(a.createdAt!);
+  });
+return _CarPostsList(
+  cars: sortedCars,
+  onRefresh: _onRefresh,
+);
             },
           ),
         ),
@@ -267,6 +278,7 @@ class _CarPostsList extends StatelessWidget {
   Widget build(BuildContext context) {
     final content = ListView.builder(
       padding: const EdgeInsets.all(16),
+      physics: const ClampingScrollPhysics(),
       itemCount: cars.length,
       itemBuilder: (context, index) {
         final post = cars[index];

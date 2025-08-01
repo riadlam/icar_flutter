@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:icar_instagram_ui/constants/filter_constants.dart' as filter_constants;
+import 'package:icar_instagram_ui/constants/filter_constants.dart'
+    as filter_constants;
+import 'package:icar_instagram_ui/constants/brand_images.dart';
 
 class BrandDropdownField extends StatelessWidget {
   final String? value;
@@ -17,13 +19,65 @@ class BrandDropdownField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _buildDropdownField(
-      context: context,
+    final List<String> brands = filter_constants.brandModels.keys.toList()
+      ..sort();
+    debugPrint('Building BrandDropdownField. Brands count: ${brands.length}');
+
+    // Ensure the current value is in the list if it's not null
+    if (value != null && !brands.contains(value)) {
+      brands.add(value!);
+    }
+
+    return DropdownButtonFormField<String>(
       value: value,
       onChanged: onChanged,
-      items: filter_constants.brandModels.keys.toList(),
-      label: label!,
-      icon: icon!,
+      decoration: InputDecoration(
+        labelText: label,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        // Removed prefixIcon to avoid left icon on the brand row
+      ),
+      items: [
+        // Add a null item as the first option
+        const DropdownMenuItem<String>(
+          value: null,
+          child: Text('Select a brand'),
+        ),
+        // Add all the brands
+        ...brands.map<DropdownMenuItem<String>>((String brand) {
+          final imagePath = BrandImages.getBrandImagePath(brand);
+          debugPrint('Dropdown item: $brand | imagePath: $imagePath');
+          return DropdownMenuItem<String>(
+            value: brand,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (imagePath != null)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8.0),
+                    child: Image.asset(
+                      imagePath,
+                      width: 28,
+                      height: 28,
+                      errorBuilder: (context, error, stackTrace) =>
+                          const SizedBox(width: 28, height: 28),
+                    ),
+                  ),
+                Flexible(
+                  child: Text(
+                    brand,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }).toList(),
+      ],
     );
   }
 }
@@ -46,18 +100,31 @@ class ModelDropdownField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final models = brand != null && filter_constants.brandModels.containsKey(brand)
-        ? filter_constants.brandModels[brand]!
-        : <String>[];
+    final models =
+        (brand != null && filter_constants.brandModels.containsKey(brand))
+            ? filter_constants.brandModels[brand]!
+                .toSet()
+                .toList() // Ensure unique models
+            : <String>[];
 
-    return _buildDropdownField(
-      context: context,
+    return DropdownButtonFormField<String>(
       value: value,
-      onChanged: onChanged,
-      items: models,
-      label: label!,
-      icon: icon!,
-      enabled: brand != null,
+      onChanged: brand != null ? onChanged : null,
+      decoration: InputDecoration(
+        labelText: label,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        // Removed prefixIcon to avoid left icon on the model row
+      ),
+      items: models.map<DropdownMenuItem<String>>((String value) {
+        return DropdownMenuItem<String>(
+          value: value,
+          child: Text(value),
+        );
+      }).toList(),
     );
   }
 }
@@ -78,15 +145,94 @@ class CategoryDropdownField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _buildDropdownField(
-      context: context,
-      value: value,
-      onChanged: onChanged,
-      items: filter_constants.FilterConstants.sparePartsCategories
-          .map((e) => e['name'] as String)
-          .toList(),
-      label: label!,
-      icon: icon!,
+    final categories = filter_constants.FilterConstants.sparePartsCategories;
+
+    // If there's a value but it's not in the current list, set it to null
+    final selectedValue =
+        categories.any((cat) => cat['name'] == value) ? value : null;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return DropdownButtonFormField<String>(
+          value: selectedValue,
+          onChanged: onChanged,
+          isExpanded: true, // Make the dropdown take full width
+          decoration: InputDecoration(
+            labelText: label,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            // Removed prefixIcon to avoid left icon on the category row
+          ),
+          selectedItemBuilder: (BuildContext context) {
+            return categories.map<Widget>((category) {
+              final name = category['name'] as String;
+              final imagePath = category['image'] as String?;
+              return SizedBox(
+                width:
+                    constraints.maxWidth - 100, // Account for padding and icon
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (imagePath != null)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8.0),
+                        child: Image.asset(
+                          imagePath,
+                          width: 28,
+                          height: 28,
+                          errorBuilder: (context, error, stackTrace) =>
+                              const SizedBox(width: 28, height: 28),
+                        ),
+                      ),
+                    Flexible(
+                      child: Text(
+                        name,
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList();
+          },
+          items: categories.map<DropdownMenuItem<String>>((category) {
+            final name = category['name'] as String;
+            final imagePath = category['image'] as String?;
+            debugPrint('Dropdown category item: $name | imagePath: $imagePath');
+            return DropdownMenuItem<String>(
+              value: name,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (imagePath != null)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8.0),
+                      child: Image.asset(
+                        imagePath,
+                        width: 28,
+                        height: 28,
+                        errorBuilder: (context, error, stackTrace) =>
+                            const SizedBox(width: 28, height: 28),
+                      ),
+                    ),
+                  Flexible(
+                    child: Text(
+                      name,
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }).toList()
+            ..sort((a, b) => (a.value ?? '').compareTo(b.value ?? '')),
+        );
+      },
     );
   }
 }
@@ -108,112 +254,114 @@ class SubcategoryDropdownField extends StatelessWidget {
   }) : super(key: key);
 
   @override
-  @override
   Widget build(BuildContext context) {
-    List<String> subcategories = [];
-    
+    List<dynamic> subcategories = [];
+
     if (category != null) {
       // Find the category ID from the category name
-      final categoryObj = filter_constants.FilterConstants.sparePartsCategories
-          .firstWhere(
-            (c) => c['name'] == category,
-            orElse: () => <String, String>{},
-          );
-          
+      final categoryObj =
+          filter_constants.FilterConstants.sparePartsCategories.firstWhere(
+        (c) => c['name'] == category,
+        orElse: () => <String, String>{},
+      );
+
       if (categoryObj.isNotEmpty) {
         final categoryId = categoryObj['id']!;
-        subcategories = filter_constants.FilterConstants
-            .getSubcategories(categoryId)
-            .map((e) => e.name)
-            .toList();
+        subcategories =
+            filter_constants.FilterConstants.getSubcategories(categoryId);
       }
     }
 
-    return _buildDropdownField(
-      context: context,
-      value: value,
-      onChanged: onChanged,
-      items: subcategories,
-      label: label!,
-      icon: icon!,
-      enabled: category != null,
+    // Convert to a map to ensure unique values
+    final uniqueSubcategories = <String, dynamic>{};
+    for (var sub in subcategories) {
+      uniqueSubcategories[sub.name] = sub;
+    }
+
+    // If the current value is not in the list, set it to null
+    final selectedValue = uniqueSubcategories.containsKey(value) ? value : null;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return DropdownButtonFormField<String>(
+          value: selectedValue,
+          onChanged: category != null ? onChanged : null,
+          isExpanded: true, // Make the dropdown take full width
+          decoration: InputDecoration(
+            labelText: label,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            // Removed prefixIcon to avoid left icon on the subcategory row
+          ),
+          selectedItemBuilder: (BuildContext context) {
+            return uniqueSubcategories.values.map<Widget>((subcategory) {
+              debugPrint(
+                  'Selected subcategory: ${subcategory.name} | imagePath: ${subcategory.imagePath}');
+              return SizedBox(
+                width:
+                    constraints.maxWidth - 100, // Account for padding and icon
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (subcategory.imagePath != null)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8.0),
+                        child: Image.asset(
+                          subcategory.imagePath!,
+                          width: 28,
+                          height: 28,
+                          errorBuilder: (context, error, stackTrace) =>
+                              const SizedBox(width: 28, height: 28),
+                        ),
+                      ),
+                    Flexible(
+                      child: Text(
+                        subcategory.name,
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList();
+          },
+          items: uniqueSubcategories.values
+              .map<DropdownMenuItem<String>>((subcategory) {
+            debugPrint(
+                'Dropdown subcategory item: ${subcategory.name} | imagePath: ${subcategory.imagePath}');
+            return DropdownMenuItem<String>(
+              value: subcategory.name,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (subcategory.imagePath != null)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8.0),
+                      child: Image.asset(
+                        subcategory.imagePath!,
+                        width: 28,
+                        height: 28,
+                        errorBuilder: (context, error, stackTrace) =>
+                            const SizedBox(width: 28, height: 28),
+                      ),
+                    ),
+                  Flexible(
+                    child: Text(
+                      subcategory.name,
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
+        );
+      },
     );
   }
-}
-
-Widget _buildDropdownField({
-  required BuildContext context,
-  required String? value,
-  required ValueChanged<String?> onChanged,
-  required List<String> items,
-  required String label,
-  required IconData icon,
-  bool enabled = true,
-}) {
-  return DropdownButtonFormField<String>(
-    value: value,
-    onChanged: enabled ? onChanged : null,
-    items: items.map((String item) {
-      return DropdownMenuItem<String>(
-        value: item,
-        child: Text(
-          item,
-          style: TextStyle(
-            color: enabled
-                ? Theme.of(context).textTheme.bodyLarge?.color
-                : Theme.of(context).hintColor,
-            fontSize: 16,
-          ),
-        ),
-      );
-    }).toList(),
-    decoration: InputDecoration(
-      labelText: label,
-      labelStyle: TextStyle(
-        color: Theme.of(context).hintColor,
-        fontSize: 14,
-      ),
-      prefixIcon: Icon(icon, color: Theme.of(context).hintColor),
-      filled: true,
-      fillColor: Theme.of(context).cardColor,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: BorderSide(
-          color: Theme.of(context).dividerColor,
-          width: 1.0,
-        ),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: BorderSide(
-          color: Theme.of(context).dividerColor,
-          width: 1.0,
-        ),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: BorderSide(
-          color: Theme.of(context).primaryColor,
-          width: 1.5,
-        ),
-      ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      floatingLabelBehavior: FloatingLabelBehavior.auto,
-    ),
-    icon: Icon(
-      Icons.arrow_drop_down,
-      color: Theme.of(context).hintColor,
-    ),
-    dropdownColor: Theme.of(context).cardColor,
-    borderRadius: BorderRadius.circular(8),
-    isExpanded: true,
-    menuMaxHeight: 300,
-    disabledHint: Text(
-      'Select ${label.toLowerCase()} first',
-      style: TextStyle(
-        color: Theme.of(context).hintColor,
-        fontSize: 16,
-      ),
-    ),
-  );
 }

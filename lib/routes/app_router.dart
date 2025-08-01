@@ -31,6 +31,11 @@ import '../services/auth_service.dart';
 final _log = Logger('AppRouter');
 
 class AppRouter {
+  // Guest/Skip Home route
+  static final GoRoute skipHomeRoute = GoRoute(
+    path: '/skip-home',
+    builder: (context, state) => const HomeScreen(),
+  );
   static final AuthService _authService = AuthService()..init();
   static final _rootNavigatorKey = GlobalKey<NavigatorState>();
   static final _shellNavigatorKey = GlobalKey<NavigatorState>();
@@ -52,31 +57,38 @@ class AppRouter {
     observers: [_RouteLogger()],
     redirect: (BuildContext context, GoRouterState state) async {
       // Skip redirection for these paths
-      final isSplash = state.uri.path == '/splash';
-      final isLanguageSelection = state.uri.path == '/language-selection';
-      final isGoogleLogin = state.uri.path == '/google-login';
-      final isWelcome = state.uri.path == '/welcome';
-      
-      if (isSplash || isLanguageSelection || isGoogleLogin || isWelcome) {
+      final allowedUnauthenticatedPaths = [
+        '/splash',
+        '/language-selection',
+        '/google-login',
+        '/welcome',
+        '/skip-home',
+      ];
+      if (allowedUnauthenticatedPaths.contains(state.uri.path)) {
         return null;
       }
-      
+
       // Check auth state
       final isLoggedIn = await _authService.isLoggedIn();
-      
+
       if (!isLoggedIn) {
-        // If not logged in, redirect to language selection
-        return '/language-selection';
+        // If not logged in, allow access to allowedUnauthenticatedPaths
+        if (allowedUnauthenticatedPaths.contains(state.uri.path)) {
+          return null;
+        }
+        // Otherwise, redirect to welcome screen (not language selection)
+        return '/welcome';
       }
-      
+
       // If user is logged in but trying to access auth screens, redirect to home
       if (_isAuthScreen(state.uri.path)) {
         return '/home';
       }
-      
+
       return null;
     },
     routes: [
+      skipHomeRoute,
       // Splash screen (initial route)
       GoRoute(
         path: '/splash',

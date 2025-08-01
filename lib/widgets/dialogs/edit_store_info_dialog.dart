@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:icar_instagram_ui/constants/app_colors.dart';
+import 'package:icar_instagram_ui/constants/filter_constants.dart';
 import 'package:icar_instagram_ui/providers/spare_parts_profile_provider.dart';
 import 'package:icar_instagram_ui/services/api/service_locator.dart';
 import 'package:icar_instagram_ui/services/api/services/spare_parts_service.dart';
@@ -25,7 +27,7 @@ class _EditStoreInfoDialogState extends ConsumerState<EditStoreInfoDialog> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _storeNameController;
   late TextEditingController _mobileController;
-  late TextEditingController _cityController;
+  String? _selectedCity;
   bool _isLoading = false;
   final SparePartsService _sparePartsService = ServiceLocator().sparePartsService;
 
@@ -34,14 +36,17 @@ class _EditStoreInfoDialogState extends ConsumerState<EditStoreInfoDialog> {
     super.initState();
     _storeNameController = TextEditingController(text: widget.initialStoreName);
     _mobileController = TextEditingController(text: widget.initialMobile);
-    _cityController = TextEditingController(text: widget.initialCity);
+    // Only set _selectedCity if the initial city is in the garageCities list
+    _selectedCity = FilterConstants.garageCities.contains(widget.initialCity) 
+        ? widget.initialCity 
+        : null;
   }
 
   @override
   void dispose() {
     _storeNameController.dispose();
     _mobileController.dispose();
-    _cityController.dispose();
+
     super.dispose();
   }
 
@@ -54,7 +59,7 @@ class _EditStoreInfoDialogState extends ConsumerState<EditStoreInfoDialog> {
       final response = await _sparePartsService.updateStoreInfo(
         storeName: _storeNameController.text.trim(),
         mobile: _mobileController.text.trim(),
-        city: _cityController.text.trim(),
+        city: _selectedCity ?? '',
       );
 
       if (response['success'] == true && mounted) {
@@ -79,9 +84,9 @@ class _EditStoreInfoDialogState extends ConsumerState<EditStoreInfoDialog> {
         // Show error message
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to update store info: ${e.toString()}'),
+            content: Text('failed_to_update_store_info'.tr(args: [e.toString()])), 
             backgroundColor: Colors.red,
-            duration: const Duration(seconds: 3),
+            duration: Duration(seconds: 3),
           ),
         );
       }
@@ -97,13 +102,13 @@ class _EditStoreInfoDialogState extends ConsumerState<EditStoreInfoDialog> {
     return Form(
       key: _formKey,
       child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+        padding: EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
-              'Edit Store Information',
+            Text(
+              'edit_store_information'.tr(),
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -111,55 +116,72 @@ class _EditStoreInfoDialogState extends ConsumerState<EditStoreInfoDialog> {
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: 24),
             _buildTextField(
               controller: _storeNameController,
-              label: 'Store Name',
+              label: 'store_name'.tr(),
               icon: Icons.store,
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
-                  return 'Please enter store name';
+                  return 'please_enter_store_name'.tr();
                 }
                 return null;
               },
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             _buildTextField(
               controller: _mobileController,
-              label: 'Mobile Number',
+              label: 'mobile_number'.tr(),
               icon: Icons.phone,
               keyboardType: TextInputType.phone,
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
-                  return 'Please enter mobile number';
+                  return 'please_enter_mobile_number'.tr();
                 }
                 return null;
               },
             ),
-            const SizedBox(height: 16),
-            _buildTextField(
-              controller: _cityController,
-              label: 'City',
-              icon: Icons.location_city,
+            SizedBox(height: 16),
+            DropdownButtonFormField<String>(
+              value: _selectedCity,
+              decoration: InputDecoration(
+                labelText: 'city'.tr(),
+                prefixIcon: Icon(Icons.location_city, color: AppColors.loginbg),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10.0),
+                ),
+                contentPadding: EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+              ),
+              items: FilterConstants.garageCities.map((String city) {
+                return DropdownMenuItem<String>(
+                  value: city,
+                  child: Text(city),
+                );
+              }).toList(),
+              onChanged: (String? newValue) {
+                setState(() {
+                  _selectedCity = newValue;
+                });
+              },
               validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Please enter city';
+                if (value == null || value.isEmpty) {
+                  return 'please_select_a_city'.tr();
                 }
                 return null;
               },
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: 24),
             Row(
               children: [
                 Expanded(
                   child: OutlinedButton(
                     onPressed: () => Navigator.of(context).pop(false),
                     style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      side: const BorderSide(color: AppColors.loginbg),
+                      padding: EdgeInsets.symmetric(vertical: 14),
+                      side: BorderSide(color: AppColors.loginbg),
                     ),
-                    child: const Text(
-                      'Cancel',
+                    child: Text(
+                      'cancel'.tr(),
                       style: TextStyle(
                         color: AppColors.loginbg,
                         fontSize: 16,
@@ -168,19 +190,19 @@ class _EditStoreInfoDialogState extends ConsumerState<EditStoreInfoDialog> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 16),
+                SizedBox(width: 16),
                 Expanded(
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _updateStoreInfo,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.loginbg,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      padding: EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(20),
                       ),
                     ),
                     child: _isLoading
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 24,
                             height: 24,
                             child: CircularProgressIndicator(
@@ -188,10 +210,11 @@ class _EditStoreInfoDialogState extends ConsumerState<EditStoreInfoDialog> {
                               strokeWidth: 2,
                             ),
                           )
-                        : const Text(
-                            'Update',
+                        : Text(
+                            'update'.tr(),
                             style: TextStyle(
                               fontSize: 16,
+                              color: Colors.white,
                               fontWeight: FontWeight.w600,
                             ),
                           ),

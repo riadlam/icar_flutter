@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:icar_instagram_ui/constants/filter_constants.dart';
 
@@ -50,7 +51,8 @@ class _TowTruckFiltersSheetState extends State<TowTruckFiltersSheet> {
             decoration: const InputDecoration(
               labelText: 'City',
               border: OutlineInputBorder(),
-              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              contentPadding:
+                  EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             ),
             items: [
               const DropdownMenuItem(
@@ -104,8 +106,8 @@ class _TowTruckFiltersSheetState extends State<TowTruckFiltersSheet> {
                     backgroundColor: Theme.of(context).primaryColor,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
-                  child: const Text(
-                    'Apply Filters',
+                  child: Text(
+                    'apply_filters'.tr(),
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 16,

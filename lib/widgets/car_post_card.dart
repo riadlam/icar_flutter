@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_image_slideshow/flutter_image_slideshow.dart';
-import 'package:go_router/go_router.dart';
+
+
 import 'package:intl/intl.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/car_post.dart';
+import '../screens/car_detail_screen.dart';
 import '../services/share_service.dart' as share_service;
 import '../services/api/services/favorite_seller_service.dart';
 import '../services/api/services/subscription_service.dart';
@@ -35,6 +36,8 @@ class CarPostCard extends StatefulWidget {
 }
 
 class _CarPostCardState extends State<CarPostCard> {
+  late final PageController _pageController;
+  int _currentPage = 0;
   late bool _isFavorite;
   bool _isLoading = false;
   final FavoriteSellerService _favoriteService = FavoriteSellerService();
@@ -47,6 +50,7 @@ class _CarPostCardState extends State<CarPostCard> {
   void initState() {
     super.initState();
     _isFavorite = widget.isFavoriteSeller; // Keep this for favorite sellers
+    _pageController = PageController();
     // _isSubscribed will be set by _checkSubscriptionStatus
     _checkFavoriteStatus();
     _checkSubscriptionStatus();
@@ -209,7 +213,21 @@ class _CarPostCardState extends State<CarPostCard> {
   }
 
   void _navigateToDetail(BuildContext context) {
-    context.go('/car-detail/${widget.post.id}', extra: widget.post);
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
+      barrierColor: Colors.black54,
+      pageBuilder: (context, _, __) {
+        return Material(
+          type: MaterialType.transparency,
+          child: Scaffold(
+            backgroundColor: Colors.transparent,
+            body: CarDetailScreen(post: widget.post),
+          ),
+        );
+      },
+    );
   }
   
   String _formatPrice(double price) {
@@ -280,34 +298,61 @@ class _CarPostCardState extends State<CarPostCard> {
                                 child: Icon(Icons.image_not_supported, size: 48, color: Colors.grey),
                               ),
                             )
-                          : ImageSlideshow(
-                              width: double.infinity,
-                              height: 280,
-                              initialPage: 0,
-                              indicatorColor: Colors.blue,
-                              indicatorBackgroundColor: Colors.grey[300],
-                              autoPlayInterval: 3,
-                              isLoop: true,
-                              children: widget.post.images
-                                  .map<Widget>((image) => Image.network(
-                                        image,
-                                        fit: BoxFit.cover,
-                                        width: double.infinity,
-                                        height: 280,
-                                        errorBuilder: (context, error, stackTrace) => Container(
-                                          color: Colors.grey[200],
-                                          child: const Icon(Icons.error_outline, color: Colors.grey, size: 48),
-                                        ),
-                                      ))
-                                  .toList(),
-                            ),
+                          : Column(
+  children: [
+    Expanded(
+      child: PageView.builder(
+        itemCount: widget.post.images.length,
+        controller: _pageController,
+        onPageChanged: (index) {
+          setState(() {
+            _currentPage = index;
+          });
+        },
+        itemBuilder: (context, index) {
+          final image = widget.post.images[index];
+          return Image.network(
+            image,
+            fit: BoxFit.cover,
+            width: double.infinity,
+            height: 280,
+            errorBuilder: (context, error, stackTrace) => Container(
+              color: Colors.grey[200],
+              child: const Icon(Icons.error_outline, color: Colors.grey, size: 48),
+            ),
+          );
+        },
+      ),
+    ),
+    if (widget.post.images.length > 1)
+      Padding(
+        padding: const EdgeInsets.only(bottom: 8.0, top: 4.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(
+            widget.post.images.length,
+            (index) => AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              margin: const EdgeInsets.symmetric(horizontal: 3),
+              width: _currentPage == index ? 10 : 7,
+              height: _currentPage == index ? 10 : 7,
+              decoration: BoxDecoration(
+                color: _currentPage == index ? Colors.blue : Colors.grey[300],
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+        ),
+      ),
+  ],
+),
                       
                       
                       // Gradient overlay at bottom for text readability
-                      Positioned(
+                      PositionedDirectional(
                         bottom: 0,
-                        left: 0,
-                        right: 0,
+                        start: 0,
+                        end: 0,
                         height: 80,
                         child: Container(
                           decoration: const BoxDecoration(
@@ -427,20 +472,7 @@ class _CarPostCardState extends State<CarPostCard> {
                                       }
                                     },
                                     itemBuilder: (BuildContext context) => [
-                                      PopupMenuItem(
-                                        value: 'favorite',
-                                        enabled: !_isLoading, // Disable if favorite action is loading
-                                        child: Row(
-                                          children: [
-                                            Icon(
-                                              _isFavorite ? Icons.star : Icons.star_border,
-                                              color: _isFavorite ? Colors.amber : Colors.grey,
-                                            ),
-                                            const SizedBox(width: 8),
-                                            Text(_isFavorite ? 'remove_from_favorite_sellers'.tr() : 'add_to_favorite_sellers'.tr()),
-                                          ],
-                                        ),
-                                      ),
+                                     
                                       PopupMenuItem(
                                         value: 'notifications',
                                         enabled: !_isSubscriptionLoading, // Disable item if subscription action is loading
@@ -510,22 +542,41 @@ class _CarPostCardState extends State<CarPostCard> {
                             ),
                           ],
                         ),
-                        // Share button
-                        GestureDetector(
-                          onTap: () => share_service.ShareService.shareCarPost(context, widget.post),
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              shape: BoxShape.circle,
+                        // Share button and posted date
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            GestureDetector(
+                              onTap: () => share_service.ShareService.shareCarPost(context, widget.post),
+                              child: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Image.asset(
+                                  'assets/images/sharebutton.webp',
+                                  width: 24,
+                                  height: 24,
+                                ),
+                              ),
                             ),
-                            child:  Image.asset(
-                              'assets/images/sharebutton.webp',
-                              width: 24,
-                              height: 24,
-                             
-                            )
-                          ),
+                            if (widget.post.createdAt != null)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4.0, right: 8.0),
+                                child: Text(
+                                  'posted_since'.tr(
+                                    namedArgs: {'date': DateFormat('y-MM-dd').format(
+                                      widget.post.createdAt!.toLocal()
+                                    )}
+                                  ),
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
                       ],
                     ),

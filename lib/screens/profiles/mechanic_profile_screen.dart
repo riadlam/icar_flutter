@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:http/http.dart' as http;
 import 'package:icar_instagram_ui/models/tow_truck_service.dart';
 import 'package:icar_instagram_ui/screens/profiles/seller_profile_screen.dart';
 import 'package:icar_instagram_ui/widgets/cards/tow_truck_service_card.dart';
@@ -252,27 +253,29 @@ class _MechanicProfileScreenState
   }
 
   Future<void> _deleteProfile(String id) async {
-    try {
-      setState(() {
-        _isLoading = true;
-        _error = '';
-      });
+    if (!mounted) return;
+    
+    setState(() {
+      _isLoading = true;
+      _error = '';
+    });
 
+    try {
       // Show confirmation dialog
       final shouldDelete = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('Delete Profile'),
-          content: const Text('Are you sure you want to delete this profile? This action cannot be undone.'),
+          title: Text('delete_profile'.tr()),
+          content: Text('delete_profile_confirmation'.tr()),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel'),
+              child: Text('cancel'.tr()),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(true),
               style: TextButton.styleFrom(foregroundColor: Colors.red),
-              child: const Text('Delete'),
+              child: Text('delete'.tr()),
             ),
           ],
         ),
@@ -289,35 +292,46 @@ class _MechanicProfileScreenState
       // Show success message
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Profile deleted successfully'),
+          SnackBar(
+            content: Text('profile_deleted_successfully'.tr()),
             backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
       
       // Refresh the list
       await _loadTowTruckProfiles();
+    } on FormatException {
+      _showError('invalid_server_response'.tr());
+    } on http.ClientException {
+      _showError('network_error'.tr());
     } catch (e) {
-      print('Error deleting profile: $e');
-      if (mounted) {
-        setState(() {
-          _error = 'Failed to delete profile: $e';
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 3),
-          ),
-        );
-      }
+      // Handle other types of errors
+      final errorMessage = e.toString().replaceAll('Exception: ', '');
+      _showError(errorMessage);
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
       }
     }
+  }
+
+  // Helper method to show error messages
+  void _showError(String message) {
+    if (!mounted) return;
+    
+    setState(() {
+      _error = message;
+    });
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 3),
+      ),
+    );
   }
 
   @override

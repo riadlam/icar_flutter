@@ -10,7 +10,9 @@ class SparePartsContent extends BaseContentWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView.builder(
+    return Directionality(
+      textDirection: TextDirection.ltr, // Force LTR direction
+      child: ListView.builder(
       padding: const EdgeInsets.all(12.0),
       itemCount: FilterConstants.sparePartsCategories.length,
       itemBuilder: (context, index) {
@@ -35,6 +37,6 @@ class SparePartsContent extends BaseContentWidget {
           ),
         );
       },
-    );
+    ));
   }
 }

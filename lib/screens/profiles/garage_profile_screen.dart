@@ -3,12 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:icar_instagram_ui/services/api/service_locator.dart';
 import 'package:icar_instagram_ui/models/garage_service.dart';
 import 'package:icar_instagram_ui/models/garage_profile.dart';
 import 'package:icar_instagram_ui/widgets/cards/garage_service_card.dart';
 import 'package:icar_instagram_ui/widgets/garage/add_garage_form_sheet.dart';
 import 'package:icar_instagram_ui/widgets/two%20truck/menu_navbar/tow_truck_navbar.dart';
 import 'package:icar_instagram_ui/providers/garage_profiles_provider.dart';
+import 'package:go_router/go_router.dart';
 
 // Extension to make it easier to create a copy of the service with updated fields
 extension GarageServiceX on GarageService {
@@ -47,6 +49,7 @@ class _GarageProfileScreenState extends ConsumerState<GarageProfileScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   
   late GarageService _currentService;
+  bool _isUpdating = false;
 
   @override
   void initState() {
@@ -79,7 +82,10 @@ Future<void> _loadProfileData() async {
       debugPrint('📦 Loaded from user_profile_data_garage_owner: $data');
 
       final decodedData = jsonDecode(data) as Map<String, dynamic>;
-      final googleEmail = prefs.getString('user_email') ?? '';
+      
+      // Get the profile ID, defaulting to 0 if not found (which will trigger creation of a new profile)
+      final profileId = decodedData['id']?.toString() ?? '0';
+      debugPrint('🔑 Loaded profile ID: $profileId');
 
       if (mounted) {
         setState(() {
@@ -87,12 +93,14 @@ Future<void> _loadProfileData() async {
               ? List<String>.from(decodedData['services'])
               : <String>[];
 
-          _currentService = _currentService.copyWith(
+          // Create a new GarageService instance with the updated data
+          _currentService = GarageService(
+            id: profileId,
             businessName: decodedData['mechanic_name']?.toString() ?? '',
             ownerName: decodedData['mechanic_name']?.toString() ?? '',
             phoneNumber: decodedData['mobile']?.toString() ?? '',
             location: decodedData['city']?.toString() ?? 'location_not_set'.tr(),
-            email: googleEmail.isNotEmpty ? googleEmail : (decodedData['email']?.toString() ?? ''),
+            imageUrl: _currentService.imageUrl, // Keep the existing image URL
             services: services,
           );
         });
@@ -156,11 +164,14 @@ Future<void> _loadProfileData() async {
   } catch (e) {
     if (mounted) {
       setState(() {
-        _currentService = _currentService.copyWith(
+        _currentService = GarageService(
+          id: _currentService.id,
           businessName: 'error_loading_profile'.tr(),
           ownerName: 'n/a'.tr(),
           phoneNumber: 'n/a'.tr(),
           location: 'please_try_again_later'.tr(),
+          imageUrl: _currentService.imageUrl,
+          services: _currentService.services,
         );
       });
     }
@@ -169,28 +180,223 @@ Future<void> _loadProfileData() async {
 }
 
 
+  Future<void> _showEditForm(GarageProfile profile) async {
+    // Don't allow opening multiple edit forms
+    if (_isUpdating) return;
+
+    debugPrint('🔄 _showEditForm called for profile ID: ${profile.id} (${profile.id.runtimeType})');
+    
+    // Store the profile ID before any async operations
+    final profileId = profile.id;
+    debugPrint('🔑 Stored profile ID for update: $profileId (${profileId.runtimeType})');
+    
+    // Validate the profile ID
+    if (profileId <= 0) {
+      debugPrint('❌ Invalid profile ID: $profileId - Must be greater than 0');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error: Invalid profile ID. Please try again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+    
+    // Convert to service for the form
+    final service = _profileToService(profile);
+    debugPrint('🔍 Converted to service with ID: ${service.id} (${service.id.runtimeType})');
+    
+    // Get the first part of the location (city) or empty string if location is empty
+    final parts = service.location.split(',');
+    final city = parts.isNotEmpty ? parts.first.trim() : '';
+    final profilesValue = ref.read(garageProfilesProvider).value;
+    final isLastProfile = profilesValue != null && profile == profilesValue.last;
+
+    // Create a GlobalKey to access the form state
+    final formKey = GlobalKey<FormState>();
+    
+    // Show the edit form
+    final result = await showModalBottomSheet<Map<String, dynamic>>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => AddGarageFormSheet(
+        key: formKey,
+        initialName: service.businessName,
+        initialCity: city,
+        initialPhone: service.phoneNumber,
+        initialServices: service.services ?? [],
+        profileId: profileId, // Pass the profileId to the form
+        onSubmit: (name, city, phone, services) {
+          // Validate the form
+          if (formKey.currentState?.validate() ?? false) {
+            // Return the form data to the caller
+            Navigator.of(context).pop({
+              'name': name,
+              'city': city,
+              'phone': phone,
+              'services': services,
+            });
+          }
+        },
+        showDeleteButton: !isLastProfile,
+        onDelete: isLastProfile
+            ? null
+            : () {
+                Navigator.of(context).pop(null); // Close with null to indicate delete
+              },
+      ),
+    );
+
+    // Handle the form submission
+    if (result == null) {
+      // Delete was requested (null is returned when delete is pressed)
+      _deleteProfile(profile);
+    } else if (result.isNotEmpty) {
+      // Update was requested - use the stored profile ID
+      debugPrint('🔄 Calling _handleUpdateService with profileId: $profileId (${profileId.runtimeType})');
+      try {
+        await _handleUpdateService(
+          profileId.toString(),  // Convert to string for consistency
+          result['name'] as String,
+          result['city'] as String,
+          result['phone'] as String,
+          (result['services'] as List).cast<String>(),
+        );
+      } catch (e) {
+        debugPrint('❌ Error in _handleUpdateService: $e');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to update profile: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
+  }
+
   Future<void> _handleUpdateService(
+    String profileId,
     String name,
     String city,
     String phone,
     List<String> services,
   ) async {
-    if (mounted) {
-      setState(() {
-        _currentService = _currentService.copyWith(
-          businessName: name,
-          services: services,
-          ownerName: name, // Using the same name for business and owner for now
-          phoneNumber: phone,
-          location: city,
+    debugPrint('🔄 _handleUpdateService called with profileId: $profileId (${profileId.runtimeType})');
+    if (!mounted || _isUpdating) return;
+
+    setState(() => _isUpdating = true);
+
+    // Get the current context before any async operations
+    final currentContext = context;
+    final router = GoRouter.of(currentContext);
+    
+    try {
+      debugPrint('🔍 Current _currentService.id: ${_currentService.id} (${_currentService.id.runtimeType})');
+      
+      // Validate the profile ID
+      if (profileId.isEmpty || profileId == '0') {
+        throw Exception('Invalid profile ID: $profileId - Cannot be empty or zero');
+      }
+      
+      // Get the garage service instance using service locator
+      final garageService = serviceLocator.garageService;
+      
+      // Parse the profile ID to int for the API call
+      debugPrint('🔍 Attempting to parse profileId: $profileId');
+      final profileIdInt = int.tryParse(profileId);
+      
+      if (profileIdInt == null) {
+        throw Exception('Invalid profile ID format: $profileId - Must be a number');
+      }
+      
+      debugPrint('✅ Successfully parsed profileIdInt: $profileIdInt (${profileIdInt.runtimeType})');
+      
+      // Log the data being sent to the API
+      debugPrint('📤 Sending update request with:');
+      debugPrint('  - ID: $profileIdInt');
+      debugPrint('  - Business Name: $name');
+      debugPrint('  - City: $city');
+      debugPrint('  - Phone: $phone');
+      debugPrint('  - Services: ${services.join(', ')}');
+      
+      // Make the API call
+      final response = await garageService.updateGarageProfile(
+        id: profileIdInt,
+        businessName: name,
+        mechanicName: name,
+        mobile: phone,
+        city: city,
+        services: services,
+      );
+
+      debugPrint('✅ API Response: $response');
+      
+      if (!mounted) return;
+      
+      // Close any open dialogs or bottom sheets safely
+      if (Navigator.of(currentContext, rootNavigator: true).canPop()) {
+        debugPrint('🔽 Closing any open dialogs or bottom sheets');
+        Navigator.of(currentContext, rootNavigator: true).pop();
+        // Wait for the navigation to complete
+        await Future.delayed(const Duration(milliseconds: 200));
+      }
+      
+      // Invalidate the provider to force a refresh
+      debugPrint('🔄 Invalidating garageProfilesProvider to refresh data');
+      ref.invalidate(garageProfilesProvider);
+      
+      // Show success message
+      if (mounted) {
+        // Use a post-frame callback to ensure the UI is stable
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          debugPrint('🎉 Showing success message');
+          // Show the success message
+          ScaffoldMessenger.of(currentContext).showSnackBar(
+            const SnackBar(
+              content: Text('Profile updated successfully'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+            ),
+          );
+          
+          // Force a refresh of the profile data
+          debugPrint('🔄 Refreshing profile data after update');
+          _loadProfileData();
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        // Show error message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to update profile: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
         );
-      });
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isUpdating = false);
+      }
     }
   }
 
   // Convert GarageProfile to GarageService for editing
   GarageService _profileToService(GarageProfile profile) {
-    return GarageService(
+    debugPrint('🔄 Converting GarageProfile to GarageService');
+    debugPrint('  - Profile ID: ${profile.id} (${profile.id.runtimeType})');
+    debugPrint('  - Business Name: ${profile.businessName}');
+    debugPrint('  - Services: ${profile.services?.join(', ') ?? 'None'}');
+    
+    final service = GarageService(
       id: profile.id.toString(),
       businessName: profile.businessName,
       ownerName: profile.mechanicName,
@@ -198,11 +404,21 @@ Future<void> _loadProfileData() async {
       location: profile.city,
       imageUrl: 'https://example.com/garage_placeholder.jpg',
       services: profile.services ?? [],
+      isFavorite: false,
+      rating: 0.0,
+      reviews: 0,
     );
+    
+    debugPrint('  - Created GarageService with ID: ${service.id} (${service.id.runtimeType})');
+    return service;
   }
 
   /// Converts a [GarageService] back to a [GarageProfile] after editing
   GarageProfile _serviceToProfile(GarageService service, GarageProfile originalProfile) {
+    debugPrint('🔄 Converting GarageService to GarageProfile');
+    debugPrint('  - Service ID: ${service.id} (${service.id.runtimeType})');
+    debugPrint('  - Original Profile ID: ${originalProfile.id} (${originalProfile.id.runtimeType})');
+    
     // Ensure we have valid values for all required fields
     final now = DateTime.now();
     final businessName = service.businessName.isEmpty ? 'No Business Name' : service.businessName;
@@ -210,8 +426,12 @@ Future<void> _loadProfileData() async {
     final phoneNumber = service.phoneNumber.isEmpty ? 'N/A' : service.phoneNumber;
     final location = service.location.isEmpty ? 'No City' : service.location;
     
-    return GarageProfile(
-      id: int.tryParse(service.id) ?? 0,
+    // Parse the ID, ensuring we don't lose it during conversion
+    final parsedId = int.tryParse(service.id) ?? originalProfile.id;
+    debugPrint('  - Parsed ID: $parsedId (${parsedId.runtimeType})');
+    
+    final profile = GarageProfile(
+      id: parsedId,
       userId: originalProfile.userId,
       businessName: businessName,
       mechanicName: mechanicName,
@@ -221,29 +441,95 @@ Future<void> _loadProfileData() async {
       createdAt: originalProfile.createdAt,
       updatedAt: now,
     );
+    
+    debugPrint('  - Created GarageProfile with ID: ${profile.id} (${profile.id.runtimeType})');
+    return profile;
   }
 
-  void _showEditForm(GarageProfile profile) {
-    final service = _profileToService(profile);
-    // Get the first part of the location (city) or empty string if location is empty
-    final city = service.location.split(',').firstOrNull?.trim() ?? '';
-
-    showModalBottomSheet(
+  Future<void> _deleteProfile(GarageProfile profile) async {
+    if (!mounted) return;
+    
+    final confirmed = await showDialog<bool>(
       context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => AddGarageFormSheet(
-        initialName: service.businessName,
-        initialCity: city,
-        initialPhone: service.phoneNumber,
-        initialServices: service.services ?? [],
-        onSubmit: (name, city, phone, services) {
-          _handleUpdateService(name, city, phone, services);
-        },
+      builder: (context) => AlertDialog(
+        title: Text('delete_profile'.tr()),
+        content: Text('delete_profile_confirmation'.tr()),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text('cancel'.tr()),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: Text('delete'.tr()),
+          ),
+        ],
       ),
     );
+
+    if (confirmed != true || !mounted) return;
+
+    // Use a local context reference
+    final currentContext = this.context;
+    final scaffoldMessenger = ScaffoldMessenger.of(currentContext);
+    
+    // Show loading indicator
+    showDialog(
+      context: currentContext,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
+    try {
+      // Call the delete API
+      final success = await serviceLocator.garageService
+          .deleteGarageProfile(profile.id.toString());
+      
+      if (!mounted) return;
+      
+      // Close loading dialog
+      Navigator.of(context, rootNavigator: true).pop();
+      
+      if (success) {
+        // Show success message
+        scaffoldMessenger.showSnackBar(
+          SnackBar(
+            content: Text('profile_deleted_successfully'.tr()),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+        
+        // Invalidate the provider to refresh the list
+        ref.invalidate(garageProfilesProvider);
+        
+        // Close the bottom sheet if it's still open
+        if (Navigator.of(currentContext).canPop()) {
+          Navigator.of(currentContext).pop();
+        }
+      } else {
+        throw Exception('Failed to delete profile');
+      }
+    } catch (e) {
+      if (!mounted) return;
+      
+      // Close loading dialog if still open
+      if (Navigator.of(currentContext, rootNavigator: true).canPop()) {
+        Navigator.of(currentContext, rootNavigator: true).pop();
+      }
+      
+      // Show error message
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Text('error_deleting_profile'.tr() + ': ${e.toString()}'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 5),
+        ),
+      );
+    }
   }
 
   @override
@@ -296,7 +582,16 @@ Future<void> _loadProfileData() async {
                                 ),
                               ),
                               builder: (context) => AddGarageFormSheet(
-                                onSubmit: _handleUpdateService,
+                                onSubmit: (name, city, phone, services) {
+                                  // When the form is submitted, call _handleUpdateService with the profile ID
+                                  return _handleUpdateService(
+                                    _currentService.id.toString(),
+                                    name,
+                                    city,
+                                    phone,
+                                    services,
+                                  );
+                                },
                               ),
                             );
                           },
@@ -312,17 +607,17 @@ Future<void> _loadProfileData() async {
                                 color: Colors.grey.shade300,
                               ),
                             ),
-                            child: const Row(
+                            child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(
+                                const Icon(
                                   Icons.add,
                                   color: Colors.blueAccent,
                                 ),
-                                SizedBox(width: 8),
+                                const SizedBox(width: 8),
                                 Text(
-                                  'Add Garage Profile',
-                                  style: TextStyle(
+                                  'add_garage_profile'.tr(),
+                                  style: const TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w500,
                                     color: Colors.blueAccent,

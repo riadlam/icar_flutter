@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:icar_instagram_ui/constants/app_colors.dart';
 import 'package:logging/logging.dart';
 import 'package:easy_localization/easy_localization.dart';
+
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_role.dart' as models;
 import '../providers/role_provider.dart';
 import '../services/auth_service.dart';
@@ -18,20 +20,28 @@ class RoleSelectionScreen extends StatefulWidget {
 }
 
 class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
+  @override
+  void initState() {
+    super.initState();
+    _setRegistrationPhaseTrue();
+  }
+
+  Future<void> _setRegistrationPhaseTrue() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('registration_phase', true);
+  }
+
   models.UserRole? _selectedRole;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
         title: Text('i_register_to'.tr()),
         centerTitle: true,
         backgroundColor: Colors.white,
         elevation: 0,
+        automaticallyImplyLeading: false, // This hides the back button
       ),
       body: Padding(
         padding: const EdgeInsets.all(24.0),
@@ -42,27 +52,28 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    _roleTile('rent_sell_car'.tr(), Icons.directions_car, models.UserRole.seller),
-                    _roleTile('spare_parts_store'.tr(), Icons.shopping_cart, models.UserRole.buyer),
-                    _roleTile('list_tow_truck'.tr(), Icons.local_shipping, models.UserRole.mechanic),
-                    _roleTile('garage'.tr(), Icons.build, models.UserRole.other),
+                    _roleTile('rent_sell_car'.tr(), Icons.directions_car,
+                        models.UserRole.buyer),
+                    _roleTile('spare_parts_store'.tr(), Icons.shopping_cart,
+                        models.UserRole.seller),
+                    _roleTile('list_tow_truck'.tr(), Icons.local_shipping,
+                        models.UserRole.mechanic),
+                    _roleTile(
+                        'garage'.tr(), Icons.build, models.UserRole.other),
                   ],
                 ),
               ),
             ),
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: Text('back'.tr()),
-                ),
                 ElevatedButton(
                   onPressed: _selectedRole == null ? null : _handleNextPressed,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.loginbg,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 32, vertical: 12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -78,10 +89,27 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
   }
 
   Widget _roleTile(String title, IconData icon, models.UserRole role) {
+    String? imagePath;
+    if (role == models.UserRole.buyer) {
+      imagePath = 'assets/images/car1.png';
+    } else if (role == models.UserRole.seller) {
+      imagePath = 'assets/images/shopcart.png';
+    } else if (role == models.UserRole.mechanic) {
+      imagePath = 'assets/images/towtruck_icon.png';
+    } else if (role == models.UserRole.other) {
+      imagePath = 'assets/images/car2.png';
+    }
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       child: ListTile(
-        leading: Icon(icon, color: AppColors.loginbg),
+        leading: imagePath != null
+            ? Image.asset(
+                imagePath,
+                width: 26,
+                height: 26,
+                color: AppColors.loginbg,
+              )
+            : null,
         title: Text(
           title,
           style: const TextStyle(fontWeight: FontWeight.w500),
@@ -138,7 +166,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
       if (mounted) {
         final container = ProviderScope.containerOf(context, listen: false);
         container.read(roleProvider.notifier).setRole(_selectedRole!);
-        
+
         // Navigate to the form screen with the selected role
         if (mounted) {
           Navigator.of(context).pop(); // Dismiss loading dialog

@@ -1,5 +1,6 @@
 import 'dart:developer';
 
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:icar_instagram_ui/constants/app_colors.dart';
 import 'package:icar_instagram_ui/widgets/car/car_form_sheet.dart';
@@ -20,31 +21,31 @@ class BuyerAddScreen extends StatefulWidget {
 class _BuyerAddScreenState extends State<BuyerAddScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final CarService _carService = serviceLocator.carService;
-  
+
   bool _isLoading = false;
   List<CarPost> _sellerCars = [];
 
   void _showAddCarForm() {
     final context = _scaffoldKey.currentContext;
     if (context == null || !context.mounted) return;
-    
+
     if (_isLoading) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please wait...')),
       );
       return;
     }
-    
+
     CarFormSheet.show(
       context,
       onSuccess: () async {
         if (!mounted) return;
         setState(() => _isLoading = true);
-        
+
         try {
           await _loadSellerCars();
           if (!mounted) return;
-          
+
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Car listed successfully!')),
           );
@@ -69,7 +70,7 @@ class _BuyerAddScreenState extends State<BuyerAddScreen> {
       },
     );
   }
-  
+
   @override
   void initState() {
     super.initState();
@@ -80,28 +81,28 @@ class _BuyerAddScreenState extends State<BuyerAddScreen> {
   // Load seller's cars from the API
   Future<void> _loadSellerCars() async {
     if (!mounted) return;
-    
+
     setState(() {
       _isLoading = true;
     });
-    
+
     final context = _scaffoldKey.currentContext;
     if (context == null) {
       setState(() => _isLoading = false);
       return;
     }
-    
 
-    
     try {
       final carsData = await _carService.getSellerCars();
       if (!mounted) return;
-      
+
       final now = DateTime.now();
       final cars = carsData.map<CarPost>((car) {
-        final carId = car['id'] is int ? car['id'] as int : int.tryParse(car['id']?.toString() ?? '0') ?? 0;
+        final carId = car['id'] is int
+            ? car['id'] as int
+            : int.tryParse(car['id']?.toString() ?? '0') ?? 0;
         final type = car['type']?.toString() == 'rent' ? 'rent' : 'sale';
-        
+
         final images = List<String>.from(car['images'] ?? []);
         return CarPost(
           id: carId.toString(),
@@ -109,92 +110,106 @@ class _BuyerAddScreenState extends State<BuyerAddScreen> {
           brand: car['brand']?.toString() ?? '',
           model: car['model']?.toString() ?? '',
           price: (car['price'] is num ? (car['price'] as num).toDouble() : 0.0),
-          mileage: car['mileage'] is int ? car['mileage'] as int : 
-                 car['mileage'] is String ? int.tryParse(car['mileage'].toString()) ?? 0 : 0,
-          year: car['year'] is int ? car['year'] as int : 
-                car['year'] is String ? int.tryParse(car['year'].toString()) ?? DateTime.now().year : DateTime.now().year,
-          transmission: car['transmission']?.toString().toLowerCase() ?? 'automatic',
+          mileage: car['mileage'] is int
+              ? car['mileage'] as int
+              : car['mileage'] is String
+                  ? int.tryParse(car['mileage'].toString()) ?? 0
+                  : 0,
+          year: car['year'] is int
+              ? car['year'] as int
+              : car['year'] is String
+                  ? int.tryParse(car['year'].toString()) ?? DateTime.now().year
+                  : DateTime.now().year,
+          transmission:
+              car['transmission']?.toString().toLowerCase() ?? 'automatic',
           fuel: car['fuel']?.toString().toLowerCase() ?? 'gasoline',
-          description: car['description']?.toString() ?? 'No description provided',
+          description:
+              car['description']?.toString() ?? 'No description provided',
           imageUrls: images,
           enabled: car['enabled'] is bool ? car['enabled'] as bool : true,
-          createdAt: car['created_at'] is String ? DateTime.tryParse(car['created_at']) ?? now : now,
-          updatedAt: car['updated_at'] is String ? DateTime.tryParse(car['updated_at']) ?? now : now,
-          isWishlisted: car['is_wishlisted'] is bool ? car['is_wishlisted'] as bool : false,
+          createdAt: car['created_at'] is String
+              ? DateTime.tryParse(car['created_at']) ?? now
+              : now,
+          updatedAt: car['updated_at'] is String
+              ? DateTime.tryParse(car['updated_at']) ?? now
+              : now,
+          isWishlisted: car['is_wishlisted'] is bool
+              ? car['is_wishlisted'] as bool
+              : false,
         );
       }).toList();
-      
+
       if (mounted) {
         setState(() {
           _sellerCars = cars;
           _isLoading = false;
         });
-        
+
         await Future.delayed(const Duration(milliseconds: 500));
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
       }
     } catch (e) {
       if (!mounted) return;
-      
+
       setState(() {
         _isLoading = false;
       });
-      
-      // Show error message
 
+      // Show error message
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-  key: _scaffoldKey,
-  appBar: TowTruckNavBar(
-    scaffoldKey: _scaffoldKey,
-    title: 'iCar',
-  ),
-  endDrawer: TowTruckNavBar.buildDrawer(context),
-  body: _isLoading
-      ? const Center(
-          child: CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(Colors.lightGreen),
-          ),
-        )
-      : Center( // Wrap the whole scrollable content in Center
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: 500, // Optional: limit width on wider screens
+      key: _scaffoldKey,
+      appBar: TowTruckNavBar(
+        scaffoldKey: _scaffoldKey,
+        title: 'iCar',
+      ),
+      endDrawer: TowTruckNavBar.buildDrawer(context),
+      body: _isLoading
+          ? const Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.lightGreen),
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  ElevatedButton(
-                    onPressed: _showAddCarForm,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.loginbg,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text(
-                      'List a Car for Sale/Rent',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
+            )
+          : Center(
+              // Wrap the whole scrollable content in Center
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16.0),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: 500, // Optional: limit width on wider screens
                   ),
-                  const SizedBox(height: 24),
-                  // Add other widgets here if needed
-                ],
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      ElevatedButton(
+                        onPressed: _showAddCarForm,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.loginbg,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: Text(
+                          'list_a_car_for_sale_rent'.tr(),
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      // Add other widgets here if needed
+                    ],
+                  ),
+                ),
               ),
             ),
-          ),
-        ),
-);
-
+    );
   }
 
   Widget _buildCarCard(CarPost car) {
@@ -220,13 +235,15 @@ class _BuyerAddScreenState extends State<BuyerAddScreen> {
       ),
       child: car.images.isNotEmpty
           ? ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(8)),
               child: Image.network(
                 car.images.first,
                 height: 200,
                 width: double.infinity,
                 fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => _buildErrorImage(),
+                errorBuilder: (context, error, stackTrace) =>
+                    _buildErrorImage(),
               ),
             )
           : _buildErrorImage(),

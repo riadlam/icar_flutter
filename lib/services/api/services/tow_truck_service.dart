@@ -154,6 +154,13 @@ class TowTruckService {
   Future<Map<String, dynamic>> deleteTowTruckProfile(String id) async {
     try {
       print('Deleting tow truck profile with ID: $id');
+      
+      // First verify we have a valid auth token
+      final token = await _storage.read(key: 'auth_token');
+      if (token == null || token.isEmpty) {
+        throw Exception('Authentication required. Please log in again.');
+      }
+      
       final headers = await _getAuthHeaders();
       final uri = Uri.parse('${ApiEndpoints.baseUrl}/api/tow-truck-profiles/$id');
       
@@ -168,17 +175,29 @@ class TowTruckService {
       print('Delete response status: ${response.statusCode}');
       print('Delete response body: ${response.body}');
 
+      final responseData = jsonDecode(response.body);
+      
       if (response.statusCode == 200) {
-        final responseData = jsonDecode(response.body);
         print('Delete successful: $responseData');
         return responseData;
+      } else if (response.statusCode == 403) {
+        // Handle 403 Forbidden specifically
+        final message = responseData['message'] ?? 'You do not have permission to delete this profile';
+        throw Exception(message);
+      } else if (response.statusCode == 401) {
+        // Handle 401 Unauthorized
+        throw Exception('Session expired. Please log in again.');
       } else {
-        final error = 'Failed to delete tow truck profile: ${response.statusCode} - ${response.body}';
-        print(error);
+        final error = responseData['message'] ?? 'Failed to delete profile';
         throw Exception(error);
       }
+    } on FormatException {
+      throw Exception('Invalid response from server');
+    } on http.ClientException catch (e) {
+      throw Exception('Network error: ${e.message}');
     } catch (e) {
-      throw Exception('Error deleting tow truck profile: $e');
+      // For any other type of error
+      throw Exception('Failed to delete profile: ${e.toString()}');
     }
   }
 }

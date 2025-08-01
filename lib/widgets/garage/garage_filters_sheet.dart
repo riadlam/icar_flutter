@@ -57,7 +57,7 @@ class _GarageFiltersSheetState extends State<GarageFiltersSheet> {
             ),
             items: [
               const DropdownMenuItem(
-                value: null,
+                  value: null,
                 child: Text('All Cities'),
               ),
               ...FilterConstants.garageCities.map((city) {

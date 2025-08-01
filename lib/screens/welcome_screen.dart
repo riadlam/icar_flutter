@@ -2,39 +2,69 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:icar_instagram_ui/constants/app_colors.dart';
+import '../providers/guest_mode_provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class WelcomeScreen extends StatelessWidget {
+
+class WelcomeScreen extends ConsumerWidget {
   const WelcomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Instagram-style logo placeholder
-                Icon(Icons.directions_car, size: 64, color: Colors.pinkAccent),
-                const SizedBox(height: 48),
-                _StyledButton(
-                  text: 'login'.tr(),
-                  onPressed: () => context.go('/google-login'),
+      body: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/images/Background.jpg'),
+            fit: BoxFit.cover,
+          ),
+        ),
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 40),
+                decoration: BoxDecoration(
+                  
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 10,
+                      spreadRadius: 2,
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 16),
-                _StyledButton(
-                  text: 'sign_up'.tr(),
-                  onPressed: () => context.go('/google-login'),
+                margin: const EdgeInsets.all(20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Instagram-style logo placeholder
+                    Image.asset(
+                      'assets/images/djawad-circle.png',
+                      width: 150,
+                      height: 150,
+                    ),
+                    const SizedBox(height: 48),
+                    _StyledButton(
+                      text: 'login'.tr(),
+                      onPressed: () => context.go('/google-login'),
+                    ),
+                    const SizedBox(height: 16),
+                    const SizedBox(height: 16),
+                    TextButton(
+                      onPressed: () {
+                        ref.read(guestModeProvider.notifier).state = true;
+                        context.go('/skip-home');
+                      },
+                      child: Text(
+                        'skip_for_now'.tr(),
+                        style: const TextStyle(color: Colors.black87),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 16),
-                TextButton(
-                  onPressed: () => context.go('/role-selection'),
-                  child: Text('skip_for_now'.tr(), style: const TextStyle(color: Colors.grey)),
-                ),
-              ],
+              ),
             ),
           ),
         ),

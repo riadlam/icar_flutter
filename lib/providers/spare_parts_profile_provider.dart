@@ -11,7 +11,7 @@ final sparePartsProfileProvider = FutureProvider<SparePartsProfile>((ref) async 
   }
 });
 
-final sellerSparePartsProvider = FutureProvider.family<List<SparePart>, int>((ref, sellerId) async {
+final sellerSparePartsProvider = FutureProvider.family<List<SparePart>, dynamic>((ref, sellerId) async {
   try {
     return await serviceLocator.sparePartsService.getSparePartsBySeller(sellerId);
   } catch (e) {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:icar_instagram_ui/models/garage_service.dart';
 import 'package:icar_instagram_ui/models/car_post.dart';
@@ -51,8 +52,8 @@ class WishlistScreen extends ConsumerWidget {
     debugPrint('Spare parts in wishlist: ${sparePartsWishlist.length}');
 
     if (!hasGarageItems && !hasTowTruckItems && !hasCarItems && !hasSparePartsItems) {
-      return const Center(
-        child: Text('Your wishlist is empty'),
+      return Center(
+        child: Text('wishlist_empty'.tr()),
       );
     }
 

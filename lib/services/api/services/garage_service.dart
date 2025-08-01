@@ -105,7 +105,7 @@ class GarageService extends BaseApiService {
       }
       
       print('2. Token found. Preparing request...');
-      final url = Uri.parse('http://192.168.1.8:8000/api/garage-profiles/create-new');
+      final url = Uri.parse('http://app.icaralgerie.com/api/garage-profiles/create-new');
       print('3. Request URL: $url');
       
       final requestBody = {
@@ -158,8 +158,17 @@ class GarageService extends BaseApiService {
       }
       
       debugPrint('2. Token found. Preparing update request...');
-      final url = Uri.parse('http://192.168.1.8:8000/api/garage-profiles/$id');
-      debugPrint('3. Update URL: $url');
+      
+      // Log the ID and its type to ensure it's correct
+      debugPrint('🔑 ID received in updateGarageProfile: $id (${id.runtimeType})');
+      
+      // Construct the URL with the ID
+      final urlString = 'http://app.icaralgerie.com/api/garage-profiles/$id';
+      debugPrint('3. Update URL: $urlString');
+      
+      // Parse the URL and verify it was parsed correctly
+      final url = Uri.parse(urlString);
+      debugPrint('   - Parsed URL: ${url.toString()}');
       
       final requestBody = {
         'business_name': businessName,
@@ -171,22 +180,28 @@ class GarageService extends BaseApiService {
       
       debugPrint('4. Request body: $requestBody');
       
+      // Log the headers being sent
+      final headers = {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      };
+      debugPrint('   - Headers: $headers');
+      
       final response = await client.put(
         url,
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
+        headers: headers,
         body: jsonEncode(requestBody),
       );
       
       debugPrint('5. Response status: ${response.statusCode}');
-      debugPrint('6. Response body: ${response.body}');
+      debugPrint('6. Response headers: ${response.headers}');
+      debugPrint('7. Response body: ${response.body}');
 
       return _handleResponse(response);
-    } catch (e) {
-      debugPrint('Error in updateGarageProfile: $e');
+    } catch (e, stackTrace) {
+      debugPrint('❌ Error in updateGarageProfile: $e');
+      debugPrint('Stack trace: $stackTrace');
       rethrow;
     }
   }
@@ -211,14 +226,13 @@ class GarageService extends BaseApiService {
       // Build query parameters
       final params = <String, String>{};
       if (city != null && city.isNotEmpty) {
-        // Convert city to lowercase to match API expectations
-        params['city'] = city.trim().toLowerCase();
+        params['city'] = city.trim();
       }
       if (service != null && service.isNotEmpty) {
-        params['service'] = service.trim();
+        params['services'] = service.trim();
       }
       
-      // Build the URL with query parameters using ApiEndpoints
+      // Build the URL with query parameters
       final endpoint = '${ApiEndpoints.baseUrl}/api/garage-profiles/all';
       final uri = Uri.parse(endpoint).replace(
         queryParameters: params.isNotEmpty ? params : null,
@@ -227,87 +241,98 @@ class GarageService extends BaseApiService {
       if (kDebugMode) {
         debugPrint('🌐 [GarageService] Request URL: $uri');
         debugPrint('🔧 [GarageService] Query parameters: $params');
-        debugPrint('🔑 [GarageService] Using base URL: ${ApiEndpoints.baseUrl}');
       }
       
-      // Add error handling for the request
-      http.Response response;
-      try {
-        response = await client.get(
-          uri,
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-          },
-        ).timeout(const Duration(seconds: 30));
-      } catch (e) {
-        debugPrint('❌ [GarageService] Network error: $e');
-        rethrow;
-      }
+      // Make the request
+      final response = await client.get(
+        uri,
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+      ).timeout(const Duration(seconds: 30));
       
       if (kDebugMode) {
         debugPrint('✅ [GarageService] API Response received');
         debugPrint('📊 [GarageService] Status code: ${response.statusCode}');
-        debugPrint('📝 [GarageService] Response headers: ${response.headers}');
-        debugPrint('📦 [GarageService] Response body: ${response.body}');
       }
       
+      final responseData = jsonDecode(response.body) as Map<String, dynamic>;
+      
       if (response.statusCode == 200) {
-        try {
-          final responseData = jsonDecode(response.body) as Map<String, dynamic>;
+        if (responseData['success'] == true) {
+          final List<dynamic> data = responseData['data'] is List ? responseData['data'] : [];
           
-          if (responseData['success'] == true) {
-            final List<dynamic> data = responseData['data'] is List ? responseData['data'] : [];
-            
-            if (kDebugMode) {
-              debugPrint('📊 [GarageService] Found ${data.length} public garage profiles');
-            }
-            
-            try {
-              final profiles = data.map<GarageProfile>((json) {
-                if (json is Map<String, dynamic>) {
-                  return GarageProfile.fromJson(json);
-                }
-                throw FormatException('Invalid profile data format: $json');
-              }).toList();
-              
-              if (kDebugMode) {
-                debugPrint('✅ [GarageService] Successfully parsed ${profiles.length} profiles');
-              }
-              
-              return profiles;
-            } catch (e, stackTrace) {
-              debugPrint('❌ [GarageService] Error parsing profiles: $e');
-              debugPrint('Stack trace: $stackTrace');
-              debugPrint('Problematic data: $data');
-              rethrow;
-            }
-          } else {
-            final errorMsg = responseData['message']?.toString() ?? 'Unknown error';
-            debugPrint('❌ [GarageService] API Error: $errorMsg');
-            debugPrint('Response data: $responseData');
-            throw Exception('Failed to load garage profiles: $errorMsg');
+          if (kDebugMode) {
+            debugPrint('📊 [GarageService] Found ${data.length} garage profiles');
           }
-        } catch (e, stackTrace) {
-          debugPrint('❌ [GarageService] Error parsing response: $e');
-          debugPrint('Response body: ${response.body}');
-          debugPrint('Stack trace: $stackTrace');
-          throw Exception('Failed to parse garage profiles response: $e');
+          
+          try {
+            return data.map<GarageProfile>((json) {
+              if (json is Map<String, dynamic>) {
+                return GarageProfile.fromJson(json);
+              }
+              throw FormatException('Invalid profile data format: $json');
+            }).toList();
+          } catch (e, stackTrace) {
+            debugPrint('❌ [GarageService] Error parsing profiles: $e');
+            debugPrint('Stack trace: $stackTrace');
+            rethrow;
+          }
+        } else {
+          final errorMsg = responseData['message'] ?? 'Unknown error';
+          throw Exception('Failed to load garage profiles: $errorMsg');
         }
       } else {
-        String errorBody = 'No response body';
-        try {
-          errorBody = response.body;
-        } catch (e) {
-          debugPrint('Failed to read error response body: $e');
-        }
-        
-        debugPrint('❌ [GarageService] Server error: ${response.statusCode}');
-        debugPrint('Error response: $errorBody');
-        throw Exception('Server error: ${response.statusCode}\n$errorBody');
+        final errorMsg = responseData['message'] ?? 'Server error: ${response.statusCode}';
+        throw Exception(errorMsg);
       }
     } catch (e, stackTrace) {
       debugPrint('❌ Error in getPublicGarageProfiles: $e');
+      debugPrint('Stack trace: $stackTrace');
+      rethrow;
+    }
+  }
+
+  Future<bool> deleteGarageProfile(String id) async {
+    try {
+      if (kDebugMode) {
+        debugPrint('🗑️ [GarageService] Deleting garage profile with ID: $id');
+      }
+      
+      final token = await storage.read(key: 'auth_token');
+      if (token == null) {
+        throw Exception('Authentication required. Please log in again.');
+      }
+      
+      final response = await client.delete(
+        Uri.parse('${ApiEndpoints.baseUrl}/api/garage-profiles/$id'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+      );
+      
+      if (kDebugMode) {
+        debugPrint('✅ [GarageService] Delete response status: ${response.statusCode}');
+        debugPrint('Response body: ${response.body}');
+      }
+      
+      final responseData = jsonDecode(response.body) as Map<String, dynamic>;
+      
+      if (response.statusCode == 200) {
+        if (responseData['success'] == true) {
+          return true;
+        } else {
+          throw Exception(responseData['message'] ?? 'Failed to delete garage profile');
+        }
+      } else {
+        final errorMsg = responseData['message'] ?? 'Failed to delete garage profile (Status: ${response.statusCode})';
+        throw Exception(errorMsg);
+      }
+    } catch (e, stackTrace) {
+      debugPrint('❌ Error in deleteGarageProfile: $e');
       debugPrint('Stack trace: $stackTrace');
       rethrow;
     }

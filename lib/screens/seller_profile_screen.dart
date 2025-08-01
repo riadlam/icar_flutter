@@ -1,11 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../models/car_post.dart';
 import 'car_detail_screen.dart';
 import '../providers/car_wishlist_provider.dart';
 
 class SellerProfileScreen extends StatelessWidget {
+  // Helper to format the time difference between createdAt and now
+  String _formatTimeAgo(DateTime? createdAt) {
+    if (createdAt == null) return '';
+    try {
+      final created = createdAt.toLocal();
+      final now = DateTime.now();
+      final diff = now.difference(created);
+      if (diff.inMinutes < 1) {
+        return 'just now';
+      } else if (diff.inMinutes < 60) {
+        return '${diff.inMinutes} minute${diff.inMinutes == 1 ? '' : 's'} ago';
+      } else if (diff.inHours < 24) {
+        return '${diff.inHours} hour${diff.inHours == 1 ? '' : 's'} ago';
+      } else if (diff.inDays < 7) {
+        return '${diff.inDays} day${diff.inDays == 1 ? '' : 's'} ago';
+      } else {
+        final weeks = (diff.inDays / 7).floor();
+        return '$weeks week${weeks == 1 ? '' : 's'} ago';
+      }
+    } catch (e) {
+      return '';
+    }
+  }
+
   final String sellerName;
   final String sellerPhone;
   final String? city;
@@ -18,6 +43,18 @@ class SellerProfileScreen extends StatelessWidget {
     this.city,
     required this.sellerCars,
   }) : super(key: key);
+
+  // Helper method to show error message
+  void _showErrorSnackBar(BuildContext context, String message) {
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -130,7 +167,7 @@ class SellerProfileScreen extends StatelessWidget {
                                 _buildInfoChip('${sellerCars.length} Cars', Icons.directions_car),
                                 const SizedBox(width: 8),
                                 _buildInfoChip(
-                                 effectiveCity!,
+                                  (effectiveCity?.isNotEmpty ?? false) ? effectiveCity! : 'Unknown City',
                                   Icons.circle,
                                   iconSize: 8,
                                   iconColor: Colors.green,
@@ -147,7 +184,15 @@ class SellerProfileScreen extends StatelessWidget {
                     children: [
                       Expanded(
                         child: ElevatedButton.icon(
-                          onPressed: () {},
+                          onPressed: () async {
+                            final phone = effectivePhone.replaceAll(RegExp(r'\s+'), '');
+                            final uri = Uri(scheme: 'tel', path: phone);
+                            if (await canLaunchUrl(uri)) {
+                              await launchUrl(uri);
+                            } else {
+                              _showErrorSnackBar(context, 'Could not launch phone app');
+                            }
+                          },
                           icon: const Icon(Icons.phone, size: 20),
                           label: Text('call'.tr()),
                           style: ElevatedButton.styleFrom(
@@ -161,7 +206,15 @@ class SellerProfileScreen extends StatelessWidget {
                       const SizedBox(width: 12),
                       Expanded(
                         child: OutlinedButton.icon(
-                          onPressed: () {},
+                          onPressed: () async {
+                            final phone = effectivePhone.replaceAll(RegExp(r'\s+'), '');
+                            final uri = Uri(scheme: 'sms', path: phone);
+                            if (await canLaunchUrl(uri)) {
+                              await launchUrl(uri);
+                            } else {
+                              _showErrorSnackBar(context, 'Could not launch SMS app');
+                            }
+                          },
                           icon: const Icon(Icons.message, size: 20),
                           label: Text('message'.tr()),
                           style: OutlinedButton.styleFrom(
@@ -314,11 +367,11 @@ class SellerProfileScreen extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                         decoration: BoxDecoration(
-                          color: index < 4 ? Colors.green : Colors.blue,
+                          color: car.type == 'sale' ? Colors.green : Colors.blue,
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
-                          index < 4 ? 'buy'.tr() : 'rent'.tr(),
+                          car.type == 'sale' ? 'buy'.tr() : 'rent'.tr(),
                           style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
@@ -334,7 +387,7 @@ class SellerProfileScreen extends StatelessWidget {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
-                          index < 4 ? 'posted_days_ago'.tr(namedArgs: {'days': '5'}) : 'posted_days_ago'.tr(namedArgs: {'days': '2'}),
+                          _formatTimeAgo(car.createdAt),
                           style: TextStyle(
                             color: Colors.black.withOpacity(0.7),
                             fontSize: 11,

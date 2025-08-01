@@ -21,9 +21,14 @@ class _MainWrapperScreenState extends State<MainWrapperScreen> {
   void _onItemTapped(int index) {
     // Don't update the selected index for the add button
     if (index == 2) {
+      // Close any open modal or sheet
+      _closeAllModals(context);
       context.go('/add');
       return;
     }
+
+    // Close any open modal or sheet before navigating
+    _closeAllModals(context);
 
     setState(() {
       _selectedNavIndex = index;
@@ -41,6 +46,13 @@ class _MainWrapperScreenState extends State<MainWrapperScreen> {
           break;
       }
     });
+  }
+
+  void _closeAllModals(BuildContext context) {
+    // Pops until only the first route remains (root)
+    while (Navigator.of(context, rootNavigator: true).canPop()) {
+      Navigator.of(context, rootNavigator: true).pop();
+    }
   }
 
 

@@ -4,17 +4,19 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:icar_instagram_ui/models/user_role.dart';
 import 'package:icar_instagram_ui/providers/role_provider.dart';
 import 'package:icar_instagram_ui/screens/add/buyer_add_screen.dart';
-import 'package:icar_instagram_ui/screens/add/seller_add_screen.dart';
 import 'package:icar_instagram_ui/screens/add/mechanic_add_screen.dart';
 import 'package:icar_instagram_ui/screens/add/garage_add_screen.dart';
+import 'package:icar_instagram_ui/screens/add/seller_add_screen.dart';
 
 class AddScreen extends ConsumerWidget {
   const AddScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    print('[AddScreen] Building AddScreen...');
     final roleAsync = ref.watch(roleProvider);
-    
+    print('[AddScreen] roleAsync value: $roleAsync');
+
     return roleAsync.when(
       data: (role) {
         // If no role is set, show message to select role first
@@ -28,17 +30,22 @@ class AddScreen extends ConsumerWidget {
             ),
           );
         }
-        
+
         // Otherwise show the appropriate add screen based on role
+        print('[AddScreen] UserRole for add: $role');
         switch (role) {
           case UserRole.buyer:
-            return const SellerAddScreen();
+            print('[AddScreen] Showing BuyerAddScreen');
+            return const BuyerAddScreen();
           case UserRole.seller:
+            print('[AddScreen] Showing SellerAddScreen');
             return const SellerAddScreen();
           case UserRole.mechanic:
-            return const MechanicAddScreen();
+            print('[AddScreen] Showing MechanicAddScreen');
+            return MechanicAddScreen();
           case UserRole.other:
-            return const GarageAddScreen();
+            print('[AddScreen] Showing GarageAddScreen');
+            return GarageAddScreen();
         }
       },
       loading: () => Scaffold(

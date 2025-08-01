@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
+import 'package:icar_instagram_ui/constants/filter_constants.dart';
 
 class AddCardFormSheet extends StatefulWidget {
   final String? initialName;
@@ -28,27 +30,27 @@ class _AddCardFormSheetState extends State<AddCardFormSheet> {
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
   late final TextEditingController _nameController;
-  late final TextEditingController _cityController;
+  String? _selectedCity;
   late final TextEditingController _phoneController;
 
   @override
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.initialName);
-    _cityController = TextEditingController(text: widget.initialCity);
+    _selectedCity = widget.initialCity; // Can be null or empty initially
     _phoneController = TextEditingController(text: widget.initialPhone);
   }
 
   @override
   void dispose() {
     _nameController.dispose();
-    _cityController.dispose();
+    // _cityController.dispose(); // No longer needed
     _phoneController.dispose();
     super.dispose();
   }
 
   String _getButtonText() {
-    return widget.initialName?.isNotEmpty == true ? 'Update' : 'Submit';
+    return widget.initialName?.isNotEmpty == true ? 'update'.tr() : 'submit'.tr();
   }
 
   Future<void> _handleSubmit() async {
@@ -61,15 +63,15 @@ class _AddCardFormSheetState extends State<AddCardFormSheet> {
     try {
       await widget.onSubmit(
         _nameController.text.trim(),
-        _cityController.text.trim(),
+        _selectedCity ?? '',
         _phoneController.text.trim(),
       );
 
       if (mounted) {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Operation completed successfully'),
+          SnackBar(
+            content: Text('operation_completed_successfully'.tr()),
             backgroundColor: Colors.green,
           ),
         );
@@ -78,7 +80,7 @@ class _AddCardFormSheetState extends State<AddCardFormSheet> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: ${e.toString()}'),
+            content: Text('error_with_reason'.tr(args: [e.toString()])),
             backgroundColor: Colors.red,
           ),
         );
@@ -124,7 +126,7 @@ class _AddCardFormSheetState extends State<AddCardFormSheet> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                widget.initialName?.isNotEmpty == true ? 'Edit Tow Truck Profile' : 'Add Tow Truck Profile',
+                widget.initialName?.isNotEmpty == true ? 'edit_tow_truck_profile'.tr() : 'add_tow_truck_profile'.tr(),
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -146,12 +148,21 @@ class _AddCardFormSheetState extends State<AddCardFormSheet> {
             const SizedBox(height: 12),
             
             // City Field
-            TextFormField(
-              controller: _cityController,
+            DropdownButtonFormField<String>(
+              value: _selectedCity?.isNotEmpty == true ? _selectedCity : null,
               decoration: inputDecoration(Icons.location_city, 'City'),
+              items: FilterConstants.garageCities.map((city) => DropdownMenuItem(
+                value: city,
+                child: Text(city),
+              )).toList(),
+              onChanged: (value) {
+                setState(() {
+                  _selectedCity = value;
+                });
+              },
               validator: (value) {
                 if (value == null || value.isEmpty) {
-                  return 'Please enter city';
+                  return 'Please select a city';
                 }
                 return null;
               },
@@ -161,11 +172,11 @@ class _AddCardFormSheetState extends State<AddCardFormSheet> {
             // Mobile Number Field
             TextFormField(
               controller: _phoneController,
-              decoration: inputDecoration(Icons.phone_android, 'Mobile Number'),
+              decoration: inputDecoration(Icons.phone_android, 'mobile_number'.tr()),
               keyboardType: TextInputType.phone,
               validator: (value) {
                 if (value == null || value.isEmpty) {
-                  return 'Please enter mobile number';
+                  return 'please_enter_mobile_number'.tr();
                 }
                 // Add more phone number validation if needed
                 return null;

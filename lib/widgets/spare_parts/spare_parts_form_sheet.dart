@@ -1,11 +1,10 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:icar_instagram_ui/constants/app_colors.dart';
 import 'package:icar_instagram_ui/providers/spare_parts_posts_provider.dart';
-import 'package:icar_instagram_ui/widgets/spare_parts/brand_dropdown.dart';
-import 'package:icar_instagram_ui/widgets/spare_parts/model_dropdown.dart';
-import 'package:icar_instagram_ui/widgets/spare_parts/category_dropdown.dart';
-import 'package:icar_instagram_ui/widgets/spare_parts/subcategory_dropdown.dart';
+import 'package:icar_instagram_ui/widgets/spare_parts/dropdown_fields.dart'
+    as dropdown_fields;
 import 'package:icar_instagram_ui/services/api/service_locator.dart';
 
 class SparePartsFormSheet extends ConsumerStatefulWidget {
@@ -25,17 +24,44 @@ class SparePartsFormSheet extends ConsumerStatefulWidget {
   }) {
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => SparePartsFormSheet(
-        onSuccess: onSuccess,
-        onError: onError,
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.7,
+      ),
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              margin: const EdgeInsets.only(top: 8, bottom: 8),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[400],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Expanded(
+              child: SparePartsFormSheet(
+                onSuccess: onSuccess,
+                onError: onError,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   @override
-  ConsumerState<SparePartsFormSheet> createState() => _SparePartsFormSheetState();
+  ConsumerState<SparePartsFormSheet> createState() =>
+      _SparePartsFormSheetState();
 }
 
 class _SparePartsFormSheetState extends ConsumerState<SparePartsFormSheet> {
@@ -46,14 +72,15 @@ class _SparePartsFormSheetState extends ConsumerState<SparePartsFormSheet> {
   String? _selectedSubcategory;
   final List<String> _selectedSubcategories = [];
   bool _isLoading = false;
+  bool _isAvailable = true;
 
   Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_selectedBrand == null || 
-        _selectedModel == null || 
-        _selectedCategory == null || 
+    if (_selectedBrand == null ||
+        _selectedModel == null ||
+        _selectedCategory == null ||
         _selectedSubcategories.isEmpty) {
-      widget.onError('Please fill in all fields and add at least one subcategory');
+      widget.onError('please_fill_all_fields_subcategory'.tr());
       return;
     }
 
@@ -65,15 +92,16 @@ class _SparePartsFormSheetState extends ConsumerState<SparePartsFormSheet> {
         model: _selectedModel!,
         spare_parts_category: _selectedCategory!,
         spare_parts_subcategories: _selectedSubcategories,
+        is_available: _isAvailable ? 1 : 0,
       );
-      
+
       if (!mounted) return;
-      
+
       // If we get here, the post was successful
       // Get the refresh provider and refresh the posts list
       final refresh = ref.read(sparePartsRefreshProvider);
       await refresh.refresh();
-      
+
       if (mounted) {
         Navigator.pop(context);
         widget.onSuccess();
@@ -98,7 +126,7 @@ class _SparePartsFormSheetState extends ConsumerState<SparePartsFormSheet> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SubcategoryDropdownField(
+        dropdown_fields.SubcategoryDropdownField(
           category: _selectedCategory,
           value: _selectedSubcategory,
           onChanged: (value) {
@@ -149,21 +177,47 @@ class _SparePartsFormSheetState extends ConsumerState<SparePartsFormSheet> {
       child: Form(
         key: _formKey,
         child: SingleChildScrollView(
+          padding: EdgeInsets.zero,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Center(
-                child: Text(
-                  'Add Spare Part',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      'list_a_spare_part'.tr(),
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
-                ),
+                  Row(
+                    children: [
+                      Text(
+                        _isAvailable ? 'available'.tr() : 'not_available'.tr(),
+                        style: TextStyle(
+                          color: _isAvailable ? Colors.green : Colors.red,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      Switch(
+                        value: _isAvailable,
+                        onChanged: (value) {
+                          setState(() {
+                            _isAvailable = value;
+                          });
+                        },
+                        activeColor: Colors.green,
+                      ),
+                    ],
+                  ),
+                ],
               ),
               const SizedBox(height: 24),
-              BrandDropdownField(
+              dropdown_fields.BrandDropdownField(
                 value: _selectedBrand,
                 onChanged: (value) {
                   setState(() {
@@ -173,7 +227,7 @@ class _SparePartsFormSheetState extends ConsumerState<SparePartsFormSheet> {
                 },
               ),
               const SizedBox(height: 16),
-              ModelDropdownField(
+              dropdown_fields.ModelDropdownField(
                 brand: _selectedBrand,
                 value: _selectedModel,
                 onChanged: (value) {
@@ -183,19 +237,20 @@ class _SparePartsFormSheetState extends ConsumerState<SparePartsFormSheet> {
                 },
               ),
               const SizedBox(height: 16),
-              CategoryDropdownField(
+              dropdown_fields.CategoryDropdownField(
                 value: _selectedCategory,
                 onChanged: (value) {
                   setState(() {
                     _selectedCategory = value;
-                  _selectedSubcategory = null;
-                  _selectedSubcategories.clear(); // Reset subcategories when category changes
+                    _selectedSubcategory =
+                        null; // Reset subcategory when category changes
+                    _selectedSubcategories.clear();
                   });
                 },
               ),
               const SizedBox(height: 16),
               _buildSubcategoryField(),
-              const SizedBox(height: 24),
+              const SizedBox(height: 50),
               ElevatedButton(
                 onPressed: _isLoading ? null : _submitForm,
                 style: ElevatedButton.styleFrom(
@@ -214,9 +269,13 @@ class _SparePartsFormSheetState extends ConsumerState<SparePartsFormSheet> {
                           strokeWidth: 2,
                         ),
                       )
-                    : const Text(
-                        'Create Spare Part Post',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold , color:Colors.white),
+                    : Text(
+                        'create_spare_part_post'.tr(),
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
                       ),
               ),
               const SizedBox(height: 16),

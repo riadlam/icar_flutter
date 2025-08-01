@@ -14,16 +14,16 @@ import 'package:icar_instagram_ui/models/car_post.dart';
 class CarService extends BaseApiService {
   final FlutterSecureStorage _storage;
   final http.Client _httpClient;
-  
+
   CarService({
     required http.Client client,
     required FlutterSecureStorage storage,
-  }) : _storage = storage,
-       _httpClient = client,
-       super(client: client, storage: storage);
+  })  : _storage = storage,
+        _httpClient = client,
+        super(client: client, storage: storage);
 
   /// Creates a new car listing
-  /// 
+  ///
   /// [type] - Type of listing ('sale' or 'rent')
   /// [brand] - Car brand
   /// [model] - Car model
@@ -52,14 +52,14 @@ class CarService extends BaseApiService {
       if (kDebugMode) {
         print('Preparing to create car listing...');
       }
-      
+
       // Create multipart request
       final uri = Uri.parse('${ApiEndpoints.baseUrl}${ApiEndpoints.cars}');
       final request = http.MultipartRequest('POST', uri);
-      
+
       // Add headers
       request.headers['Accept'] = 'application/json';
-      
+
       // Add authorization header
       final token = await _storage.read(key: 'auth_token');
       if (token != null) {
@@ -83,14 +83,14 @@ class CarService extends BaseApiService {
       for (var i = 0; i < images.length; i++) {
         final file = images[i];
         final fileExtension = file.path.split('.').last.toLowerCase();
-        final mimeType = fileExtension == 'png' 
-            ? 'image/png' 
+        final mimeType = fileExtension == 'png'
+            ? 'image/png'
             : fileExtension == 'jpg' || fileExtension == 'jpeg'
                 ? 'image/jpeg'
                 : 'image/*';
-                
+
         final multipartFile = await http.MultipartFile.fromPath(
-          'images[]',  // Note the brackets [] to match Laravel's array format
+          'images[]', // Note the brackets [] to match Laravel's array format
           file.path,
           contentType: MediaType.parse(mimeType),
         );
@@ -112,7 +112,8 @@ class CarService extends BaseApiService {
         }
         return responseData as Map<String, dynamic>;
       } else {
-        throw Exception('Failed to create car: ${response.statusCode} - ${response.body}');
+        throw Exception(
+            'Failed to create car: ${response.statusCode} - ${response.body}');
       }
     } catch (e) {
       if (kDebugMode) {
@@ -128,9 +129,9 @@ class CarService extends BaseApiService {
       if (kDebugMode) {
         print('Fetching seller cars...');
       }
-      
+
       final response = await get('${ApiEndpoints.cars}/me');
-      
+
       if (response is List) {
         return response.cast<Map<String, dynamic>>();
       } else if (response is Map<String, dynamic>) {
@@ -149,13 +150,13 @@ class CarService extends BaseApiService {
 
   /// Fetches all cars listed by the authenticated user
   /// Fetches a single car by its ID
-  /// 
+  ///
   /// [carId] - The ID of the car to fetch
   /// Returns a [CarPost] if found, throws an exception otherwise
   Future<CarPost> getCarById(int carId) async {
     try {
       final response = await get('${ApiEndpoints.cars}/$carId');
-      
+
       if (response is Map<String, dynamic>) {
         return CarPost.fromJson(response);
       } else {
@@ -169,21 +170,20 @@ class CarService extends BaseApiService {
     }
   }
 
-
   /// Fetches all cars listed by the authenticated user
   Future<List<CarPost>> getUserCars() async {
     try {
       // Get auth token from secure storage
       final token = await _storage.read(key: 'auth_token');
-      
+
       // Get user ID from SharedPreferences
       final prefs = await SharedPreferences.getInstance();
       final userId = prefs.getString('user_id');
-      
+
       if (userId == null) {
         throw Exception('User ID not found. Please log in again.');
       }
-      
+
       if (kDebugMode) {
         print('Getting cars for user ID: $userId');
       }
@@ -193,26 +193,29 @@ class CarService extends BaseApiService {
         Uri.parse('${ApiEndpoints.baseUrl}${ApiEndpoints.userCarsList}'),
         headers: {
           'Accept': 'application/json',
-          'user_id': userId,  // Add user_id to headers as per API requirement
+          'User-Id': userId, // Backend expects User-Id (capital U and I)
           if (token != null) 'Authorization': 'Bearer $token',
         },
       );
 
       if (response.statusCode == 200) {
         final responseData = json.decode(utf8.decode(response.bodyBytes));
-        
+
         if (responseData is Map && responseData['success'] == true) {
           // Handle successful response with data array
           final List<dynamic> carsData = responseData['data'] ?? [];
           return carsData.map((carJson) => CarPost.fromJson(carJson)).toList();
         } else if (responseData is List) {
           // Fallback: Handle direct array response if the API changes
-          return responseData.map((carJson) => CarPost.fromJson(carJson)).toList();
+          return responseData
+              .map((carJson) => CarPost.fromJson(carJson))
+              .toList();
         } else {
           throw Exception('Invalid response format: ${response.body}');
         }
       } else {
-        throw Exception('Failed to load cars: ${response.statusCode} - ${response.body}');
+        throw Exception(
+            'Failed to load cars: ${response.statusCode} - ${response.body}');
       }
     } on http.ClientException catch (e) {
       if (kDebugMode) {
@@ -226,27 +229,27 @@ class CarService extends BaseApiService {
       rethrow;
     }
   }
-  
+
   /// Fetches all cars listed by a specific user
   Future<List<CarPost>> getCarsByUserId(String userId) async {
     try {
       // Get the auth token from secure storage
       final token = await _storage.read(key: 'auth_token');
-      
+
       if (kDebugMode) {
         print('Getting cars for user ID: $userId');
       }
-      
+
       // Make the request using the class's http client
       final response = await _httpClient.get(
         Uri.parse('${ApiEndpoints.baseUrl}${ApiEndpoints.userCarsList}'),
         headers: {
           'Accept': 'application/json',
-          'user_id': userId,
+          'User-Id': userId, // Backend expects User-Id (capital U and I)
           if (token != null) 'Authorization': 'Bearer $token',
         },
       );
-      
+
       if (kDebugMode) {
         print('Response status: ${response.statusCode}');
         print('Response body: ${response.body}');
@@ -254,7 +257,7 @@ class CarService extends BaseApiService {
 
       if (response.statusCode == 200) {
         final responseData = json.decode(utf8.decode(response.bodyBytes));
-        
+
         if (responseData is Map && responseData['success'] == true) {
           final List<dynamic> carsData = responseData['data'] ?? [];
           return carsData.map((carJson) => CarPost.fromJson(carJson)).toList();
@@ -262,7 +265,8 @@ class CarService extends BaseApiService {
           throw Exception('Invalid response format: ${response.body}');
         }
       } else {
-        throw Exception('Failed to load user cars: ${response.statusCode} - ${response.body}');
+        throw Exception(
+            'Failed to load user cars: ${response.statusCode} - ${response.body}');
       }
     } on http.ClientException catch (e) {
       if (kDebugMode) {
@@ -276,10 +280,10 @@ class CarService extends BaseApiService {
       rethrow;
     }
   }
-  
+
   /// Fetches all cars listed by all users (public endpoint)
   /// Updates an existing car listing
-  /// 
+  ///
   /// [carId] - ID of the car to update
   /// [updates] - Map of fields to update
   /// Returns the updated CarPost
@@ -293,7 +297,7 @@ class CarService extends BaseApiService {
       if (kDebugMode) {
         print('Updating car $carId with data: $updates');
       }
-      
+
       // Get the auth token from secure storage
       final token = await _storage.read(key: 'auth_token');
       if (token == null) {
@@ -301,43 +305,44 @@ class CarService extends BaseApiService {
       }
 
       // Use POST with _method=PUT for Laravel's form method spoofing
-      final url = Uri.parse('${ApiEndpoints.baseUrl}${ApiEndpoints.cars}/$carId');
+      final url =
+          Uri.parse('${ApiEndpoints.baseUrl}${ApiEndpoints.cars}/$carId');
       final request = http.MultipartRequest('POST', url);
-      
+
       // Add headers
       request.headers['Authorization'] = 'Bearer $token';
       request.headers['Accept'] = 'application/json';
-      
+
       // Add _method=PUT for Laravel's form method spoofing
       request.fields['_method'] = 'PUT';
-      
+
       // Add all fields from updates
       updates.forEach((key, value) {
         if (value != null) {
           request.fields[key] = value.toString();
         }
       });
-      
+
       // Add new images if any
       if (newImages != null && newImages.isNotEmpty) {
         for (var i = 0; i < newImages.length; i++) {
           try {
             final image = newImages[i];
             final fileExtension = image.path.split('.').last.toLowerCase();
-            final mimeType = fileExtension == 'png' 
-                ? 'image/png' 
+            final mimeType = fileExtension == 'png'
+                ? 'image/png'
                 : fileExtension == 'jpg' || fileExtension == 'jpeg'
                     ? 'image/jpeg'
                     : 'image/*';
-                    
+
             final file = await http.MultipartFile.fromPath(
-              'images[]',  // Using images[] to match the API
+              'images[]', // Using images[] to match the API
               image.path,
               contentType: MediaType.parse(mimeType),
             );
-            
+
             request.files.add(file);
-            
+
             if (kDebugMode) {
               print('Added image ${i + 1}: ${image.path}');
               print('  - MIME type: $mimeType');
@@ -349,7 +354,7 @@ class CarService extends BaseApiService {
           }
         }
       }
-      
+
       // Send the request
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
@@ -361,14 +366,15 @@ class CarService extends BaseApiService {
 
       if (response.statusCode == 200) {
         final responseData = json.decode(utf8.decode(response.bodyBytes));
-        
+
         if (responseData is Map && responseData['success'] == true) {
           return CarPost.fromJson(responseData['data']);
         } else {
           throw Exception('Invalid response format: ${response.body}');
         }
       } else {
-        throw Exception('Failed to update car: ${response.statusCode} - ${response.body}');
+        throw Exception(
+            'Failed to update car: ${response.statusCode} - ${response.body}');
       }
     } on http.ClientException catch (e) {
       if (kDebugMode) {
@@ -384,7 +390,7 @@ class CarService extends BaseApiService {
   }
 
   /// Filters cars based on the provided criteria
-  /// 
+  ///
   /// [brand] - Filter by car brand
   /// [model] - Filter by car model
   /// [type] - Filter by listing type ('sale' or 'rent')
@@ -430,17 +436,17 @@ class CarService extends BaseApiService {
         print('  - priceMin: $priceMin');
         print('  - priceMax: $priceMax');
       }
-      
+
       // Build request body with case-insensitive matching and debug logging
       final Map<String, dynamic> requestBody = {};
-      
+
       // Add brand if provided
       if (brand != null && brand != 'all') {
         final brandValue = brand.toLowerCase();
         requestBody['brand'] = brandValue;
         if (kDebugMode) print('✅ Added brand to request: $brandValue');
       }
-      
+
       // Add model if provided
       if (model != null && model.isNotEmpty) {
         final modelValue = model.toLowerCase();
@@ -449,7 +455,7 @@ class CarService extends BaseApiService {
       } else {
         if (kDebugMode) print('ℹ️ No model provided or model is empty');
       }
-      
+
       // Add other filters
       if (type != null && type != 'all') {
         requestBody['type'] = type;
@@ -479,7 +485,7 @@ class CarService extends BaseApiService {
         requestBody['price_max'] = priceMax;
         if (kDebugMode) print('✅ Added priceMax to request: $priceMax');
       }
-      
+
       // Debug log the request body before sending
       if (kDebugMode) {
         print('📦 Final request body before encoding: $requestBody');
@@ -502,8 +508,13 @@ class CarService extends BaseApiService {
         headers.forEach((key, value) => print('│  ├─ $key: $value'));
         print('├─ Request Body:');
         final encoder = JsonEncoder.withIndent('  ');
-        print(encoder.convert(requestBody).split('\n').map((line) => '│  $line').join('\n'));
-        print('└──────────────────────────────────────────────────────────────\n');
+        print(encoder
+            .convert(requestBody)
+            .split('\n')
+            .map((line) => '│  $line')
+            .join('\n'));
+        print(
+            '└──────────────────────────────────────────────────────────────\n');
       }
 
       final response = await _httpClient.post(
@@ -516,7 +527,8 @@ class CarService extends BaseApiService {
       if (kDebugMode) {
         final responseTime = DateTime.now();
         print('\n📡 API FILTER RESPONSE');
-        print('├─ Status Code: ${response.statusCode} ${response.reasonPhrase}');
+        print(
+            '├─ Status Code: ${response.statusCode} ${response.reasonPhrase}');
         print('├─ Response Time: $responseTime');
         print('├─ Headers:');
         response.headers.forEach((key, value) => print('│  ├─ $key: $value'));
@@ -524,31 +536,39 @@ class CarService extends BaseApiService {
         try {
           final jsonResponse = json.decode(response.body);
           final encoder = JsonEncoder.withIndent('  ');
-          print(encoder.convert(jsonResponse).split('\n').map((line) => '│  $line').join('\n'));
+          print(encoder
+              .convert(jsonResponse)
+              .split('\n')
+              .map((line) => '│  $line')
+              .join('\n'));
         } catch (e) {
           print('│  ${response.body.replaceAll('\n', '\n│  ')}');
         }
-        print('└──────────────────────────────────────────────────────────────\n');
+        print(
+            '└──────────────────────────────────────────────────────────────\n');
       }
 
       // Successfully processed filterCars response logging, now checking status code
       if (response.statusCode == 200) {
-  // THIS IS THE END OF THE ORIGINAL filterCars METHOD's try block before error handling or returning
-  // The new searchCars method will be inserted AFTER the entire filterCars method.
-  // The actual insertion point will be after the closing brace of filterCars.
-  // THIS CHUNK IS JUST FOR LOCATING THE END OF filterCars.
-  // The REAL TargetContent for insertion should be the closing brace of filterCars.
+        // THIS IS THE END OF THE ORIGINAL filterCars METHOD's try block before error handling or returning
+        // The new searchCars method will be inserted AFTER the entire filterCars method.
+        // The actual insertion point will be after the closing brace of filterCars.
+        // THIS CHUNK IS JUST FOR LOCATING THE END OF filterCars.
+        // The REAL TargetContent for insertion should be the closing brace of filterCars.
 
         final responseData = json.decode(utf8.decode(response.bodyBytes));
-        
+
         if (responseData is Map && responseData['success'] == true) {
           final List<dynamic> carsData = responseData['data'] ?? [];
-          final cars = carsData.map((carJson) => CarPost.fromJson(carJson)).toList();
-          
+          final cars =
+              carsData.map((carJson) => CarPost.fromJson(carJson)).toList();
+
           if (kDebugMode) {
-            print('╔══════════════════════════════════════════════════════════════');
+            print(
+                '╔══════════════════════════════════════════════════════════════');
             print('║ 🚗 PARSED CARS DATA');
-            print('╟──────────────────────────────────────────────────────────────');
+            print(
+                '╟──────────────────────────────────────────────────────────────');
             print('║ Found ${cars.length} cars');
             if (cars.isNotEmpty) {
               print('║ First car details:');
@@ -558,9 +578,10 @@ class CarService extends BaseApiService {
               print('║   • Year: ${cars.first.year}');
               print('║   • Price: ${cars.first.price}');
             }
-            print('╚══════════════════════════════════════════════════════════════');
+            print(
+                '╚══════════════════════════════════════════════════════════════');
           }
-          
+
           return cars;
         } else {
           final errorMsg = 'Invalid response format: ${response.body}';
@@ -568,7 +589,8 @@ class CarService extends BaseApiService {
           throw Exception(errorMsg);
         }
       } else {
-        final errorMsg = 'Failed to filter cars: ${response.statusCode} - ${response.body}';
+        final errorMsg =
+            'Failed to filter cars: ${response.statusCode} - ${response.body}';
         if (kDebugMode) print('❌ $errorMsg');
         throw Exception(errorMsg);
       }
@@ -593,11 +615,13 @@ class CarService extends BaseApiService {
       }
 
       // Construct the URI with the query parameter
-      final uri = Uri.parse('${ApiEndpoints.baseUrl}${ApiEndpoints.searchCars}').replace(queryParameters: {'q': query});
+      final uri = Uri.parse('${ApiEndpoints.baseUrl}${ApiEndpoints.searchCars}')
+          .replace(queryParameters: {'q': query});
 
       final response = await _httpClient.get(
         uri,
-        headers: await getAuthHeaders(), // Assuming getAuthHeaders() is available from BaseApiService or similar
+        headers:
+            await getAuthHeaders(), // Assuming getAuthHeaders() is available from BaseApiService or similar
       );
 
       if (response.statusCode == 200) {
@@ -610,19 +634,26 @@ class CarService extends BaseApiService {
           return carsData.map((carJson) => CarPost.fromJson(carJson)).toList();
         } else {
           if (kDebugMode) {
-            print('Search response format unexpected or success false: ${response.body}');
+            print(
+                'Search response format unexpected or success false: ${response.body}');
           }
-          if (responseData is Map && responseData.containsKey('data') && responseData['data'] is List) {
-             final List<dynamic> carsData = responseData['data'];
-             return carsData.map((carJson) => CarPost.fromJson(carJson)).toList();
+          if (responseData is Map &&
+              responseData.containsKey('data') &&
+              responseData['data'] is List) {
+            final List<dynamic> carsData = responseData['data'];
+            return carsData
+                .map((carJson) => CarPost.fromJson(carJson))
+                .toList();
           }
-          return []; 
+          return [];
         }
       } else {
         if (kDebugMode) {
-          print('Failed to search cars: ${response.statusCode} - ${response.body}');
+          print(
+              'Failed to search cars: ${response.statusCode} - ${response.body}');
         }
-        throw Exception('Failed to search cars: ${response.statusCode} - ${response.body}');
+        throw Exception(
+            'Failed to search cars: ${response.statusCode} - ${response.body}');
       }
     } on http.ClientException catch (e) {
       if (kDebugMode) {
@@ -642,7 +673,7 @@ class CarService extends BaseApiService {
       if (kDebugMode) {
         print('Fetching all cars from public endpoint');
       }
-      
+
       // Make the request to the public endpoint without authentication
       final response = await _httpClient.get(
         Uri.parse('${ApiEndpoints.baseUrl}${ApiEndpoints.cars}'),
@@ -650,26 +681,45 @@ class CarService extends BaseApiService {
           'Accept': 'application/json',
         },
       );
-      
+
       if (kDebugMode) {
         print('All cars response status: ${response.statusCode}');
+        print('Response body: ${response.body}');
       }
 
       if (response.statusCode == 200) {
         final responseData = json.decode(utf8.decode(response.bodyBytes));
-        
+
         if (responseData is Map && responseData['success'] == true) {
           // Handle successful response with data array
           final List<dynamic> carsData = responseData['data'] ?? [];
+          if (kDebugMode) {
+            print('Fetched ${carsData.length} cars');
+            if (carsData.isNotEmpty) {
+              print('First car data: ${carsData[0]}');
+              print('First car created_at: ${carsData[0]['created_at']}');
+            }
+          }
           return carsData.map((carJson) => CarPost.fromJson(carJson)).toList();
         } else if (responseData is List) {
           // Fallback: Handle direct array response if the API changes
-          return responseData.map((carJson) => CarPost.fromJson(carJson)).toList();
+          if (kDebugMode) {
+            print(
+                'Fetched ${responseData.length} cars (direct array response)');
+            if (responseData.isNotEmpty) {
+              print('First car data: ${responseData[0]}');
+              print('First car created_at: ${responseData[0]['created_at']}');
+            }
+          }
+          return responseData
+              .map((carJson) => CarPost.fromJson(carJson))
+              .toList();
         } else {
           throw Exception('Invalid response format: ${response.body}');
         }
       } else {
-        throw Exception('Failed to load all cars: ${response.statusCode} - ${response.body}');
+        throw Exception(
+            'Failed to load all cars: ${response.statusCode} - ${response.body}');
       }
     } on http.ClientException catch (e) {
       if (kDebugMode) {

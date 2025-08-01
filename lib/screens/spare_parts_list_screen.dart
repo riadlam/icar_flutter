@@ -1,6 +1,10 @@
+import 'dart:async'; // For TimeoutException
+
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:icar_instagram_ui/constants/filter_constants.dart' as filter_constants;
+import 'package:icar_instagram_ui/constants/filter_constants.dart'
+    as filter_constants;
 import 'package:icar_instagram_ui/models/subcategory_model.dart';
 import 'package:icar_instagram_ui/outils/appbar_custom.dart';
 import 'package:icar_instagram_ui/providers/spare_parts_search_provider.dart';
@@ -16,7 +20,8 @@ class SparePartsListScreen extends ConsumerStatefulWidget {
   }) : super(key: key);
 
   @override
-  ConsumerState<SparePartsListScreen> createState() => _SparePartsListScreenState();
+  ConsumerState<SparePartsListScreen> createState() =>
+      _SparePartsListScreenState();
 }
 
 class _SparePartsListScreenState extends ConsumerState<SparePartsListScreen> {
@@ -26,7 +31,7 @@ class _SparePartsListScreenState extends ConsumerState<SparePartsListScreen> {
   late String subcategory;
   late String city;
   bool _isInitialized = false;
-  
+
   @override
   void initState() {
     super.initState();
@@ -49,28 +54,97 @@ class _SparePartsListScreenState extends ConsumerState<SparePartsListScreen> {
       });
     }
   }
-  
+
   Future<void> _searchSpareParts() async {
     try {
-      ref.read(sparePartsSearchProvider.notifier).update((state) => const AsyncValue.loading());
-      
-      final response = await serviceLocator.sparePartsService.searchSparePartsProfiles(
+      print('Starting spare parts search with params:');
+      print('Brand: $brand');
+      print('Model: $model');
+      print('Category: $category');
+      print('Subcategory: $subcategory');
+      print('City: $city');
+
+      ref
+          .read(sparePartsSearchProvider.notifier)
+          .update((state) => const AsyncValue.loading());
+
+      final response =
+          await serviceLocator.sparePartsService.searchSparePartsProfiles(
         brand: brand,
         model: model,
         category: category,
         subcategory: subcategory,
         city: city,
-      );
-      
+      ).timeout(const Duration(seconds: 30));
+
+      print('Search successful, received response: $response');
+
       if (mounted) {
-        ref.read(sparePartsSearchProvider.notifier).update((state) => AsyncValue.data(response));
+        ref
+            .read(sparePartsSearchProvider.notifier)
+            .update((state) => AsyncValue.data(response));
       }
-    } catch (e, stackTrace) {
+    } on TimeoutException {
+      final error = 'Request timed out. Please check your internet connection and try again.';
+      print('Search timeout: $error');
       if (mounted) {
-        ref.read(sparePartsSearchProvider.notifier).update((state) => AsyncValue.error(e, stackTrace));
+        ref
+            .read(sparePartsSearchProvider.notifier)
+            .update((state) => AsyncValue.error(error, StackTrace.current));
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Error loading spare parts')),
+            SnackBar(
+              content: Text(error),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 5),
+            ),
+          );
+        }
+      }
+    } catch (e, stackTrace) {
+      print('Error in _searchSpareParts:');
+      print('Type: ${e.runtimeType}');
+      print('Error: $e');
+      print('Stack trace: $stackTrace');
+
+      String errorMessage = 'Failed to load spare parts. Please try again.';
+      
+      // Handle specific error types
+      final errorString = e.toString();
+      
+      if (errorString.contains('SocketException') || 
+          errorString.contains('Connection closed before full header was received') ||
+          errorString.contains('Network is unreachable')) {
+        errorMessage = 'Network error. Please check your internet connection.';
+      } else if (errorString.contains('404')) {
+        errorMessage = 'No spare parts found matching your criteria.';
+      } else if (errorString.contains('401') || errorString.contains('403')) {
+        errorMessage = 'Authentication error. Please log in again.';
+      } else if (errorString.contains('500') || errorString.contains('Server error')) {
+        errorMessage = 'Server error. Please try again later.';
+      } else if (errorString.contains('FormatException')) {
+        errorMessage = 'Error parsing server response. Please try again.';
+      }
+
+      if (mounted) {
+        ref
+            .read(sparePartsSearchProvider.notifier)
+            .update((state) => AsyncValue.error(errorMessage, stackTrace));
+            
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(errorMessage),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 5),
+              action: SnackBarAction(
+                label: 'Retry',
+                textColor: Colors.white,
+                onPressed: () {
+                  _searchSpareParts();
+                },
+              ),
+            ),
           );
         }
       }
@@ -122,51 +196,65 @@ class _SparePartsListScreenState extends ConsumerState<SparePartsListScreen> {
   // Show filter bottom sheet
   void _showFilterBottomSheet() {
     // Initialize with current values or first available option
-    String selectedBrand = brand.isNotEmpty && filter_constants.brandModels.containsKey(brand)
-        ? brand
-        : (filter_constants.brandModels.isNotEmpty ? filter_constants.brandModels.keys.first : '');
-        
+    String selectedBrand =
+        brand.isNotEmpty && filter_constants.brandModels.containsKey(brand)
+            ? brand
+            : (filter_constants.brandModels.isNotEmpty
+                ? filter_constants.brandModels.keys.first
+                : '');
+
     // Get available models for the selected brand
     List<String> models = [];
-    if (selectedBrand.isNotEmpty && filter_constants.brandModels.containsKey(selectedBrand)) {
+    if (selectedBrand.isNotEmpty &&
+        filter_constants.brandModels.containsKey(selectedBrand)) {
       models = filter_constants.brandModels[selectedBrand]!.toSet().toList();
     }
-    
-    String selectedModel = models.contains(model) ? model : (models.isNotEmpty ? models.first : '');
-    
+
+    String selectedModel = models.contains(model)
+        ? model
+        : (models.isNotEmpty ? models.first : '');
+
     // Initialize city with current value or empty
     String selectedCity = city;
-    
+
     // Handle category
     String selectedCategory = category.isNotEmpty ? category : '';
-    if (selectedCategory.isEmpty && filter_constants.FilterConstants.sparePartsCategories.isNotEmpty) {
-      selectedCategory = filter_constants.FilterConstants.sparePartsCategories.first['name']?.toString() ?? '';
+    if (selectedCategory.isEmpty &&
+        filter_constants.FilterConstants.sparePartsCategories.isNotEmpty) {
+      selectedCategory = filter_constants
+              .FilterConstants.sparePartsCategories.first['name']
+              ?.toString() ??
+          '';
     }
-    
+
     // Handle subcategory
     String selectedSubcategory = subcategory;
     String? categoryId;
-    
+
     // Get subcategories for the selected category
     List<Subcategory> subcategories = [];
     if (selectedCategory.isNotEmpty) {
       try {
-        final categoryObj = filter_constants.FilterConstants.sparePartsCategories
+        final categoryObj = filter_constants
+            .FilterConstants.sparePartsCategories
             .firstWhere((cat) => cat['name'] == selectedCategory);
         categoryId = categoryObj['id'] as String?;
         if (categoryId != null) {
-          subcategories = filter_constants.FilterConstants.getSubcategories(categoryId);
+          subcategories =
+              filter_constants.FilterConstants.getSubcategories(categoryId);
         }
       } catch (e) {
         categoryId = null;
       }
     }
-    
+
     // Ensure selected subcategory is valid
     if (selectedSubcategory.isNotEmpty) {
       final subcategoryNames = subcategories.map((s) => s.name).toList();
-      if (!subcategoryNames.contains(selectedSubcategory) || subcategories.isEmpty) {
-        selectedSubcategory = subcategories.isNotEmpty ? subcategories.first.name : '';
+      if (!subcategoryNames.contains(selectedSubcategory) ||
+          subcategories.isEmpty) {
+        selectedSubcategory =
+            subcategories.isNotEmpty ? subcategories.first.name : '';
       }
     } else if (subcategories.isNotEmpty) {
       selectedSubcategory = subcategories.first.name;
@@ -221,9 +309,12 @@ class _SparePartsListScreenState extends ConsumerState<SparePartsListScreen> {
                         selectedModel = '';
                         selectedCategory = '';
                         selectedSubcategory = '';
-                        
+
                         // Update models for the selected brand
-                        models = filter_constants.brandModels[newValue]?.toSet().toList() ?? [];
+                        models = filter_constants.brandModels[newValue]
+                                ?.toSet()
+                                .toList() ??
+                            [];
                         if (models.isNotEmpty) {
                           selectedModel = models.first;
                         }
@@ -278,14 +369,16 @@ class _SparePartsListScreenState extends ConsumerState<SparePartsListScreen> {
                       setState(() {
                         selectedCategory = newValue;
                         selectedSubcategory = '';
-                        
+
                         // Update subcategories for the selected category
                         try {
-                          final categoryObj = filter_constants.FilterConstants.sparePartsCategories
+                          final categoryObj = filter_constants
+                              .FilterConstants.sparePartsCategories
                               .firstWhere((cat) => cat['name'] == newValue);
                           final catId = categoryObj['id'] as String?;
                           if (catId != null) {
-                            subcategories = filter_constants.FilterConstants.getSubcategories(catId);
+                            subcategories = filter_constants.FilterConstants
+                                .getSubcategories(catId);
                             if (subcategories.isNotEmpty) {
                               selectedSubcategory = subcategories.first.name;
                             }
@@ -299,7 +392,9 @@ class _SparePartsListScreenState extends ConsumerState<SparePartsListScreen> {
                 ),
                 _buildFilterDropdown<String>(
                   title: 'Subcategory',
-                  value: selectedSubcategory.isNotEmpty ? selectedSubcategory : null,
+                  value: selectedSubcategory.isNotEmpty
+                      ? selectedSubcategory
+                      : null,
                   items: [
                     const DropdownMenuItem<String>(
                       value: null,
@@ -331,7 +426,8 @@ class _SparePartsListScreenState extends ConsumerState<SparePartsListScreen> {
                       value: '',
                       child: Text('All Cities'),
                     ),
-                    ...filter_constants.FilterConstants.garageCities.map<DropdownMenuItem<String>>((city) {
+                    ...filter_constants.FilterConstants.garageCities
+                        .map<DropdownMenuItem<String>>((city) {
                       return DropdownMenuItem<String>(
                         value: city,
                         child: Text(city),
@@ -371,7 +467,7 @@ class _SparePartsListScreenState extends ConsumerState<SparePartsListScreen> {
                           _searchSpareParts();
                           Navigator.pop(context);
                         },
-                        child: const Text('Apply Filters'),
+                        child: Text('apply_filters'.tr()),
                       ),
                     ),
                   ],
@@ -387,24 +483,25 @@ class _SparePartsListScreenState extends ConsumerState<SparePartsListScreen> {
   @override
   Widget build(BuildContext context) {
     final searchState = ref.watch(sparePartsSearchProvider);
-    
+
     // Show loading indicator if this is the first build
     if (!_isInitialized) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       );
     }
-    
+
     // Ensure we have valid filter values
     if (brand.isEmpty && filter_constants.brandModels.isNotEmpty) {
       brand = filter_constants.brandModels.keys.first;
     }
-    
+
     // Get available models for the selected brand with null safety
-    final models = brand.isNotEmpty && filter_constants.brandModels.containsKey(brand)
-        ? filter_constants.brandModels[brand]!.toSet().toList()
-        : <String>[];
-        
+    final models =
+        brand.isNotEmpty && filter_constants.brandModels.containsKey(brand)
+            ? filter_constants.brandModels[brand]!.toSet().toList()
+            : <String>[];
+
     // Ensure model is valid
     if (model.isNotEmpty && !models.contains(model)) {
       model = models.isNotEmpty ? models.first : '';
@@ -419,7 +516,8 @@ class _SparePartsListScreenState extends ConsumerState<SparePartsListScreen> {
     } catch (e) {
       // If category is not found, try to set a default one
       if (filter_constants.FilterConstants.sparePartsCategories.isNotEmpty) {
-        final defaultCategory = filter_constants.FilterConstants.sparePartsCategories.first;
+        final defaultCategory =
+            filter_constants.FilterConstants.sparePartsCategories.first;
         category = defaultCategory['name'] ?? '';
         categoryId = defaultCategory['id'] as String?;
       } else {
@@ -430,7 +528,7 @@ class _SparePartsListScreenState extends ConsumerState<SparePartsListScreen> {
     final subcategories = categoryId != null
         ? filter_constants.FilterConstants.getSubcategories(categoryId)
         : <Subcategory>[];
-        
+
     // Ensure subcategory is valid
     if (subcategory.isNotEmpty) {
       final subcategoryNames = subcategories.map((s) => s.name).toList();
@@ -485,22 +583,26 @@ class _SparePartsListScreenState extends ConsumerState<SparePartsListScreen> {
               data: (response) {
                 if (response.profiles.isEmpty) {
                   return const Center(
-                    child: Text('No spare parts found for the selected criteria'),
+                    child:
+                        Text('No spare parts found for the selected criteria'),
                   );
                 }
-                
+
                 return ListView.builder(
-                  padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
+                  padding: const EdgeInsets.symmetric(
+                      vertical: 8.0, horizontal: 4.0),
                   itemCount: response.profiles.length,
                   itemBuilder: (context, index) {
                     final profile = response.profiles[index];
                     return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 4.0, horizontal: 8.0),
                       child: SparePartsCard(
                         partName: profile.storeName,
                         location: profile.city,
                         mobileNumber: profile.mobile,
-                        partId: '${profile.storeName}_${profile.mobile}', // Create a unique ID for wishlist
+                        partId:
+                            '${profile.storeName}_${profile.mobile}', // Create a unique ID for wishlist
                         profile: profile,
                         imageUrl: 'https://via.placeholder.com/150',
                         onTap: () {
@@ -516,7 +618,8 @@ class _SparePartsListScreenState extends ConsumerState<SparePartsListScreen> {
                                 children: [
                                   Text(
                                     'Contact Information',
-                                    style: Theme.of(context).textTheme.titleLarge,
+                                    style:
+                                        Theme.of(context).textTheme.titleLarge,
                                   ),
                                   const SizedBox(height: 16),
                                   Text('Store: ${profile.storeName}'),
@@ -535,7 +638,8 @@ class _SparePartsListScreenState extends ConsumerState<SparePartsListScreen> {
                                       icon: const Icon(Icons.phone),
                                       label: const Text('Call Now'),
                                       style: ElevatedButton.styleFrom(
-                                        padding: const EdgeInsets.symmetric(vertical: 12),
+                                        padding: const EdgeInsets.symmetric(
+                                            vertical: 12),
                                       ),
                                     ),
                                   ),

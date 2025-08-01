@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:icar_instagram_ui/models/garage_service.dart';
 import 'package:icar_instagram_ui/providers/wishlist_provider.dart';
 import 'package:icar_instagram_ui/services/share_service.dart' as share_service;
+import 'package:url_launcher/url_launcher.dart';
 
 class GarageServiceCard extends StatelessWidget {
   final GarageService service;
@@ -24,6 +25,13 @@ class GarageServiceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: _buildCardContent(context),
+    );
+  }
+
+  Widget _buildCardContent(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -59,7 +67,11 @@ class GarageServiceCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    _buildInfoRow(Icons.phone, service.phoneNumber),
+                    _buildInfoRow(
+                      Icons.phone,
+                      service.phoneNumber,
+                      onTap: () => _launchPhone(service.phoneNumber),
+                    ),
                     const SizedBox(height: 8),
                     const SizedBox(height: 8),
                     _buildInfoRow(Icons.location_on, service.location),
@@ -68,23 +80,27 @@ class GarageServiceCard extends StatelessWidget {
                       Wrap(
                         spacing: 4,
                         runSpacing: 2,
-                        children: service.services.map((service) => Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF245124).withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            service,
-                            style: const TextStyle(
-                              fontSize: 10,
-                              color: Color(0xFF245124),
-                              height: 1.2,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        )).toList(),
+                        children: service.services
+                            .map((service) => Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF245124)
+                                        .withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    service,
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                      color: Color(0xFF245124),
+                                      height: 1.2,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ))
+                            .toList(),
                       ),
                     ],
                   ],
@@ -159,15 +175,14 @@ class GarageServiceCard extends StatelessWidget {
                     top: 20,
                     child: Container(
                       padding: const EdgeInsets.all(8),
-                      child: const Icon(
-                        Icons.car_rental,
-                        size: 90,
-                        color: Colors.black,
-                      ),
+                      child:Image.asset(
+                      'assets/images/car2.png',
+                      width: 90,
+                      height: 90,
+                      fit: BoxFit.cover,
+                    ),
                     ),
                   ),
-
-                  
 
                   // Edit button
                   if (onEditPressed != null)
@@ -197,10 +212,14 @@ class GarageServiceCard extends StatelessWidget {
                       right: 8,
                       child: Consumer(
                         builder: (context, ref, _) {
-                          final isInWishlist = ref.watch(wishlistProvider).any((item) => item.id == service.id);
+                          final isInWishlist = ref
+                              .watch(wishlistProvider)
+                              .any((item) => item.id == service.id);
                           return IconButton(
                             icon: Icon(
-                              isInWishlist ? Icons.favorite : Icons.favorite_border,
+                              isInWishlist
+                                  ? Icons.favorite
+                                  : Icons.favorite_border,
                               color: isInWishlist ? Colors.red : Colors.white,
                               size: 30,
                             ),
@@ -208,40 +227,42 @@ class GarageServiceCard extends StatelessWidget {
                               if (onFavoritePressed != null) {
                                 onFavoritePressed!();
                               } else {
-                                ref.read(wishlistProvider.notifier).toggleWishlist(service);
+                                ref
+                                    .read(wishlistProvider.notifier)
+                                    .toggleWishlist(service);
                               }
                             },
                           );
                         },
                       ),
                     ),
-                    // Share button
+                  // Share button
                   if (showFavoriteButton) // Only show share button if favorite button is shown
-                  Positioned(
-                    bottom: 5,
-                    left: 70,
-                    right: 5,
-                    child: GestureDetector(
-                      onTap: () => share_service.ShareService.shareGarageProfile(context, service),
-                      child: Container(
-                        width: 30,
-                        height: 30,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                         
-                        ),
-                        child: Center(
-                          child: Image.asset(
-                            'assets/images/sharebutton.webp',
-                            width: 20,
-                            height: 20,
-                           
+                    Positioned(
+                      bottom: 5,
+                      left: 70,
+                      right: 5,
+                      child: GestureDetector(
+                        onTap: () =>
+                            share_service.ShareService.shareGarageProfile(
+                                context, service),
+                        child: Container(
+                          width: 30,
+                          height: 30,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Center(
+                            child: Image.asset(
+                              'assets/images/sharebutton.webp',
+                              width: 20,
+                              height: 20,
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
                 ],
               ),
             ),
@@ -251,8 +272,8 @@ class GarageServiceCard extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String text) {
-    return Row(
+  Widget _buildInfoRow(IconData icon, String text, {VoidCallback? onTap}) {
+    final row = Row(
       children: [
         Icon(icon, size: 16, color: const Color(0xFF245124)),
         const SizedBox(width: 8),
@@ -268,5 +289,22 @@ class GarageServiceCard extends StatelessWidget {
         ),
       ],
     );
+    if (onTap != null) {
+      return InkWell(
+        onTap: onTap,
+        child: row,
+      );
+    } else {
+      return row;
+    }
+  }
+
+  void _launchPhone(String phoneNumber) async {
+    final Uri phoneUri = Uri(scheme: 'tel', path: phoneNumber);
+    if (await canLaunchUrl(phoneUri)) {
+      await launchUrl(phoneUri);
+    } else {
+      // Optionally show an error
+    }
   }
 }

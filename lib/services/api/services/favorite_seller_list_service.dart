@@ -4,7 +4,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../../models/favorite_seller.dart';
 
 class FavoriteSellerListService {
-  final String baseUrl = 'http://192.168.1.8:8000/api';
+  final String baseUrl = 'http://app.icaralgerie.com/api';
   final _storage = const FlutterSecureStorage();
 
   Future<List<FavoriteSeller>> getFavoriteSellers() async {
